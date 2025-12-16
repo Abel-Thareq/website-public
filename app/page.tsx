@@ -1283,7 +1283,7 @@ const Footer = memo(({ themeColors, theme }: { themeColors: any, theme: Theme })
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-white">
               <Image
-                src="/logo TechMaven.png"
+                src="/TechMaven.png"
                 alt="TechMaven Logo"
                 width={40}
                 height={40}
