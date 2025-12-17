@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { UserProvider } from "./providers/userProvider";
 import { ThemeProvider } from "./providers/temaProvider";
 import "./globals.css";
+import ClientLayout from "./components/clientLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,7 +33,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           <UserProvider>
-            {children}
+            <ClientLayout>{children}</ClientLayout>
           </UserProvider>
         </ThemeProvider>
       </body>

@@ -51,7 +51,7 @@ const availableUsers: User[] = [
 ];
 
 const tabs = [
-  { id: "dashboard", name: "Dashboard", path: "/", icon: "📊" },
+  { id: "dashboard", name: "Dashboard", path: "/dashboard", icon: "📊" },
   { id: "attendance", name: "Attendance", path: "/attendance", icon: "⏰" },
   { id: "tasks", name: "Tasks", path: "/tasks", icon: "✅" },
   { id: "reports", name: "Reports", path: "/reports", icon: "📈" },
@@ -62,8 +62,11 @@ export default function NavigationBar() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSwitchAccountMode, setIsSwitchAccountMode] = useState(false);
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
   // Load user dari localStorage saat komponen mount
   useEffect(() => {
@@ -80,17 +83,29 @@ export default function NavigationBar() {
     // Listen untuk openLogin event dari page.tsx
     const handleOpenLogin = () => {
       setIsLoginOpen(true);
+      setIsSwitchAccountMode(false); // Login dari landing page
+    };
+
+    // Listen untuk userChange event
+    const handleUserChange = (event: CustomEvent) => {
+      if (event.detail === null) {
+        setCurrentUser(null);
+      } else {
+        setCurrentUser(event.detail);
+      }
     };
 
     window.addEventListener('openLogin', handleOpenLogin as EventListener);
+    window.addEventListener('userChange', handleUserChange as EventListener);
     
     return () => {
       window.removeEventListener('openLogin', handleOpenLogin as EventListener);
+      window.removeEventListener('userChange', handleUserChange as EventListener);
     };
   }, []);
 
-  // Handle login
-  const handleLogin = () => {
+  // Handle login dari landing page (redirect ke dashboard)
+  const handleLoginFromLanding = () => {
     setLoginError('');
     
     const user = availableUsers.find(
@@ -99,34 +114,97 @@ export default function NavigationBar() {
     
     if (user) {
       const { password, ...userWithoutPassword } = user;
-      setCurrentUser(userWithoutPassword as User);
+      
+      // Set loading state
+      setIsSwitchingAccount(true);
+      
+      // Save to localStorage
       localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
       
-      // Dispatch event untuk memberitahu page.tsx
-      window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
-      
+      // Close modal
       setIsLoginOpen(false);
       setCredentials({ username: '', password: '' });
-      router.refresh(); // Refresh halaman untuk update state
+      
+      // Dispatch event
+      window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
+      
+      // Force full page reload ke dashboard
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 100);
     } else {
       setLoginError('Invalid username or password');
     }
   };
 
-  // Handle logout
+  // Handle switch account - langsung pilih dari list user
+  const handleSwitchToUser = (user: User) => {
+    const { password, ...userWithoutPassword } = user;
+    
+    // Set loading state
+    setIsSwitchingAccount(true);
+    
+    // Save to localStorage
+    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+    
+    // Close modal
+    setIsLoginOpen(false);
+    setIsSwitchAccountMode(false);
+    
+    // Dispatch event
+    window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
+    
+    // Force full page reload ke dashboard untuk refresh semua data
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 100);
+  };
+
+  // Handle logout dengan full page reload
   const handleLogout = () => {
-    setCurrentUser(null);
+    setIsLoggingOut(true);
+    
+    // Clear localStorage
     localStorage.removeItem('currentUser');
+    
+    // Dispatch event
     window.dispatchEvent(new CustomEvent('userChange', { detail: null }));
-    router.push('/');
-    router.refresh(); // Refresh halaman
+    
+    // Clear state
+    setCurrentUser(null);
+    
+    // Force full page reload to home
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 100);
+  };
+
+  // Handle switch account - buka modal dengan list user
+  const handleOpenSwitchAccount = () => {
+    setIsSwitchAccountMode(true);
+    setIsLoginOpen(true);
+    setLoginError('');
+    setCredentials({ username: '', password: '' });
   };
 
   // Handle key press untuk login form
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleLogin();
+      handleLoginFromLanding();
     }
+  };
+
+  // Handle quick login by clicking user card (untuk login dari landing page)
+  const handleQuickLogin = (user: User) => {
+    setCredentials({
+      username: user.username,
+      password: user.password
+    });
+    
+    // Auto login after a short delay
+    setTimeout(() => {
+      handleLoginFromLanding();
+    }, 200);
   };
 
   return (
@@ -216,17 +294,37 @@ export default function NavigationBar() {
                         </div>
                         
                         <button 
-                          onClick={() => setIsLoginOpen(true)}
-                          className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-100"
+                          onClick={handleOpenSwitchAccount}
+                          disabled={isSwitchingAccount}
+                          className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-2 disabled:opacity-50"
                         >
-                          🔄 Switch Account
+                          {isSwitchingAccount ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              Switching...
+                            </>
+                          ) : (
+                            <>
+                              🔄 Switch Account
+                            </>
+                          )}
                         </button>
                         
                         <button 
                           onClick={handleLogout}
-                          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+                          disabled={isLoggingOut}
+                          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 disabled:opacity-50"
                         >
-                          🔐 Logout
+                          {isLoggingOut ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                              Logging out...
+                            </>
+                          ) : (
+                            <>
+                              🔐 Logout
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -235,7 +333,10 @@ export default function NavigationBar() {
               ) : (
                 /* Login Button */
                 <button
-                  onClick={() => setIsLoginOpen(true)}
+                  onClick={() => {
+                    setIsLoginOpen(true);
+                    setIsSwitchAccountMode(false);
+                  }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                 >
                   Login
@@ -276,86 +377,158 @@ export default function NavigationBar() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="p-6">
+              {/* Header berbeda untuk switch account dan login biasa */}
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Login to TechMaven</h2>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {isSwitchAccountMode ? 'Switch Account' : 'Login to TechMaven'}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {isSwitchAccountMode 
+                      ? 'Select an account to switch to' 
+                      : 'Enter your credentials or select quick login'}
+                  </p>
+                </div>
                 <button
-                  onClick={() => setIsLoginOpen(false)}
+                  onClick={() => {
+                    setIsLoginOpen(false);
+                    setIsSwitchAccountMode(false);
+                    setLoginError('');
+                    setCredentials({ username: '', password: '' });
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-full"
                 >
                   ✕
                 </button>
               </div>
 
-              {loginError && (
-                <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                  {loginError}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Username
-                  </label>
-                  <input
-                    type="text"
-                    value={credentials.username}
-                    onChange={(e) => setCredentials({...credentials, username: e.target.value})}
-                    onKeyPress={handleKeyPress}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter username"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    value={credentials.password}
-                    onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-                    onKeyPress={handleKeyPress}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter password"
-                  />
-                </div>
-
-                <button
-                  onClick={handleLogin}
-                  className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Login
-                </button>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <p className="text-sm text-gray-600 mb-3">Available Accounts:</p>
-                  <div className="space-y-2">
-                    {availableUsers.map((user) => (
+              {/* Switch Account Mode - Langsung tampilkan list user */}
+              {isSwitchAccountMode ? (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="font-medium text-blue-900">👤 Select Account</p>
+                    <p className="text-xs text-blue-700 mt-1">Click on any account to switch instantly</p>
+                  </div>
+                  
+                  {availableUsers
+                    .filter(user => user.id !== currentUser?.id) // Jangan tampilkan akun yang sedang aktif
+                    .map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                        onClick={() => setCredentials({
-                          username: user.username,
-                          password: user.password
-                        })}
+                        className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all group"
+                        onClick={() => handleSwitchToUser(user)}
                       >
-                        <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center text-white text-xs font-bold`}>
+                        <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center text-white text-lg font-bold flex-shrink-0 group-hover:scale-110 transition-transform`}>
                           {user.initials}
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">{user.name}</p>
-                          <p className="text-xs text-gray-500 capitalize">{user.role} • {user.department}</p>
+                          <p className="font-semibold text-gray-900 group-hover:text-blue-700">{user.name}</p>
+                          <p className="text-sm text-gray-500 capitalize">{user.role}</p>
+                          <p className="text-xs text-gray-400">{user.department}</p>
                         </div>
-                        <div className="text-xs text-gray-400">
-                          Click to fill
+                        <div className="text-blue-600 font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                          Switch →
                         </div>
                       </div>
                     ))}
+                  
+                  {availableUsers.filter(user => user.id !== currentUser?.id).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No other accounts available</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Login Form Mode - Untuk login dari landing page */
+                <div className="space-y-4">
+                  {loginError && (
+                    <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                      {loginError}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      value={credentials.username}
+                      onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                      onKeyPress={handleKeyPress}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter username"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      value={credentials.password}
+                      onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                      onKeyPress={handleKeyPress}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter password"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleLoginFromLanding}
+                    disabled={isSwitchingAccount}
+                    className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSwitchingAccount ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Logging in...
+                      </>
+                    ) : (
+                      'Login'
+                    )}
+                  </button>
+
+                  <div className="border-t border-gray-200 pt-4">
+                    <p className="text-sm text-gray-600 mb-3">Quick Login - Click to select:</p>
+                    <div className="space-y-2">
+                      {availableUsers.map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-all"
+                          onClick={() => handleQuickLogin(user)}
+                        >
+                          <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center text-white text-xs font-bold`}>
+                            {user.initials}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{user.name}</p>
+                            <p className="text-xs text-gray-500 capitalize">{user.role} • {user.department}</p>
+                          </div>
+                          <div className="text-xs text-blue-600 font-medium">
+                            Click to login
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay saat logout atau switch account */}
+      {(isLoggingOut || isSwitchingAccount) && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-8 shadow-2xl text-center">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-900 font-medium">
+              {isLoggingOut ? 'Logging out...' : 'Switching account...'}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">Please wait</p>
           </div>
         </div>
       )}

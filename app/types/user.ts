@@ -8,7 +8,7 @@ export interface User {
   role: UserRole;
   initials: string;
   department: string;
-  employeeCount: number;
+  employeeCount?: number;
   color: string;
   email: string;
   phone?: string;
