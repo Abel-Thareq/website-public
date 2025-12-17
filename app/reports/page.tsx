@@ -3,7 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import NavigationBar from "../components/navigationBar";
 import Link from "next/link";
-import { User, Report } from "../types/user";
+import { Report } from "../types/user";
+import { useTheme } from "../providers/temaProvider";
+import { useUser } from "../providers/userProvider";
+import { useRouter } from "next/navigation";
 
 // Icon Components
 const ChartBarIcon = () => (
@@ -25,23 +28,21 @@ const CalendarIcon = () => (
 );
 
 export default function ReportsPage() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { theme } = useTheme();
+  const { currentUser } = useUser();
+  const router = useRouter();
+  
   const [selectedReportType, setSelectedReportType] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
   const [generatingReport, setGeneratingReport] = useState<boolean>(false);
   const [reportData, setReportData] = useState<any>(null);
 
-  // Load current user
+  // Redirect ke home jika user berubah
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        setCurrentUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-      }
+    if (!currentUser) {
+      router.push('/');
     }
-  }, []);
+  }, [currentUser, router]);
 
   // Generate report data based on role
   const reportsData = useMemo(() => {
@@ -182,6 +183,33 @@ export default function ReportsPage() {
     return reports;
   }, [currentUser]);
 
+  // Theme colors berdasarkan tema
+  const themeColors = useMemo(() => {
+    return theme.isDayTime ? {
+      bg: "bg-white",
+      text: "text-gray-900",
+      textLight: "text-gray-600",
+      textLighter: "text-gray-500",
+      border: "border-gray-200",
+      borderLight: "border-gray-100",
+      bgLight: "bg-gray-50",
+      cardBg: "bg-white",
+      shadow: "shadow-sm",
+      heroOverlay: "bg-white/70"
+    } : {
+      bg: "bg-gray-900",
+      text: "text-gray-100",
+      textLight: "text-gray-300",
+      textLighter: "text-gray-400",
+      border: "border-gray-700",
+      borderLight: "border-gray-800",
+      bgLight: "bg-gray-800",
+      cardBg: "bg-gray-800",
+      shadow: "shadow-lg shadow-black/20",
+      heroOverlay: "bg-gray-900/70"
+    };
+  }, [theme.isDayTime]);
+
   // Filter reports
   const filteredReports = useMemo(() => {
     let filtered = reportsData;
@@ -258,40 +286,31 @@ export default function ReportsPage() {
   };
 
   if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <NavigationBar />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Please login to view reports</h2>
-          </div>
-        </div>
-      </div>
-    );
+    return null; // Akan di-redirect oleh useEffect
   }
 
-  // Employee tidak punya akses ke reports page
+  // Employee tidak punya akses ke reports page (berdasarkan contoh sebelumnya)
   if (currentUser.role === 'employee') {
     return (
       <>
         <div className="relative h-64 md:h-80 flex items-center justify-center bg-cover bg-center bg-no-repeat bg-fixed"
           style={{
-            backgroundImage: 'url("/background.jpg")',
+            backgroundImage: `url("${theme.backgroundImage}")`,
           }}
         >
-          <div className="absolute inset-0 bg-white/70" />
+          <div className={`absolute inset-0 ${themeColors.heroOverlay}`} />
           
           <div className="relative z-10 text-center px-4 w-full">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
+            <h1 className={`text-4xl md:text-5xl font-bold mb-4 ${themeColors.text}`}>
               Performance <span className="text-blue-600">Reports</span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto">
+            <p className={`text-lg md:text-xl ${themeColors.textLight} max-w-3xl mx-auto`}>
               Your personal performance analytics and reports
             </p>
           </div>
         </div>
 
-        <div className="min-h-screen bg-gray-50">
+        <div className={`min-h-screen ${themeColors.bg}`}>
           <NavigationBar />
           
           <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -308,20 +327,20 @@ export default function ReportsPage() {
                       <li aria-current="page">
                         <div className="flex items-center">
                           <span className="mx-2 text-gray-500">/</span>
-                          <span className="text-gray-900 font-medium">Reports</span>
+                          <span className={`${themeColors.text} font-medium`}>Reports</span>
                         </div>
                       </li>
                     </ol>
                   </nav>
                   
-                  <h2 className="text-2xl font-bold text-gray-900">My Performance Reports</h2>
-                  <p className="text-gray-600 mt-1">View your personal performance analytics</p>
+                  <h2 className={`text-2xl font-bold ${themeColors.text}`}>My Performance Reports</h2>
+                  <p className={`${themeColors.textLight} mt-1`}>View your personal performance analytics</p>
                 </div>
                 
                 <div className="flex gap-3">
                   <Link 
                     href="/"
-                    className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
                   >
                     ← Back to Dashboard
                   </Link>
@@ -330,12 +349,12 @@ export default function ReportsPage() {
             </div>
             
             {/* Employee Reports Content */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden`}>
+              <div className={`px-6 py-4 border-b ${themeColors.border} ${themeColors.bgLight}`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">My Reports</h3>
-                    <p className="text-sm text-gray-600">Access your performance reports and analytics</p>
+                    <h3 className={`text-lg font-semibold ${themeColors.text}`}>My Reports</h3>
+                    <p className={`text-sm ${themeColors.textLight}`}>Access your performance reports and analytics</p>
                   </div>
                 </div>
               </div>
@@ -343,21 +362,21 @@ export default function ReportsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                   {reportsData.map((report) => (
-                    <div key={report.id} className="border border-gray-200 rounded-lg p-6 hover:border-blue-300 transition-colors">
+                    <div key={report.id} className={`border ${themeColors.border} rounded-lg p-6 hover:border-blue-300 transition-colors`}>
                       <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-blue-50 rounded-lg">
+                        <div className={`p-3 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
                           <ChartBarIcon />
                         </div>
-                        <span className="px-3 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+                        <span className={`px-3 py-1 text-xs ${theme.isDayTime ? 'bg-gray-100 text-gray-800' : 'bg-gray-700 text-gray-300'} rounded-full`}>
                           {report.period}
                         </span>
                       </div>
                       
-                      <h4 className="text-lg font-medium text-gray-900 mb-2">{report.title}</h4>
-                      <p className="text-sm text-gray-600 mb-4">{report.summary}</p>
+                      <h4 className={`text-lg font-medium ${themeColors.text} mb-2`}>{report.title}</h4>
+                      <p className={`text-sm ${themeColors.textLight} mb-4`}>{report.summary}</p>
                       
                       <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-500">
+                        <div className={`text-sm ${themeColors.textLighter}`}>
                           Generated: {new Date(report.generatedDate).toLocaleDateString('en-US', { 
                             month: 'short', 
                             day: 'numeric',
@@ -375,12 +394,12 @@ export default function ReportsPage() {
                 
                 {/* Performance Charts untuk Employee */}
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-6">Performance Trend</h3>
+                  <div className={`${themeColors.cardBg} border ${themeColors.border} rounded-lg p-6`}>
+                    <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Performance Trend</h3>
                     <div className="h-64 flex items-end gap-4">
                       {chartData.labels.map((label, index) => (
                         <div key={label} className="flex-1 flex flex-col items-center">
-                          <div className="text-xs text-gray-500 mb-2">{label}</div>
+                          <div className={`text-xs ${themeColors.textLight} mb-2`}>{label}</div>
                           <div 
                             className="w-12 bg-blue-500 rounded-t"
                             style={{ height: `${chartData.datasets[0].data[index]}%` }}
@@ -391,23 +410,23 @@ export default function ReportsPage() {
                     </div>
                   </div>
                   
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-6">Performance Metrics</h3>
+                  <div className={`${themeColors.cardBg} border ${themeColors.border} rounded-lg p-6`}>
+                    <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Performance Metrics</h3>
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Task Completion Rate</span>
+                        <span className={`${themeColors.textLight}`}>Task Completion Rate</span>
                         <span className="font-semibold">95%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">On Time Delivery</span>
+                        <span className={`${themeColors.textLight}`}>On Time Delivery</span>
                         <span className="font-semibold text-green-600">92%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Quality Rating</span>
+                        <span className={`${themeColors.textLight}`}>Quality Rating</span>
                         <span className="font-semibold">4.7/5.0</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Peer Feedback</span>
+                        <span className={`${themeColors.textLight}`}>Peer Feedback</span>
                         <span className="font-semibold">4.9/5.0</span>
                       </div>
                     </div>
@@ -426,16 +445,16 @@ export default function ReportsPage() {
       {/* Hero Section */}
       <div className="relative h-64 md:h-80 flex items-center justify-center bg-cover bg-center bg-no-repeat bg-fixed"
         style={{
-          backgroundImage: 'url("/background.jpg")',
+          backgroundImage: `url("${theme.backgroundImage}")`,
         }}
       >
-        <div className="absolute inset-0 bg-white/70" />
+        <div className={`absolute inset-0 ${themeColors.heroOverlay}`} />
         
         <div className="relative z-10 text-center px-4 w-full">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
+          <h1 className={`text-4xl md:text-5xl font-bold mb-4 ${themeColors.text}`}>
             {currentUser.role === 'supervisor' ? 'Analytics & ' : ''}<span className="text-blue-600">Reports</span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto">
+          <p className={`text-lg md:text-xl ${themeColors.textLight} max-w-3xl mx-auto`}>
             {currentUser.role === 'supervisor' 
               ? 'Comprehensive analytics and reporting for company performance'
               : `${currentUser.department} department analytics and performance reports`}
@@ -443,7 +462,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="min-h-screen bg-gray-50">
+      <div className={`min-h-screen ${themeColors.bg}`}>
         <NavigationBar />
         
         <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -461,18 +480,18 @@ export default function ReportsPage() {
                     <li aria-current="page">
                       <div className="flex items-center">
                         <span className="mx-2 text-gray-500">/</span>
-                        <span className="text-gray-900 font-medium">Reports</span>
+                        <span className={`${themeColors.text} font-medium`}>Reports</span>
                       </div>
                     </li>
                   </ol>
                 </nav>
                 
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className={`text-2xl font-bold ${themeColors.text}`}>
                   {currentUser.role === 'supervisor' 
                     ? 'Company Analytics Dashboard'
                     : `${currentUser.department} Department Reports`}
                 </h2>
-                <p className="text-gray-600 mt-1">
+                <p className={`${themeColors.textLight} mt-1`}>
                   {currentUser.role === 'supervisor' 
                     ? 'Generate and analyze comprehensive performance reports'
                     : 'Track department performance and generate detailed reports'}
@@ -482,7 +501,7 @@ export default function ReportsPage() {
               <div className="flex flex-wrap gap-3">
                 <Link 
                   href="/"
-                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} flex items-center gap-2`}
                 >
                   ← Back to Dashboard
                 </Link>
@@ -491,15 +510,15 @@ export default function ReportsPage() {
           </div>
           
           {/* Report Generation Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Generate New Report</h3>
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8`}>
+            <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Generate New Report</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>Report Type</label>
                 <select
                   value={selectedReportType}
                   onChange={(e) => setSelectedReportType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${themeColors.bgLight} ${themeColors.text}`}
                 >
                   <option value="all">All Report Types</option>
                   <option value="performance">Performance</option>
@@ -510,11 +529,11 @@ export default function ReportsPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Time Period</label>
+                <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>Time Period</label>
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${themeColors.bgLight} ${themeColors.text}`}
                 >
                   <option value="all">All Periods</option>
                   <option value="daily">Daily</option>
@@ -565,18 +584,18 @@ export default function ReportsPage() {
           </div>
           
           {/* Available Reports */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden mb-8`}>
+            <div className={`px-6 py-4 border-b ${themeColors.border} ${themeColors.bgLight}`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Available Reports</h3>
-                  <p className="text-sm text-gray-600">
+                  <h3 className={`text-lg font-semibold ${themeColors.text}`}>Available Reports</h3>
+                  <p className={`text-sm ${themeColors.textLight}`}>
                     {currentUser.role === 'supervisor' 
                       ? 'Company-wide performance and analytics reports'
                       : `Pre-generated ${currentUser.department} department reports`}
                   </p>
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className={`text-sm ${themeColors.textLighter}`}>
                   Last updated: Today, 10:45 AM
                 </div>
               </div>
@@ -585,26 +604,28 @@ export default function ReportsPage() {
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredReports.map((report) => (
-                  <div key={report.id} className="border border-gray-200 rounded-lg p-6 hover:border-blue-300 transition-colors hover:shadow-sm">
+                  <div key={report.id} className={`border ${themeColors.border} rounded-lg p-6 hover:border-blue-300 transition-colors hover:shadow-sm`}>
                     <div className="flex items-start justify-between mb-4">
                       <div className={`p-3 rounded-lg ${
-                        report.type === 'performance' ? 'bg-blue-50' :
-                        report.type === 'attendance' ? 'bg-green-50' :
-                        report.type === 'productivity' ? 'bg-amber-50' : 'bg-purple-50'
+                        report.type === 'performance' ? theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20' :
+                        report.type === 'attendance' ? theme.isDayTime ? 'bg-green-50' : 'bg-green-900/20' :
+                        report.type === 'productivity' ? theme.isDayTime ? 'bg-amber-50' : 'bg-amber-900/20' : 
+                        theme.isDayTime ? 'bg-purple-50' : 'bg-purple-900/20'
                       }`}>
                         <ChartBarIcon />
                       </div>
                       <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                        report.type === 'performance' ? 'bg-blue-100 text-blue-800' :
-                        report.type === 'attendance' ? 'bg-green-100 text-green-800' :
-                        report.type === 'productivity' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
+                        report.type === 'performance' ? theme.isDayTime ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/30 text-blue-300' :
+                        report.type === 'attendance' ? theme.isDayTime ? 'bg-green-100 text-green-800' : 'bg-green-900/30 text-green-300' :
+                        report.type === 'productivity' ? theme.isDayTime ? 'bg-amber-100 text-amber-800' : 'bg-amber-900/30 text-amber-300' : 
+                        theme.isDayTime ? 'bg-purple-100 text-purple-800' : 'bg-purple-900/30 text-purple-300'
                       }`}>
                         {report.type}
                       </span>
                     </div>
                     
-                    <h4 className="text-lg font-medium text-gray-900 mb-2">{report.title}</h4>
-                    <p className="text-sm text-gray-600 mb-4">{report.summary}</p>
+                    <h4 className={`text-lg font-medium ${themeColors.text} mb-2`}>{report.title}</h4>
+                    <p className={`text-sm ${themeColors.textLight} mb-4`}>{report.summary}</p>
                     
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -629,21 +650,21 @@ export default function ReportsPage() {
                   <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <h3 className="mt-4 text-lg font-medium text-gray-900">No reports found</h3>
-                  <p className="mt-1 text-gray-500">Try adjusting your filters or generate a new report</p>
+                  <h3 className={`mt-4 text-lg font-medium ${themeColors.text}`}>No reports found</h3>
+                  <p className={`mt-1 ${themeColors.textLight}`}>Try adjusting your filters or generate a new report</p>
                 </div>
               )}
             </div>
           </div>
           
           {/* Analytics Dashboard */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Analytics Dashboard</h3>
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8`}>
+            <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Analytics Dashboard</h3>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Performance Chart */}
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-4">
+                <h4 className={`text-sm font-medium ${themeColors.textLight} mb-4`}>
                   {currentUser.role === 'supervisor' 
                     ? 'Company Performance Trend'
                     : `${currentUser.department} Performance Trend`}
@@ -651,7 +672,7 @@ export default function ReportsPage() {
                 <div className="h-64 flex items-end gap-4">
                   {chartData.labels.map((label, index) => (
                     <div key={label} className="flex-1 flex flex-col items-center">
-                      <div className="text-xs text-gray-500 mb-2">{label}</div>
+                      <div className={`text-xs ${themeColors.textLight} mb-2`}>{label}</div>
                       <div 
                         className={`w-12 rounded-t ${
                           currentUser.role === 'supervisor' ? 'bg-blue-500' :
@@ -670,43 +691,43 @@ export default function ReportsPage() {
               
               {/* Key Metrics */}
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-4">Key Performance Indicators</h4>
+                <h4 className={`text-sm font-medium ${themeColors.textLight} mb-4`}>Key Performance Indicators</h4>
                 <div className="space-y-4">
                   {currentUser.role === 'supervisor' ? (
                     <>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Overall Performance</span>
+                        <span className={`${themeColors.textLight}`}>Overall Performance</span>
                         <span className="font-semibold">87.5%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Attendance Rate</span>
+                        <span className={`${themeColors.textLight}`}>Attendance Rate</span>
                         <span className="font-semibold text-green-600">89%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Task Completion</span>
+                        <span className={`${themeColors.textLight}`}>Task Completion</span>
                         <span className="font-semibold">85.2%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Employee Satisfaction</span>
+                        <span className={`${themeColors.textLight}`}>Employee Satisfaction</span>
                         <span className="font-semibold">4.2/5.0</span>
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Department Performance</span>
+                        <span className={`${themeColors.textLight}`}>Department Performance</span>
                         <span className="font-semibold">91.2%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">On Time Delivery</span>
+                        <span className={`${themeColors.textLight}`}>On Time Delivery</span>
                         <span className="font-semibold text-green-600">94%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Code Quality</span>
+                        <span className={`${themeColors.textLight}`}>Code Quality</span>
                         <span className="font-semibold">4.8/5.0</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Team Collaboration</span>
+                        <span className={`${themeColors.textLight}`}>Team Collaboration</span>
                         <span className="font-semibold">4.7/5.0</span>
                       </div>
                     </>
@@ -717,33 +738,33 @@ export default function ReportsPage() {
           </div>
           
           {/* Quick Export Options */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Export Options</h3>
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
+            <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Export Options</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between">
+              <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left flex items-center justify-between`}>
                 <div>
-                  <div className="font-medium text-gray-900">Export as PDF</div>
-                  <div className="text-sm text-gray-600 mt-1">Generate downloadable PDF report</div>
+                  <div className={`font-medium ${themeColors.text}`}>Export as PDF</div>
+                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Generate downloadable PDF report</div>
                 </div>
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </button>
               
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between">
+              <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left flex items-center justify-between`}>
                 <div>
-                  <div className="font-medium text-gray-900">Export as Excel</div>
-                  <div className="text-sm text-gray-600 mt-1">Download data in Excel format</div>
+                  <div className={`font-medium ${themeColors.text}`}>Export as Excel</div>
+                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Download data in Excel format</div>
                 </div>
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </button>
               
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between">
+              <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left flex items-center justify-between`}>
                 <div>
-                  <div className="font-medium text-gray-900">Share Dashboard</div>
-                  <div className="text-sm text-gray-600 mt-1">Share live dashboard with stakeholders</div>
+                  <div className={`font-medium ${themeColors.text}`}>Share Dashboard</div>
+                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Share live dashboard with stakeholders</div>
                 </div>
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />

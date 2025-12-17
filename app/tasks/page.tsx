@@ -3,7 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import NavigationBar from "../components/navigationBar";
 import Link from "next/link";
-import { User, Task } from "../types/user";
+import { Task } from "../types/user";
+import { useTheme } from "../providers/temaProvider";
+import { useUser } from "../providers/userProvider";
+import { useRouter } from "next/navigation";
 
 // Icon Components
 const CheckCircleIcon = () => (
@@ -31,24 +34,22 @@ const UserIcon = () => (
 );
 
 export default function TasksPage() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { theme } = useTheme();
+  const { currentUser } = useUser();
+  const router = useRouter();
+  
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [selectedPriority, setSelectedPriority] = useState<string>("all");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Load current user
+  // Redirect ke home jika user berubah
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        setCurrentUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-      }
+    if (!currentUser) {
+      router.push('/');
     }
-  }, []);
+  }, [currentUser, router]);
 
   // Generate tasks data berdasarkan role
   const tasksData = useMemo(() => {
@@ -59,7 +60,6 @@ export default function TasksPage() {
     if (currentUser.role === 'employee') {
       // Data untuk employee (John Doe)
       const employeeTasks = [
-        // Current tasks (dari dashboard)
         {
           id: 1,
           title: "Fix Login Bug",
@@ -119,7 +119,6 @@ export default function TasksPage() {
           tags: ["Code Review"],
           comments: []
         },
-        // Historical tasks
         {
           id: 4,
           title: "Implement User Dashboard",
@@ -288,6 +287,33 @@ export default function TasksPage() {
     return tasks;
   }, [currentUser]);
 
+  // Theme colors berdasarkan tema
+  const themeColors = useMemo(() => {
+    return theme.isDayTime ? {
+      bg: "bg-white",
+      text: "text-gray-900",
+      textLight: "text-gray-600",
+      textLighter: "text-gray-500",
+      border: "border-gray-200",
+      borderLight: "border-gray-100",
+      bgLight: "bg-gray-50",
+      cardBg: "bg-white",
+      shadow: "shadow-sm",
+      heroOverlay: "bg-white/70"
+    } : {
+      bg: "bg-gray-900",
+      text: "text-gray-100",
+      textLight: "text-gray-300",
+      textLighter: "text-gray-400",
+      border: "border-gray-700",
+      borderLight: "border-gray-800",
+      bgLight: "bg-gray-800",
+      cardBg: "bg-gray-800",
+      shadow: "shadow-lg shadow-black/20",
+      heroOverlay: "bg-gray-900/70"
+    };
+  }, [theme.isDayTime]);
+
   // Filter tasks
   const filteredTasks = useMemo(() => {
     let filtered = tasksData;
@@ -334,23 +360,8 @@ export default function TasksPage() {
     return { total, completed, inProgress, pending, overdue };
   }, [tasksData]);
 
-  // Departments untuk filter (hanya untuk supervisor)
-  const departments = useMemo(() => {
-    if (currentUser?.role !== 'supervisor') return [];
-    return ['All Departments', 'Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'];
-  }, [currentUser]);
-
   if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <NavigationBar />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Please login to view tasks</h2>
-          </div>
-        </div>
-      </div>
-    );
+    return null; // Akan di-redirect oleh useEffect
   }
 
   return (
@@ -358,16 +369,16 @@ export default function TasksPage() {
       {/* Hero Section */}
       <div className="relative h-64 md:h-80 flex items-center justify-center bg-cover bg-center bg-no-repeat bg-fixed"
         style={{
-          backgroundImage: 'url("/background.jpg")',
+          backgroundImage: `url("${theme.backgroundImage}")`,
         }}
       >
-        <div className="absolute inset-0 bg-white/70" />
+        <div className={`absolute inset-0 ${themeColors.heroOverlay}`} />
         
         <div className="relative z-10 text-center px-4 w-full">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
+          <h1 className={`text-4xl md:text-5xl font-bold mb-4 ${themeColors.text}`}>
             {currentUser.role === 'employee' ? 'My ' : ''}Task <span className="text-blue-600">Management</span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto">
+          <p className={`text-lg md:text-xl ${themeColors.textLight} max-w-3xl mx-auto`}>
             {currentUser.role === 'supervisor' 
               ? 'Track and manage tasks across all departments'
               : currentUser.role === 'pm'
@@ -377,7 +388,7 @@ export default function TasksPage() {
         </div>
       </div>
 
-      <div className="min-h-screen bg-gray-50">
+      <div className={`min-h-screen ${themeColors.bg}`}>
         <NavigationBar />
         
         <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -395,20 +406,20 @@ export default function TasksPage() {
                     <li aria-current="page">
                       <div className="flex items-center">
                         <span className="mx-2 text-gray-500">/</span>
-                        <span className="text-gray-900 font-medium">Tasks</span>
+                        <span className={`${themeColors.text} font-medium`}>Tasks</span>
                       </div>
                     </li>
                   </ol>
                 </nav>
                 
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className={`text-2xl font-bold ${themeColors.text}`}>
                   {currentUser.role === 'supervisor' 
                     ? 'Company Task Management'
                     : currentUser.role === 'pm'
                     ? `${currentUser.department} Department Tasks`
                     : 'My Tasks & Assignments'}
                 </h2>
-                <p className="text-gray-600 mt-1">
+                <p className={`${themeColors.textLight} mt-1`}>
                   {currentUser.role === 'supervisor' 
                     ? 'Monitor task progress across all teams'
                     : currentUser.role === 'pm'
@@ -420,7 +431,7 @@ export default function TasksPage() {
               <div className="flex flex-wrap gap-3">
                 <Link 
                   href="/"
-                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} flex items-center gap-2`}
                 >
                   ← Back to Dashboard
                 </Link>
@@ -437,20 +448,20 @@ export default function TasksPage() {
           
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Tasks</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
+                  <p className={`text-sm ${themeColors.textLight}`}>Total Tasks</p>
+                  <p className={`text-3xl font-bold ${themeColors.text} mt-2`}>{stats.total}</p>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
+                <div className={`p-3 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
                   <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-500">
+              <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
+                <p className={`text-xs ${themeColors.textLighter}`}>
                   {currentUser.role === 'employee' 
                     ? 'Total tasks assigned to you'
                     : `${currentUser.role === 'pm' ? 'Team' : 'Company'} tasks`}
@@ -458,58 +469,58 @@ export default function TasksPage() {
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Completed</p>
+                  <p className={`text-sm ${themeColors.textLight}`}>Completed</p>
                   <p className="text-3xl font-bold text-green-600 mt-2">{stats.completed}</p>
                 </div>
-                <div className="p-3 bg-green-50 rounded-lg">
+                <div className={`p-3 ${theme.isDayTime ? 'bg-green-50' : 'bg-green-900/20'} rounded-lg`}>
                   <CheckCircleIcon />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-green-500 h-2 rounded-full" 
                     style={{ width: `${(stats.completed / stats.total) * 100}%` }}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className={`text-xs ${themeColors.textLighter} mt-1`}>
                   {stats.total > 0 ? `${((stats.completed / stats.total) * 100).toFixed(1)}% completion rate` : 'No tasks'}
                 </p>
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">In Progress</p>
+                  <p className={`text-sm ${themeColors.textLight}`}>In Progress</p>
                   <p className="text-3xl font-bold text-blue-600 mt-2">{stats.inProgress}</p>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
+                <div className={`p-3 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
                   <ClockIcon />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-500">
+              <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
+                <p className={`text-xs ${themeColors.textLighter}`}>
                   Actively being worked on
                 </p>
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Overdue</p>
+                  <p className={`text-sm ${themeColors.textLight}`}>Overdue</p>
                   <p className="text-3xl font-bold text-red-600 mt-2">{stats.overdue}</p>
                 </div>
-                <div className="p-3 bg-red-50 rounded-lg">
+                <div className={`p-3 ${theme.isDayTime ? 'bg-red-50' : 'bg-red-900/20'} rounded-lg`}>
                   <ExclamationIcon />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-500">
+              <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
+                <p className={`text-xs ${themeColors.textLighter}`}>
                   Past deadline
                 </p>
               </div>
@@ -517,7 +528,7 @@ export default function TasksPage() {
           </div>
           
           {/* Filters dan Search */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8`}>
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
               <div className="flex-1">
                 <div className="relative">
@@ -526,7 +537,7 @@ export default function TasksPage() {
                     placeholder="Search tasks..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full pl-10 pr-4 py-2 border ${themeColors.border} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${themeColors.bgLight} ${themeColors.text}`}
                   />
                   <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -536,15 +547,15 @@ export default function TasksPage() {
               
               <div className="flex flex-wrap gap-4">
                 {/* Status Filter */}
-                <div className="flex bg-gray-100 p-1 rounded-lg">
+                <div className={`flex ${theme.isDayTime ? 'bg-gray-100' : 'bg-gray-800'} p-1 rounded-lg`}>
                   {(['all', 'pending', 'in-progress', 'completed', 'review'] as const).map(filter => (
                     <button
                       key={filter}
                       onClick={() => setSelectedFilter(filter)}
                       className={`px-4 py-2 rounded-md text-sm font-medium capitalize transition-colors ${
                         selectedFilter === filter 
-                          ? 'bg-white text-blue-600 shadow-sm' 
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? `${theme.isDayTime ? 'bg-white text-blue-600' : 'bg-gray-700 text-white'} shadow-sm` 
+                          : `${themeColors.textLight} hover:${themeColors.text}`
                       }`}
                     >
                       {filter === 'all' ? 'All' : 
@@ -558,7 +569,7 @@ export default function TasksPage() {
                 <select
                   value={selectedPriority}
                   onChange={(e) => setSelectedPriority(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className={`px-3 py-2 border ${themeColors.border} rounded-lg text-sm ${themeColors.bgLight} ${themeColors.text}`}
                 >
                   <option value="all">All Priorities</option>
                   <option value="low">Low Priority</option>
@@ -571,21 +582,23 @@ export default function TasksPage() {
                   <select
                     value={selectedDepartment}
                     onChange={(e) => setSelectedDepartment(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className={`px-3 py-2 border ${themeColors.border} rounded-lg text-sm ${themeColors.bgLight} ${themeColors.text}`}
                   >
-                    {departments.map(dept => (
-                      <option key={dept} value={dept === 'All Departments' ? 'all' : dept}>
-                        {dept}
-                      </option>
-                    ))}
+                    <option value="all">All Departments</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Sales">Sales</option>
+                    <option value="HR">HR</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Operations">Operations</option>
                   </select>
                 )}
                 
                 {/* View Mode Toggle */}
-                <div className="flex bg-gray-100 p-1 rounded-lg">
+                <div className={`flex ${theme.isDayTime ? 'bg-gray-100' : 'bg-gray-800'} p-1 rounded-lg`}>
                   <button
                     onClick={() => setViewMode("list")}
-                    className={`p-2 rounded-md ${viewMode === "list" ? "bg-white shadow-sm" : ""}`}
+                    className={`p-2 rounded-md ${viewMode === "list" ? `${theme.isDayTime ? "bg-white" : "bg-gray-700"} shadow-sm` : ""}`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -593,7 +606,7 @@ export default function TasksPage() {
                   </button>
                   <button
                     onClick={() => setViewMode("board")}
-                    className={`p-2 rounded-md ${viewMode === "board" ? "bg-white shadow-sm" : ""}`}
+                    className={`p-2 rounded-md ${viewMode === "board" ? `${theme.isDayTime ? "bg-white" : "bg-gray-700"} shadow-sm` : ""}`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -607,18 +620,18 @@ export default function TasksPage() {
           {/* Tasks Content */}
           {viewMode === "list" ? (
             // List View
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden mb-8`}>
+              <div className={`px-6 py-4 border-b ${themeColors.border} ${themeColors.bgLight}`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Task List</h3>
-                    <p className="text-sm text-gray-600">
+                    <h3 className={`text-lg font-semibold ${themeColors.text}`}>Task List</h3>
+                    <p className={`text-sm ${themeColors.textLight}`}>
                       {currentUser.role === 'employee' 
                         ? 'Your complete task history'
                         : `Showing ${filteredTasks.length} tasks`}
                     </p>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className={`text-sm ${themeColors.textLighter}`}>
                     Sorted by: Due Date
                   </div>
                 </div>
@@ -626,7 +639,7 @@ export default function TasksPage() {
               
               <div className="divide-y divide-gray-200">
                 {filteredTasks.map((task) => (
-                  <div key={task.id} className="px-6 py-4 hover:bg-gray-50">
+                  <div key={task.id} className={`px-6 py-4 hover:${themeColors.bgLight}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -657,22 +670,22 @@ export default function TasksPage() {
                           )}
                         </div>
                         
-                        <h4 className="text-lg font-medium text-gray-900">{task.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                        <h4 className={`text-lg font-medium ${themeColors.text}`}>{task.title}</h4>
+                        <p className={`text-sm ${themeColors.textLight} mt-1`}>{task.description}</p>
                         
                         <div className="flex flex-wrap items-center gap-4 mt-4">
                           <div className="flex items-center gap-2">
                             <UserIcon />
-                            <span className="text-sm text-gray-600">{task.assignee}</span>
+                            <span className={`text-sm ${themeColors.textLight}`}>{task.assignee}</span>
                           </div>
                           {currentUser.role !== 'employee' && (
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">{task.department}</span>
+                              <span className={`text-sm ${themeColors.textLight}`}>{task.department}</span>
                             </div>
                           )}
                           <div className="flex items-center gap-2">
                             <ClockIcon />
-                            <span className="text-sm text-gray-600">
+                            <span className={`text-sm ${themeColors.textLight}`}>
                               Due: {new Date(task.deadline).toLocaleDateString('en-US', { 
                                 month: 'short', 
                                 day: 'numeric' 
@@ -680,16 +693,16 @@ export default function TasksPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600">Est: {task.estimatedHours}h</span>
+                            <span className={`text-sm ${themeColors.textLight}`}>Est: {task.estimatedHours}h</span>
                             {task.actualHours && (
-                              <span className="text-sm text-gray-600">• Actual: {task.actualHours}h</span>
+                              <span className={`text-sm ${themeColors.textLight}`}>• Actual: {task.actualHours}h</span>
                             )}
                           </div>
                         </div>
                         
                         <div className="mt-4">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm text-gray-600">Progress</span>
+                            <span className={`text-sm ${themeColors.textLight}`}>Progress</span>
                             <span className="text-sm font-medium">{task.progress}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -707,7 +720,7 @@ export default function TasksPage() {
                         {task.tags && task.tags.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-4">
                             {task.tags.map((tag, idx) => (
-                              <span key={idx} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                              <span key={idx} className={`px-2 py-1 text-xs ${theme.isDayTime ? 'bg-gray-100 text-gray-700' : 'bg-gray-700 text-gray-300'} rounded`}>
                                 {tag}
                               </span>
                             ))}
@@ -719,14 +732,14 @@ export default function TasksPage() {
                         <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
                           {currentUser.role === 'employee' ? 'Update' : 'Manage'}
                         </button>
-                        <button className="px-4 py-2 bg-white text-gray-700 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                        <button className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}>
                           Details
                         </button>
                       </div>
                     </div>
                     
                     {task.comments && task.comments.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className={`mt-4 pt-4 border-t ${themeColors.border}`}>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -744,21 +757,21 @@ export default function TasksPage() {
                   <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <h3 className="mt-4 text-lg font-medium text-gray-900">No tasks found</h3>
-                  <p className="mt-1 text-gray-500">Try adjusting your filters</p>
+                  <h3 className={`mt-4 text-lg font-medium ${themeColors.text}`}>No tasks found</h3>
+                  <p className={`mt-1 ${themeColors.textLight}`}>Try adjusting your filters</p>
                 </div>
               )}
               
-              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className={`px-6 py-4 border-t ${themeColors.border} ${themeColors.bgLight}`}>
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-500">
+                  <div className={`text-sm ${themeColors.textLight}`}>
                     Showing {Math.min(filteredTasks.length, 10)} of {filteredTasks.length} tasks
                   </div>
                   <div className="flex gap-2">
-                    <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                    <button className={`px-3 py-1 border ${themeColors.border} rounded text-sm hover:${themeColors.bgLight}`}>
                       ← Previous
                     </button>
-                    <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                    <button className={`px-3 py-1 border ${themeColors.border} rounded text-sm hover:${themeColors.bgLight}`}>
                       Next →
                     </button>
                   </div>
@@ -779,16 +792,16 @@ export default function TasksPage() {
                 }[status];
                 
                 return (
-                  <div key={status} className="bg-gray-50 rounded-lg border border-gray-200">
-                    <div className={`px-4 py-3 border-b-4 ${columnColor} bg-white rounded-t-lg`}>
+                  <div key={status} className={`${themeColors.bgLight} rounded-lg border ${themeColors.border}`}>
+                    <div className={`px-4 py-3 border-b-4 ${columnColor} ${themeColors.cardBg} rounded-t-lg`}>
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-gray-900">{columnTitle}</h3>
-                        <span className="px-2 py-1 text-xs bg-gray-200 rounded-full">{columnTasks.length}</span>
+                        <h3 className={`font-medium ${themeColors.text}`}>{columnTitle}</h3>
+                        <span className={`px-2 py-1 text-xs ${theme.isDayTime ? 'bg-gray-200' : 'bg-gray-700'} rounded-full`}>{columnTasks.length}</span>
                       </div>
                     </div>
                     <div className="p-3 space-y-3 min-h-[500px]">
                       {columnTasks.map(task => (
-                        <div key={task.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <div key={task.id} className={`${themeColors.cardBg} p-4 rounded-lg ${themeColors.shadow} border ${themeColors.border}`}>
                           <div className="flex items-start justify-between mb-2">
                             <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                               task.priority === "high" 
@@ -803,17 +816,17 @@ export default function TasksPage() {
                               ⋮
                             </button>
                           </div>
-                          <h4 className="font-medium text-gray-900 mb-2">{task.title}</h4>
-                          <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                          <h4 className={`font-medium ${themeColors.text} mb-2`}>{task.title}</h4>
+                          <div className={`flex items-center justify-between text-sm ${themeColors.textLight} mb-3`}>
                             <span>Due: {new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             <span>{task.estimatedHours}h</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">
+                              <div className={`w-6 h-6 rounded-full ${theme.isDayTime ? 'bg-gray-200' : 'bg-gray-700'} flex items-center justify-center text-xs`}>
                                 {task.assignee.split(' ').map(n => n[0]).join('')}
                               </div>
-                              <span className="text-xs text-gray-600">{task.assignee}</span>
+                              <span className={`text-xs ${themeColors.textLight}`}>{task.assignee}</span>
                             </div>
                             <div className="text-xs font-medium">{task.progress}%</div>
                           </div>
@@ -828,15 +841,15 @@ export default function TasksPage() {
           
           {/* Task Analytics untuk Supervisor/PM */}
           {currentUser.role !== 'employee' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Task Analytics</h3>
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8`}>
+              <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Task Analytics</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-4">Completion Rate by Department</h4>
+                  <h4 className={`text-sm font-medium ${themeColors.textLight} mb-4`}>Completion Rate by Department</h4>
                   <div className="space-y-4">
                     {['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'].map(dept => (
                       <div key={dept} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">{dept}</span>
+                        <span className={`text-sm ${themeColors.textLight}`}>{dept}</span>
                         <div className="flex items-center gap-3">
                           <div className="w-32 bg-gray-200 rounded-full h-2">
                             <div 
@@ -851,11 +864,11 @@ export default function TasksPage() {
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-4">Average Task Duration</h4>
+                  <h4 className={`text-sm font-medium ${themeColors.textLight} mb-4`}>Average Task Duration</h4>
                   <div className="space-y-4">
                     {['High Priority', 'Medium Priority', 'Low Priority'].map(priority => (
                       <div key={priority} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">{priority}</span>
+                        <span className={`text-sm ${themeColors.textLight}`}>{priority}</span>
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-medium">
                             {priority === 'High Priority' ? '3.2' : 
@@ -874,12 +887,12 @@ export default function TasksPage() {
           {currentUser.role === 'employee' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Task Statistics */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Your Task Statistics</h3>
+              <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
+                <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Your Task Statistics</h3>
                 <div className="space-y-6">
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600">Monthly Completion Rate</span>
+                      <span className={`text-sm ${themeColors.textLight}`}>Monthly Completion Rate</span>
                       <span className="text-sm font-medium text-green-600">+12%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -887,35 +900,35 @@ export default function TasksPage() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className={`p-4 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
                       <div className="text-2xl font-bold text-blue-600">42</div>
-                      <div className="text-sm text-gray-600">Tasks Completed</div>
+                      <div className={`text-sm ${themeColors.textLight}`}>Tasks Completed</div>
                     </div>
-                    <div className="p-4 bg-green-50 rounded-lg">
+                    <div className={`p-4 ${theme.isDayTime ? 'bg-green-50' : 'bg-green-900/20'} rounded-lg`}>
                       <div className="text-2xl font-bold text-green-600">4.5</div>
-                      <div className="text-sm text-gray-600">Avg. Rating</div>
+                      <div className={`text-sm ${themeColors.textLight}`}>Avg. Rating</div>
                     </div>
                   </div>
                 </div>
               </div>
               
               {/* Quick Actions */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h3>
+              <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
+                <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Quick Actions</h3>
                 <div className="space-y-4">
-                  <button className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between">
+                  <button className={`w-full p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left flex items-center justify-between`}>
                     <div>
-                      <div className="font-medium text-gray-900">Request Task Extension</div>
-                      <div className="text-sm text-gray-600 mt-1">Need more time on a task?</div>
+                      <div className={`font-medium ${themeColors.text}`}>Request Task Extension</div>
+                      <div className={`text-sm ${themeColors.textLight} mt-1`}>Need more time on a task?</div>
                     </div>
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                   </button>
-                  <button className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left flex items-center justify-between">
+                  <button className={`w-full p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left flex items-center justify-between`}>
                     <div>
-                      <div className="font-medium text-gray-900">Submit Timesheet</div>
-                      <div className="text-sm text-gray-600 mt-1">Log hours for completed tasks</div>
+                      <div className={`font-medium ${themeColors.text}`}>Submit Timesheet</div>
+                      <div className={`text-sm ${themeColors.textLight} mt-1`}>Log hours for completed tasks</div>
                     </div>
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -928,20 +941,20 @@ export default function TasksPage() {
           
           {/* Bulk Actions untuk Supervisor/PM */}
           {currentUser.role !== 'employee' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Bulk Actions</h3>
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
+              <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Bulk Actions</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
-                  <div className="font-medium text-gray-900">Assign Multiple Tasks</div>
-                  <div className="text-sm text-gray-600 mt-1">Assign tasks to team members</div>
+                <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left`}>
+                  <div className={`font-medium ${themeColors.text}`}>Assign Multiple Tasks</div>
+                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Assign tasks to team members</div>
                 </button>
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
-                  <div className="font-medium text-gray-900">Update Deadlines</div>
-                  <div className="text-sm text-gray-600 mt-1">Bulk update task deadlines</div>
+                <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left`}>
+                  <div className={`font-medium ${themeColors.text}`}>Update Deadlines</div>
+                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Bulk update task deadlines</div>
                 </button>
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
-                  <div className="font-medium text-gray-900">Export Task Report</div>
-                  <div className="text-sm text-gray-600 mt-1">Generate detailed task report</div>
+                <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left`}>
+                  <div className={`font-medium ${themeColors.text}`}>Export Task Report</div>
+                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Generate detailed task report</div>
                 </button>
               </div>
             </div>
