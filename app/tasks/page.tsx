@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import NavigationBar from "../components/navigationBar";
 import Link from "next/link";
-import { Task } from "../types/user";
+import { Task, TaskSubtask } from "../types/user";
 import { useTheme } from "../providers/temaProvider";
 import { useUser } from "../providers/userProvider";
 import { useRouter } from "next/navigation";
@@ -33,6 +33,18 @@ const UserIcon = () => (
   </svg>
 );
 
+const SupervisorIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const TeamIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0h-15" />
+  </svg>
+);
+
 export default function TasksPage() {
   const { theme } = useTheme();
   const { currentUser } = useUser();
@@ -43,6 +55,19 @@ export default function TasksPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState<boolean>(false);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    description: "",
+    priority: "medium" as "low" | "medium" | "high",
+    assignee: "",
+    deadline: "",
+    estimatedHours: 8,
+    subtasks: [] as TaskSubtask[]
+  });
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   // Redirect ke home jika user berubah
   useEffect(() => {
@@ -51,22 +76,23 @@ export default function TasksPage() {
     }
   }, [currentUser, router]);
 
-  // Generate tasks data berdasarkan role
+  // Generate tasks data berdasarkan role dengan subtasks
   const tasksData = useMemo(() => {
     if (!currentUser) return [];
 
     const tasks: Task[] = [];
     
     if (currentUser.role === 'employee') {
-      // Data untuk employee (John Doe)
-      const employeeTasks = [
+      // Data untuk employee (John Doe) - hanya tugas yang diassign ke dia
+      const employeeTasks: Task[] = [
         {
           id: 1,
           title: "Fix Login Bug",
           description: "Fix authentication issue on login page for mobile users",
-          status: "in-progress" as const,
-          priority: "high" as const,
+          status: "in-progress",
+          priority: "high",
           assignee: "John Doe",
+          assigner: "Sarah Chen", // PM yang assign
           department: "Engineering",
           deadline: "2023-12-18",
           progress: 75,
@@ -83,15 +109,23 @@ export default function TasksPage() {
               comment: "Please prioritize this issue",
               timestamp: "2023-12-10 10:30"
             }
+          ],
+          subtasks: [
+            { id: 1, description: "Analyze authentication flow", completed: true },
+            { id: 2, description: "Identify bug in mobile login", completed: true },
+            { id: 3, description: "Fix JWT token issue", completed: true },
+            { id: 4, description: "Test on multiple devices", completed: false },
+            { id: 5, description: "Update documentation", completed: false }
           ]
         },
         {
           id: 2,
           title: "Update Documentation",
           description: "Update API documentation for new endpoints",
-          status: "pending" as const,
-          priority: "medium" as const,
+          status: "pending",
+          priority: "medium",
           assignee: "John Doe",
+          assigner: "Sarah Chen",
           department: "Engineering",
           deadline: "2023-12-19",
           progress: 30,
@@ -99,15 +133,22 @@ export default function TasksPage() {
           updatedAt: "2023-12-16",
           estimatedHours: 12,
           tags: ["Documentation", "API"],
-          comments: []
+          comments: [],
+          subtasks: [
+            { id: 1, description: "List all new endpoints", completed: true },
+            { id: 2, description: "Document request parameters", completed: false },
+            { id: 3, description: "Document response formats", completed: false },
+            { id: 4, description: "Add code examples", completed: false }
+          ]
         },
         {
           id: 3,
           title: "Code Review",
           description: "Review PR #245 for new feature implementation",
-          status: "completed" as const,
-          priority: "medium" as const,
+          status: "completed",
+          priority: "medium",
           assignee: "John Doe",
+          assigner: "Sarah Chen",
           department: "Engineering",
           deadline: "2023-12-15",
           progress: 100,
@@ -117,175 +158,334 @@ export default function TasksPage() {
           estimatedHours: 4,
           actualHours: 3.5,
           tags: ["Code Review"],
-          comments: []
-        },
-        {
-          id: 4,
-          title: "Implement User Dashboard",
-          description: "Create new dashboard interface for user analytics",
-          status: "completed" as const,
-          priority: "high" as const,
-          assignee: "John Doe",
-          department: "Engineering",
-          deadline: "2023-12-05",
-          progress: 100,
-          createdAt: "2023-11-20",
-          updatedAt: "2023-12-05",
-          completedAt: "2023-12-05",
-          estimatedHours: 40,
-          actualHours: 38,
-          tags: ["Frontend", "Dashboard", "Analytics"],
-          comments: [
-            {
-              id: 2,
-              userId: "pm_001",
-              userName: "Sarah Chen",
-              comment: "Great work on the dashboard!",
-              timestamp: "2023-12-05 16:45"
-            }
+          comments: [],
+          subtasks: [
+            { id: 1, description: "Review frontend changes", completed: true },
+            { id: 2, description: "Test feature functionality", completed: true },
+            { id: 3, description: "Check for potential bugs", completed: true },
+            { id: 4, description: "Approve merge request", completed: true }
           ]
-        },
-        {
-          id: 5,
-          title: "Optimize Database Queries",
-          description: "Optimize slow database queries for reporting module",
-          status: "completed" as const,
-          priority: "high" as const,
-          assignee: "John Doe",
-          department: "Engineering",
-          deadline: "2023-11-28",
-          progress: 100,
-          createdAt: "2023-11-15",
-          updatedAt: "2023-11-28",
-          completedAt: "2023-11-28",
-          estimatedHours: 24,
-          actualHours: 20,
-          tags: ["Backend", "Database", "Optimization"],
-          comments: []
-        },
-        {
-          id: 6,
-          title: "Mobile Responsive Fixes",
-          description: "Fix mobile responsive issues across the application",
-          status: "completed" as const,
-          priority: "medium" as const,
-          assignee: "John Doe",
-          department: "Engineering",
-          deadline: "2023-11-22",
-          progress: 100,
-          createdAt: "2023-11-10",
-          updatedAt: "2023-11-22",
-          completedAt: "2023-11-22",
-          estimatedHours: 16,
-          actualHours: 14,
-          tags: ["Frontend", "Mobile", "Responsive"],
-          comments: []
-        },
-        {
-          id: 7,
-          title: "API Integration Testing",
-          description: "Write integration tests for new payment API",
-          status: "completed" as const,
-          priority: "low" as const,
-          assignee: "John Doe",
-          department: "Engineering",
-          deadline: "2023-11-15",
-          progress: 100,
-          createdAt: "2023-11-01",
-          updatedAt: "2023-11-15",
-          completedAt: "2023-11-15",
-          estimatedHours: 20,
-          actualHours: 18,
-          tags: ["Testing", "API", "Payment"],
-          comments: []
-        },
-        {
-          id: 8,
-          title: "Performance Monitoring Setup",
-          description: "Set up performance monitoring for production environment",
-          status: "completed" as const,
-          priority: "medium" as const,
-          assignee: "John Doe",
-          department: "Engineering",
-          deadline: "2023-11-08",
-          progress: 100,
-          createdAt: "2023-10-25",
-          updatedAt: "2023-11-08",
-          completedAt: "2023-11-08",
-          estimatedHours: 32,
-          actualHours: 30,
-          tags: ["DevOps", "Monitoring", "Performance"],
-          comments: []
         }
       ];
       return employeeTasks;
     } else if (currentUser.role === 'pm') {
-      // Data untuk PM (Engineering department)
-      const teamMembers = ["Tom Wilson", "Jane Smith", "Mike Brown", "Sarah Chen", "Alex Johnson", "Lisa Wong"];
-      const departments = ["Engineering"];
-      
-      for (let i = 0; i < 30; i++) {
-        const statuses: Task["status"][] = ["pending", "in-progress", "completed", "review"];
-        const priorities: Task["priority"][] = ["low", "medium", "high"];
-        const assignee = teamMembers[Math.floor(Math.random() * teamMembers.length)];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        const priority = priorities[Math.floor(Math.random() * priorities.length)];
-        const progress = status === "completed" ? 100 : status === "review" ? 90 : Math.floor(Math.random() * 80) + 10;
-        
-        tasks.push({
-          id: i + 1,
-          title: `Task ${i + 1}: ${["Implement", "Fix", "Update", "Review", "Test", "Document"][Math.floor(Math.random() * 6)]} ${["API", "UI", "Database", "Feature", "Bug", "Security"][Math.floor(Math.random() * 6)]}`,
-          description: `Detailed description for task ${i + 1} in engineering department`,
-          status,
-          priority,
-          assignee,
-          department: departments[0],
-          deadline: `2023-12-${15 + Math.floor(Math.random() * 10)}`,
-          progress,
-          createdAt: "2023-12-01",
+      // Data untuk PM (Sarah Chen) - tugas yang diassign Supervisor ke dia DAN tugas yang dia assign ke timnya
+      const tasksForPM: Task[] = [
+        // Task yang diassign ke Sarah Chen (oleh Supervisor) - TASK DARI SUPERVISOR
+        {
+          id: 1,
+          title: "Project Planning - Q1 2024",
+          description: "Create detailed project plan for Q1 2024",
+          status: "in-progress",
+          priority: "high",
+          assignee: "Sarah Chen",
+          assigner: "Alex Johnson", // Supervisor yang assign
+          department: "Engineering",
+          deadline: "2023-12-20",
+          progress: 60,
+          createdAt: "2023-12-10",
           updatedAt: "2023-12-16",
-          estimatedHours: Math.floor(Math.random() * 40) + 8,
-          actualHours: status === "completed" ? Math.floor(Math.random() * 40) + 8 : undefined,
-          tags: [["Frontend", "Backend", "Database", "Testing"][Math.floor(Math.random() * 4)]],
-          comments: []
-        });
-      }
+          estimatedHours: 20,
+          actualHours: 12,
+          tags: ["Planning", "Management"],
+          comments: [
+            {
+              id: 1,
+              userId: "supervisor_001",
+              userName: "Alex Johnson",
+              comment: "Please complete this by next week",
+              timestamp: "2023-12-10 09:00"
+            }
+          ],
+          subtasks: [
+            { id: 1, description: "Define project scope", completed: true },
+            { id: 2, description: "Create timeline", completed: true },
+            { id: 3, description: "Allocate resources", completed: true },
+            { id: 4, description: "Set milestones", completed: false },
+            { id: 5, description: "Present to stakeholders", completed: false }
+          ]
+        },
+        {
+          id: 2,
+          title: "Team Performance Review",
+          description: "Conduct performance review for Engineering team",
+          status: "pending",
+          priority: "medium",
+          assignee: "Sarah Chen",
+          assigner: "Alex Johnson", // Supervisor yang assign
+          department: "Engineering",
+          deadline: "2023-12-28",
+          progress: 20,
+          createdAt: "2023-12-14",
+          updatedAt: "2023-12-16",
+          estimatedHours: 16,
+          tags: ["HR", "Review", "Management"],
+          comments: [],
+          subtasks: [
+            { id: 1, description: "Schedule review meetings", completed: false },
+            { id: 2, description: "Prepare evaluation forms", completed: false },
+            { id: 3, description: "Meet with team members", completed: false },
+            { id: 4, description: "Submit reports", completed: false }
+          ]
+        },
+        {
+          id: 3,
+          title: "Budget Report Preparation",
+          description: "Prepare quarterly budget report for Engineering department",
+          status: "pending",
+          priority: "medium",
+          assignee: "Sarah Chen",
+          assigner: "Alex Johnson", // Supervisor yang assign
+          department: "Engineering",
+          deadline: "2023-12-25",
+          progress: 10,
+          createdAt: "2023-12-13",
+          updatedAt: "2023-12-16",
+          estimatedHours: 12,
+          tags: ["Finance", "Reporting"],
+          comments: [],
+          subtasks: [
+            { id: 1, description: "Collect department expenses", completed: false },
+            { id: 2, description: "Analyze spending trends", completed: false },
+            { id: 3, description: "Create budget proposal", completed: false },
+            { id: 4, description: "Prepare presentation", completed: false }
+          ]
+        },
+        // Task yang Sarah Chen assign ke timnya - TASK DARI PM KE EMPLOYEE
+        {
+          id: 4,
+          title: "Fix Login Bug",
+          description: "Fix authentication issue on login page for mobile users",
+          status: "in-progress",
+          priority: "high",
+          assignee: "John Doe",
+          assigner: "Sarah Chen", // Sarah assign ke John
+          department: "Engineering",
+          deadline: "2023-12-18",
+          progress: 75,
+          createdAt: "2023-12-10",
+          updatedAt: "2023-12-16",
+          estimatedHours: 8,
+          actualHours: 6,
+          tags: ["Bug", "Authentication", "Mobile"],
+          comments: [
+            {
+              id: 1,
+              userId: "pm_001",
+              userName: "Sarah Chen",
+              comment: "Please prioritize this issue",
+              timestamp: "2023-12-10 10:30"
+            }
+          ],
+          subtasks: [
+            { id: 1, description: "Analyze authentication flow", completed: true },
+            { id: 2, description: "Identify bug in mobile login", completed: true },
+            { id: 3, description: "Fix JWT token issue", completed: true },
+            { id: 4, description: "Test on multiple devices", completed: false },
+            { id: 5, description: "Update documentation", completed: false }
+          ]
+        },
+        {
+          id: 5,
+          title: "Implement New API Endpoint",
+          description: "Create new REST API endpoint for user notifications",
+          status: "pending",
+          priority: "medium",
+          assignee: "Mike Brown",
+          assigner: "Sarah Chen", // Sarah assign ke Mike
+          department: "Engineering",
+          deadline: "2023-12-22",
+          progress: 20,
+          createdAt: "2023-12-15",
+          updatedAt: "2023-12-16",
+          estimatedHours: 16,
+          tags: ["API", "Backend"],
+          comments: [],
+          subtasks: [
+            { id: 1, description: "Design database schema", completed: false },
+            { id: 2, description: "Create controller", completed: false },
+            { id: 3, description: "Implement service layer", completed: false },
+            { id: 4, description: "Write unit tests", completed: false }
+          ]
+        },
+        {
+          id: 6,
+          title: "Update Documentation",
+          description: "Update API documentation for new endpoints",
+          status: "pending",
+          priority: "medium",
+          assignee: "John Doe",
+          assigner: "Sarah Chen", // Sarah assign ke John
+          department: "Engineering",
+          deadline: "2023-12-19",
+          progress: 30,
+          createdAt: "2023-12-12",
+          updatedAt: "2023-12-16",
+          estimatedHours: 12,
+          tags: ["Documentation", "API"],
+          comments: [],
+          subtasks: [
+            { id: 1, description: "List all new endpoints", completed: true },
+            { id: 2, description: "Document request parameters", completed: false },
+            { id: 3, description: "Document response formats", completed: false },
+            { id: 4, description: "Add code examples", completed: false }
+          ]
+        },
+        {
+          id: 7,
+          title: "UI/UX Improvements",
+          description: "Improve user interface and experience for dashboard",
+          status: "completed",
+          priority: "medium",
+          assignee: "Alex Johnson",
+          assigner: "Sarah Chen", // Sarah assign ke Alex
+          department: "Engineering",
+          deadline: "2023-12-10",
+          progress: 100,
+          createdAt: "2023-11-28",
+          updatedAt: "2023-12-10",
+          completedAt: "2023-12-10",
+          estimatedHours: 24,
+          actualHours: 22,
+          tags: ["Frontend", "UI/UX"],
+          comments: [
+            {
+              id: 1,
+              userId: "pm_001",
+              userName: "Sarah Chen",
+              comment: "Great work on the dashboard improvements!",
+              timestamp: "2023-12-10 16:45"
+            }
+          ],
+          subtasks: [
+            { id: 1, description: "Design mockups", completed: true },
+            { id: 2, description: "Implement frontend changes", completed: true },
+            { id: 3, description: "Test on different browsers", completed: true },
+            { id: 4, description: "Gather user feedback", completed: true }
+          ]
+        }
+      ];
+      return tasksForPM;
     } else {
-      // Data untuk supervisor (semua departemen)
-      const teamMembers = ["Tom Wilson", "Jane Smith", "Mike Brown", "Sarah Chen", "Alex Johnson", "Lisa Wong", "David Kim", "Maria Garcia"];
-      const departments = ["Engineering", "Marketing", "Sales", "HR", "Finance", "Operations"];
-      
-      for (let i = 0; i < 50; i++) {
-        const statuses: Task["status"][] = ["pending", "in-progress", "completed", "review"];
-        const priorities: Task["priority"][] = ["low", "medium", "high"];
-        const assignee = teamMembers[Math.floor(Math.random() * teamMembers.length)];
-        const department = departments[Math.floor(Math.random() * departments.length)];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        const priority = priorities[Math.floor(Math.random() * priorities.length)];
-        const progress = status === "completed" ? 100 : status === "review" ? 90 : Math.floor(Math.random() * 80) + 10;
-        
-        tasks.push({
-          id: i + 1,
-          title: `Task ${i + 1}: ${["Implement", "Fix", "Update", "Review", "Test", "Document"][Math.floor(Math.random() * 6)]} ${["API", "UI", "Database", "Feature", "Bug", "Security"][Math.floor(Math.random() * 6)]}`,
-          description: `Detailed description for task ${i + 1} in ${department} department`,
-          status,
-          priority,
-          assignee,
-          department,
-          deadline: `2023-12-${15 + Math.floor(Math.random() * 10)}`,
-          progress,
-          createdAt: "2023-12-01",
+      // Data untuk supervisor (Alex Johnson) - semua task di semua department
+      const supervisorTasks: Task[] = [
+        // Task untuk PM
+        {
+          id: 1,
+          title: "Project Planning - Q1 2024",
+          description: "Create detailed project plan for Q1 2024",
+          status: "in-progress",
+          priority: "high",
+          assignee: "Sarah Chen", // PM
+          assigner: "Alex Johnson", // Supervisor assign ke PM
+          department: "Engineering",
+          deadline: "2023-12-20",
+          progress: 60,
+          createdAt: "2023-12-10",
           updatedAt: "2023-12-16",
-          estimatedHours: Math.floor(Math.random() * 40) + 8,
-          actualHours: status === "completed" ? Math.floor(Math.random() * 40) + 8 : undefined,
-          tags: [["Urgent", "Important", "Routine"][Math.floor(Math.random() * 3)]],
-          comments: []
-        });
-      }
+          estimatedHours: 20,
+          actualHours: 12,
+          tags: ["Planning", "Management"],
+          comments: [],
+          subtasks: [
+            { id: 1, description: "Define project scope", completed: true },
+            { id: 2, description: "Create timeline", completed: true },
+            { id: 3, description: "Allocate resources", completed: true },
+            { id: 4, description: "Set milestones", completed: false },
+            { id: 5, description: "Present to stakeholders", completed: false }
+          ]
+        },
+        {
+          id: 2,
+          title: "Budget Planning - Marketing",
+          description: "Plan marketing budget for next quarter",
+          status: "pending",
+          priority: "medium",
+          assignee: "Lisa Wong", // PM Marketing
+          assigner: "Alex Johnson", // Supervisor assign ke PM Marketing
+          department: "Marketing",
+          deadline: "2023-12-25",
+          progress: 10,
+          createdAt: "2023-12-15",
+          updatedAt: "2023-12-16",
+          estimatedHours: 15,
+          tags: ["Budget", "Planning"],
+          comments: [],
+          subtasks: [
+            { id: 1, description: "Review current spending", completed: false },
+            { id: 2, description: "Set budget allocation", completed: false },
+            { id: 3, description: "Get department approvals", completed: false }
+          ]
+        },
+        // Task yang dibuat PM untuk timnya
+        {
+          id: 3,
+          title: "Fix Login Bug",
+          description: "Fix authentication issue on login page for mobile users",
+          status: "in-progress",
+          priority: "high",
+          assignee: "John Doe",
+          assigner: "Sarah Chen", // PM assign ke employee
+          department: "Engineering",
+          deadline: "2023-12-18",
+          progress: 75,
+          createdAt: "2023-12-10",
+          updatedAt: "2023-12-16",
+          estimatedHours: 8,
+          actualHours: 6,
+          tags: ["Bug", "Authentication", "Mobile"],
+          comments: [
+            {
+              id: 1,
+              userId: "pm_001",
+              userName: "Sarah Chen",
+              comment: "Please prioritize this issue",
+              timestamp: "2023-12-10 10:30"
+            }
+          ],
+          subtasks: [
+            { id: 1, description: "Analyze authentication flow", completed: true },
+            { id: 2, description: "Identify bug in mobile login", completed: true },
+            { id: 3, description: "Fix JWT token issue", completed: true },
+            { id: 4, description: "Test on multiple devices", completed: false },
+            { id: 5, description: "Update documentation", completed: false }
+          ]
+        },
+        {
+          id: 4,
+          title: "Sales Report Automation",
+          description: "Automate monthly sales reporting process",
+          status: "completed",
+          priority: "low",
+          assignee: "Mike Brown",
+          assigner: "Sarah Chen", // PM assign ke employee
+          department: "Engineering",
+          deadline: "2023-12-10",
+          progress: 100,
+          createdAt: "2023-11-20",
+          updatedAt: "2023-12-10",
+          completedAt: "2023-12-10",
+          estimatedHours: 24,
+          actualHours: 22,
+          tags: ["Automation", "Reporting"],
+          comments: [],
+          subtasks: [
+            { id: 1, description: "Analyze current process", completed: true },
+            { id: 2, description: "Design automation flow", completed: true },
+            { id: 3, description: "Implement scripts", completed: true },
+            { id: 4, description: "Test automation", completed: true },
+            { id: 5, description: "Document process", completed: true }
+          ]
+        }
+      ];
+      return supervisorTasks;
     }
-    
-    return tasks;
   }, [currentUser]);
+
+  // Initialize tasks state
+  useEffect(() => {
+    setTasks(tasksData);
+  }, [tasksData]);
 
   // Theme colors berdasarkan tema
   const themeColors = useMemo(() => {
@@ -314,9 +514,40 @@ export default function TasksPage() {
     };
   }, [theme.isDayTime]);
 
-  // Filter tasks
+  // Pisahkan tasks untuk PM menjadi dua kategori
+  const pmTasksFromSupervisor = useMemo(() => {
+    return tasks.filter(task => 
+      currentUser?.role === 'pm' && 
+      task.assignee === currentUser.name && 
+      task.assigner && 
+      task.assigner !== currentUser.name
+    );
+  }, [tasks, currentUser]);
+
+  const pmTasksToTeam = useMemo(() => {
+    return tasks.filter(task => 
+      currentUser?.role === 'pm' && 
+      task.assigner === currentUser.name && 
+      task.assignee !== currentUser.name
+    );
+  }, [tasks, currentUser]);
+
+  // Filter tasks berdasarkan role
   const filteredTasks = useMemo(() => {
-    let filtered = tasksData;
+    let filtered = tasks;
+    
+    // Filter berdasarkan role pengguna
+    if (currentUser?.role === 'employee') {
+      // Employee hanya melihat task yang diassign ke dia
+      filtered = filtered.filter(task => task.assignee === currentUser.name);
+    } else if (currentUser?.role === 'pm') {
+      // PM melihat task yang diassign ke dia DAN ke timnya (dalam department yang sama)
+      filtered = filtered.filter(task => 
+        task.assignee === currentUser.name || 
+        (task.department === currentUser.department && task.assigner === currentUser.name)
+      );
+    }
+    // Supervisor melihat semua task (tidak difilter)
     
     // Filter by status
     if (selectedFilter !== "all") {
@@ -345,20 +576,435 @@ export default function TasksPage() {
     }
     
     return filtered;
-  }, [tasksData, selectedFilter, selectedPriority, selectedDepartment, searchTerm, currentUser]);
+  }, [tasks, selectedFilter, selectedPriority, selectedDepartment, searchTerm, currentUser]);
 
-  // Hitung statistik
+  // Hitung statistik berdasarkan role
   const stats = useMemo(() => {
-    const total = tasksData.length;
-    const completed = tasksData.filter(t => t.status === 'completed').length;
-    const inProgress = tasksData.filter(t => t.status === 'in-progress').length;
-    const pending = tasksData.filter(t => t.status === 'pending').length;
-    const overdue = tasksData.filter(t => 
+    // Tentukan tasks mana yang dihitung berdasarkan role
+    let relevantTasks = tasks;
+    
+    if (currentUser?.role === 'employee') {
+      relevantTasks = tasks.filter(task => task.assignee === currentUser.name);
+    } else if (currentUser?.role === 'pm') {
+      relevantTasks = tasks.filter(task => 
+        task.assignee === currentUser.name || 
+        (task.department === currentUser.department && task.assigner === currentUser.name)
+      );
+    }
+    
+    const total = relevantTasks.length;
+    const completed = relevantTasks.filter(t => t.status === 'completed').length;
+    const inProgress = relevantTasks.filter(t => t.status === 'in-progress').length;
+    const pending = relevantTasks.filter(t => t.status === 'pending').length;
+    const overdue = relevantTasks.filter(t => 
       new Date(t.deadline) < new Date() && t.status !== 'completed'
     ).length;
     
     return { total, completed, inProgress, pending, overdue };
-  }, [tasksData]);
+  }, [tasks, currentUser]);
+
+  // Handle checkbox subtask (untuk employee DAN PM)
+  const handleSubtaskToggle = (taskId: number, subtaskId: number) => {
+    if (!currentUser) return;
+    
+    // Employee bisa update subtask task mereka sendiri
+    // PM bisa update subtask task yang diassign ke mereka (dari supervisor)
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    // Check permissions
+    if (currentUser.role === 'employee' && task.assignee !== currentUser.name) return;
+    if (currentUser.role === 'pm' && task.assignee !== currentUser.name) return;
+    
+    // Update subtask completion
+    const updatedTasks = tasks.map(t => {
+      if (t.id === taskId && t.subtasks) {
+        const updatedSubtasks = t.subtasks.map(st => 
+          st.id === subtaskId ? { ...st, completed: !st.completed } : st
+        );
+        
+        // Calculate new progress
+        const completedCount = updatedSubtasks.filter(st => st.completed).length;
+        const totalSubtasks = updatedSubtasks.length;
+        const newProgress = Math.round((completedCount / totalSubtasks) * 100);
+        
+        // Update task status based on progress
+        let newStatus = t.status;
+        if (newProgress === 100) {
+          newStatus = 'completed';
+        } else if (newProgress > 0 && t.status === 'pending') {
+          newStatus = 'in-progress';
+        }
+        
+        return {
+          ...t,
+          subtasks: updatedSubtasks,
+          progress: newProgress,
+          status: newStatus,
+          updatedAt: new Date().toISOString().split('T')[0]
+        };
+      }
+      return t;
+    });
+    
+    setTasks(updatedTasks);
+    
+    // Show success message
+    const updatedTask = updatedTasks.find(t => t.id === taskId);
+    if (updatedTask) {
+      alert(`Subtask updated! Progress is now ${updatedTask.progress}%`);
+    }
+  };
+
+  // Handle submit progress (untuk employee DAN PM)
+  const handleSubmitProgress = (taskId: number) => {
+    if (!currentUser) return;
+    
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    // Check permissions
+    if (currentUser.role === 'employee' && task.assignee !== currentUser.name) return;
+    if (currentUser.role === 'pm' && task.assignee !== currentUser.name) return;
+    
+    // In real app, you would submit via API
+    alert(`Progress for task "${task.title}" submitted successfully!`);
+    
+    // For demo, show success message
+    // window.location.reload(); // Uncomment untuk refresh
+  };
+
+  // Handle assign new task (untuk supervisor dan PM)
+  const handleAssignNewTask = () => {
+    if (!currentUser || (currentUser.role !== 'supervisor' && currentUser.role !== 'pm')) return;
+    
+    // Create new task object
+    const newTaskId = Math.max(...tasks.map(t => t.id), 0) + 1;
+    const newTaskObject: Task = {
+      id: newTaskId,
+      title: newTask.title,
+      description: newTask.description,
+      status: "pending",
+      priority: newTask.priority,
+      assignee: newTask.assignee,
+      assigner: currentUser.name,
+      department: currentUser.role === 'pm' ? currentUser.department : "General",
+      deadline: newTask.deadline,
+      progress: 0,
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0],
+      estimatedHours: newTask.estimatedHours,
+      tags: ["New"],
+      subtasks: newTask.subtasks.map((st, index) => ({
+        ...st,
+        id: index + 1
+      }))
+    };
+    
+    // Add to tasks
+    setTasks(prev => [...prev, newTaskObject]);
+    
+    // Reset form
+    setNewTask({
+      title: "",
+      description: "",
+      priority: "medium",
+      assignee: "",
+      deadline: "",
+      estimatedHours: 8,
+      subtasks: []
+    });
+    setIsNewTaskModalOpen(false);
+    
+    alert(`New task "${newTaskObject.title}" assigned to ${newTaskObject.assignee}`);
+  };
+
+  // Add subtask to new task form
+  const handleAddSubtask = () => {
+    setNewTask(prev => ({
+      ...prev,
+      subtasks: [
+        ...prev.subtasks,
+        { id: prev.subtasks.length + 1, description: "", completed: false }
+      ]
+    }));
+  };
+
+  // Get assignable users berdasarkan role
+  const getAssignableUsers = () => {
+    if (!currentUser) return [];
+    
+    if (currentUser.role === 'supervisor') {
+      // Supervisor bisa assign ke semua PM dan employee
+      return [
+        { name: "Sarah Chen", role: "pm", department: "Engineering" },
+        { name: "Lisa Wong", role: "pm", department: "Marketing" },
+        { name: "John Doe", role: "employee", department: "Engineering" },
+        { name: "Mike Brown", role: "employee", department: "Engineering" },
+        { name: "Jane Smith", role: "employee", department: "Marketing" }
+      ];
+    } else if (currentUser.role === 'pm') {
+      // PM hanya bisa assign ke employee di department-nya
+      return [
+        { name: "John Doe", role: "employee", department: "Engineering" },
+        { name: "Mike Brown", role: "employee", department: "Engineering" },
+        { name: "Alex Johnson", role: "employee", department: "Engineering" }
+      ];
+    }
+    
+    return [];
+  };
+
+  // Render Task Item
+  const renderTaskItem = (task: Task, isFromSupervisor = false) => {
+    // Check if current user can edit subtasks
+    const canEditSubtasks = currentUser && (
+      (currentUser.role === 'employee' && task.assignee === currentUser.name) ||
+      (currentUser.role === 'pm' && task.assignee === currentUser.name)
+    );
+
+    return (
+      <div key={task.id} className={`px-6 py-4 hover:${themeColors.bgLight}`}>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                task.priority === "high" 
+                  ? "bg-red-100 text-red-800"
+                  : task.priority === "medium"
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-blue-100 text-blue-800"
+              }`}>
+                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+              </span>
+              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                task.status === "completed"
+                  ? "bg-green-100 text-green-800"
+                  : task.status === "in-progress"
+                  ? "bg-blue-100 text-blue-800"
+                  : task.status === "review"
+                  ? "bg-purple-100 text-purple-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}>
+                {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+              </span>
+              {new Date(task.deadline) < new Date() && task.status !== 'completed' && (
+                <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full font-medium">
+                  Overdue
+                </span>
+              )}
+              {isFromSupervisor && (
+                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium flex items-center gap-1">
+                  <SupervisorIcon />
+                  From Supervisor
+                </span>
+              )}
+            </div>
+            
+            <h4 className={`text-lg font-medium ${themeColors.text}`}>{task.title}</h4>
+            <p className={`text-sm ${themeColors.textLight} mt-1`}>{task.description}</p>
+            
+            {/* Subtasks untuk Employee DAN PM pada task mereka sendiri */}
+            {canEditSubtasks && task.subtasks && task.subtasks.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className={`text-sm font-medium ${themeColors.text}`}>Subtasks:</h5>
+                  <span className={`text-xs ${themeColors.textLight}`}>
+                    {task.subtasks.filter(st => st.completed).length} of {task.subtasks.length} completed
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {task.subtasks.map((subtask) => (
+                    <div key={subtask.id} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={subtask.completed}
+                        onChange={() => handleSubtaskToggle(task.id, subtask.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                        disabled={task.status === 'completed'}
+                      />
+                      <span className={`text-sm ${subtask.completed ? 'line-through text-gray-500' : themeColors.text}`}>
+                        {subtask.description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Progress summary */}
+                <div className="mt-3 flex items-center justify-between">
+                  <span className={`text-xs ${themeColors.textLight}`}>
+                    Update your progress by checking completed subtasks
+                  </span>
+                  <button 
+                    onClick={() => handleSubmitProgress(task.id)}
+                    className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                  >
+                    Submit Progress
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Show subtasks read-only jika user tidak bisa edit */}
+            {!canEditSubtasks && task.subtasks && task.subtasks.length > 0 && (
+              <div className="mt-4">
+                <h5 className={`text-sm font-medium ${themeColors.text} mb-2`}>Subtasks:</h5>
+                <div className="space-y-2">
+                  {task.subtasks.map((subtask) => (
+                    <div key={subtask.id} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={subtask.completed}
+                        readOnly
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <span className={`text-sm ${subtask.completed ? 'line-through text-gray-500' : themeColors.text}`}>
+                        {subtask.description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex flex-wrap items-center gap-4 mt-4">
+              <div className="flex items-center gap-2">
+                <UserIcon />
+                <span className={`text-sm ${themeColors.textLight}`}>
+                  {task.assigner ? `${task.assigner} → ${task.assignee}` : task.assignee}
+                  {task.assigner === currentUser?.name && " (Assigned by you)"}
+                </span>
+              </div>
+              {(currentUser?.role === 'supervisor' || currentUser?.role === 'pm') && (
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm ${themeColors.textLight}`}>{task.department}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <ClockIcon />
+                <span className={`text-sm ${themeColors.textLight}`}>
+                  Due: {new Date(task.deadline).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm ${themeColors.textLight}`}>Est: {task.estimatedHours}h</span>
+                {task.actualHours && (
+                  <span className={`text-sm ${themeColors.textLight}`}>• Actual: {task.actualHours}h</span>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className={`text-sm ${themeColors.textLight}`}>Progress</span>
+                <span className="text-sm font-medium">{task.progress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full ${
+                    task.progress < 30 ? "bg-red-500" :
+                    task.progress < 70 ? "bg-amber-500" :
+                    "bg-green-500"
+                  }`}
+                  style={{ width: `${task.progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center mt-1">
+                <span className={`text-xs ${themeColors.textLight}`}>
+                  {task.subtasks ? `${task.subtasks.filter(st => st.completed).length}/${task.subtasks.length} subtasks completed` : 'No subtasks'}
+                </span>
+                {canEditSubtasks && (
+                  <span className={`text-xs ${themeColors.textLight}`}>
+                    Click subtasks to update progress
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {task.tags && task.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {task.tags.map((tag, idx) => (
+                  <span key={idx} className={`px-2 py-1 text-xs ${theme.isDayTime ? 'bg-gray-100 text-gray-700' : 'bg-gray-700 text-gray-300'} rounded`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="ml-6 flex flex-col gap-2">
+            {/* Tombol berbeda berdasarkan role */}
+            {currentUser?.role === 'employee' && task.assignee === currentUser.name ? (
+              <>
+                <button 
+                  onClick={() => handleSubmitProgress(task.id)}
+                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                >
+                  Submit Progress
+                </button>
+                <button 
+                  onClick={() => {
+                    setSelectedTask(task);
+                    setIsModalOpen(true);
+                  }}
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                >
+                  View Details
+                </button>
+              </>
+            ) : currentUser?.role === 'pm' && task.assignee === currentUser.name ? (
+              <>
+                <button 
+                  onClick={() => handleSubmitProgress(task.id)}
+                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                >
+                  Update Progress
+                </button>
+                <button 
+                  onClick={() => {
+                    setSelectedTask(task);
+                    setIsModalOpen(true);
+                  }}
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                >
+                  View Details
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                  Manage
+                </button>
+                <button 
+                  onClick={() => {
+                    setSelectedTask(task);
+                    setIsModalOpen(true);
+                  }}
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                >
+                  Details
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {task.comments && task.comments.length > 0 && (
+          <div className={`mt-4 pt-4 border-t ${themeColors.border}`}>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              <span>{task.comments.length} comment{task.comments.length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (!currentUser) {
     return null; // Akan di-redirect oleh useEffect
@@ -379,11 +1025,11 @@ export default function TasksPage() {
             {currentUser.role === 'employee' ? 'My ' : ''}Task <span className="text-blue-600">Management</span>
           </h1>
           <p className={`text-lg md:text-xl ${themeColors.textLight} max-w-3xl mx-auto`}>
-            {currentUser.role === 'supervisor' 
-              ? 'Track and manage tasks across all departments'
-              : currentUser.role === 'pm'
-              ? `Manage ${currentUser.department} department tasks`
-              : 'Track your personal tasks and assignments'}
+            {currentUser?.role === 'supervisor' 
+              ? 'Monitor and assign tasks to PMs and employees'
+              : currentUser?.role === 'pm'
+              ? `Manage tasks in ${currentUser.department} department`
+              : 'Track and update your assigned tasks'}
           </p>
         </div>
       </div>
@@ -413,18 +1059,18 @@ export default function TasksPage() {
                 </nav>
                 
                 <h2 className={`text-2xl font-bold ${themeColors.text}`}>
-                  {currentUser.role === 'supervisor' 
-                    ? 'Company Task Management'
-                    : currentUser.role === 'pm'
+                  {currentUser?.role === 'supervisor' 
+                    ? 'Task Assignment & Monitoring'
+                    : currentUser?.role === 'pm'
                     ? `${currentUser.department} Department Tasks`
-                    : 'My Tasks & Assignments'}
+                    : 'My Tasks & Progress'}
                 </h2>
                 <p className={`${themeColors.textLight} mt-1`}>
-                  {currentUser.role === 'supervisor' 
-                    ? 'Monitor task progress across all teams'
-                    : currentUser.role === 'pm'
-                    ? 'Assign and track team member tasks'
-                    : 'View all your current and completed tasks'}
+                  {currentUser?.role === 'supervisor' 
+                    ? 'Assign tasks to PMs and monitor all progress'
+                    : currentUser?.role === 'pm'
+                    ? 'Assign tasks to your team and track progress'
+                    : 'Update your task progress and submit reports'}
                 </p>
               </div>
               
@@ -436,12 +1082,18 @@ export default function TasksPage() {
                   ← Back to Dashboard
                 </Link>
                 
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  {currentUser.role === 'employee' ? 'New Task' : 'Assign Task'}
-                </button>
+                {/* Show Assign Task button only for Supervisor and PM */}
+                {(currentUser?.role === 'supervisor' || currentUser?.role === 'pm') && (
+                  <button 
+                    onClick={() => setIsNewTaskModalOpen(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {currentUser.role === 'supervisor' ? 'Assign New Task' : 'Assign to Team'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -462,9 +1114,11 @@ export default function TasksPage() {
               </div>
               <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
                 <p className={`text-xs ${themeColors.textLighter}`}>
-                  {currentUser.role === 'employee' 
-                    ? 'Total tasks assigned to you'
-                    : `${currentUser.role === 'pm' ? 'Team' : 'Company'} tasks`}
+                  {currentUser?.role === 'employee' 
+                    ? 'Your assigned tasks'
+                    : currentUser?.role === 'pm'
+                    ? `Tasks in ${currentUser.department}`
+                    : 'All company tasks'}
                 </p>
               </div>
             </div>
@@ -483,7 +1137,7 @@ export default function TasksPage() {
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-green-500 h-2 rounded-full" 
-                    style={{ width: `${(stats.completed / stats.total) * 100}%` }}
+                    style={{ width: `${stats.total > 0 ? (stats.completed / stats.total) * 100 : 0}%` }}
                   />
                 </div>
                 <p className={`text-xs ${themeColors.textLighter} mt-1`}>
@@ -548,7 +1202,7 @@ export default function TasksPage() {
               <div className="flex flex-wrap gap-4">
                 {/* Status Filter */}
                 <div className={`flex ${theme.isDayTime ? 'bg-gray-100' : 'bg-gray-800'} p-1 rounded-lg`}>
-                  {(['all', 'pending', 'in-progress', 'completed', 'review'] as const).map(filter => (
+                  {(['all', 'pending', 'in-progress', 'completed'] as const).map(filter => (
                     <button
                       key={filter}
                       onClick={() => setSelectedFilter(filter)}
@@ -578,7 +1232,7 @@ export default function TasksPage() {
                 </select>
                 
                 {/* Department Filter (hanya untuk supervisor) */}
-                {currentUser.role === 'supervisor' && (
+                {currentUser?.role === 'supervisor' && (
                   <select
                     value={selectedDepartment}
                     onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -619,165 +1273,151 @@ export default function TasksPage() {
           
           {/* Tasks Content */}
           {viewMode === "list" ? (
-            // List View
-            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden mb-8`}>
-              <div className={`px-6 py-4 border-b ${themeColors.border} ${themeColors.bgLight}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className={`text-lg font-semibold ${themeColors.text}`}>Task List</h3>
-                    <p className={`text-sm ${themeColors.textLight}`}>
-                      {currentUser.role === 'employee' 
-                        ? 'Your complete task history'
-                        : `Showing ${filteredTasks.length} tasks`}
-                    </p>
-                  </div>
-                  <div className={`text-sm ${themeColors.textLighter}`}>
-                    Sorted by: Due Date
-                  </div>
-                </div>
-              </div>
-              
-              <div className="divide-y divide-gray-200">
-                {filteredTasks.map((task) => (
-                  <div key={task.id} className={`px-6 py-4 hover:${themeColors.bgLight}`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                            task.priority === "high" 
-                              ? "bg-red-100 text-red-800"
-                              : task.priority === "medium"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}>
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                          </span>
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                            task.status === "completed"
-                              ? "bg-green-100 text-green-800"
-                              : task.status === "in-progress"
-                              ? "bg-blue-100 text-blue-800"
-                              : task.status === "review"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}>
-                            {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                          </span>
-                          {new Date(task.deadline) < new Date() && task.status !== 'completed' && (
-                            <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full font-medium">
-                              Overdue
-                            </span>
-                          )}
+            // List View - Khusus untuk PM kita buat dua section terpisah
+            currentUser?.role === 'pm' ? (
+              <div className="space-y-8">
+                {/* Section 1: Tasks dari Supervisor ke PM */}
+                <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border-2 border-blue-500 overflow-hidden`}>
+                  <div className={`px-6 py-4 bg-blue-50 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} border-b ${themeColors.border}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 ${theme.isDayTime ? 'bg-blue-100' : 'bg-blue-900/30'} rounded-lg`}>
+                          <SupervisorIcon />
                         </div>
-                        
-                        <h4 className={`text-lg font-medium ${themeColors.text}`}>{task.title}</h4>
-                        <p className={`text-sm ${themeColors.textLight} mt-1`}>{task.description}</p>
-                        
-                        <div className="flex flex-wrap items-center gap-4 mt-4">
-                          <div className="flex items-center gap-2">
-                            <UserIcon />
-                            <span className={`text-sm ${themeColors.textLight}`}>{task.assignee}</span>
-                          </div>
-                          {currentUser.role !== 'employee' && (
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm ${themeColors.textLight}`}>{task.department}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <ClockIcon />
-                            <span className={`text-sm ${themeColors.textLight}`}>
-                              Due: {new Date(task.deadline).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric' 
-                              })}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm ${themeColors.textLight}`}>Est: {task.estimatedHours}h</span>
-                            {task.actualHours && (
-                              <span className={`text-sm ${themeColors.textLight}`}>• Actual: {task.actualHours}h</span>
-                            )}
-                          </div>
+                        <div>
+                          <h3 className={`text-lg font-semibold ${themeColors.text}`}>Tasks From Supervisor</h3>
+                          <p className={`text-sm ${themeColors.textLight}`}>
+                            Tasks assigned to you by Supervisor ({pmTasksFromSupervisor.length} tasks)
+                          </p>
+                          <p className={`text-xs ${themeColors.textLight} mt-1`}>
+                            Update your progress by checking completed subtasks
+                          </p>
                         </div>
-                        
-                        <div className="mt-4">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={`text-sm ${themeColors.textLight}`}>Progress</span>
-                            <span className="text-sm font-medium">{task.progress}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                task.progress < 30 ? "bg-red-500" :
-                                task.progress < 70 ? "bg-amber-500" :
-                                "bg-green-500"
-                              }`}
-                              style={{ width: `${task.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                        
-                        {task.tags && task.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-4">
-                            {task.tags.map((tag, idx) => (
-                              <span key={idx} className={`px-2 py-1 text-xs ${theme.isDayTime ? 'bg-gray-100 text-gray-700' : 'bg-gray-700 text-gray-300'} rounded`}>
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
-                      
-                      <div className="ml-6 flex flex-col gap-2">
-                        <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
-                          {currentUser.role === 'employee' ? 'Update' : 'Manage'}
-                        </button>
-                        <button className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}>
-                          Details
-                        </button>
+                      <div className={`px-3 py-1 text-sm ${theme.isDayTime ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/30 text-blue-300'} rounded-full`}>
+                        Direct Assignment
                       </div>
                     </div>
-                    
-                    {task.comments && task.comments.length > 0 && (
-                      <div className={`mt-4 pt-4 border-t ${themeColors.border}`}>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                          </svg>
-                          <span>{task.comments.length} comment{task.comments.length !== 1 ? 's' : ''}</span>
-                        </div>
+                  </div>
+                  
+                  <div className="divide-y divide-gray-200">
+                    {pmTasksFromSupervisor.length > 0 ? (
+                      pmTasksFromSupervisor.map(task => renderTaskItem(task, true))
+                    ) : (
+                      <div className="px-6 py-12 text-center">
+                        <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 className={`mt-4 text-lg font-medium ${themeColors.text}`}>No tasks from supervisor</h3>
+                        <p className={`mt-1 ${themeColors.textLight}`}>No tasks have been assigned to you by supervisor yet</p>
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-              
-              {filteredTasks.length === 0 && (
-                <div className="px-6 py-12 text-center">
-                  <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <h3 className={`mt-4 text-lg font-medium ${themeColors.text}`}>No tasks found</h3>
-                  <p className={`mt-1 ${themeColors.textLight}`}>Try adjusting your filters</p>
                 </div>
-              )}
-              
-              <div className={`px-6 py-4 border-t ${themeColors.border} ${themeColors.bgLight}`}>
-                <div className="flex items-center justify-between">
-                  <div className={`text-sm ${themeColors.textLight}`}>
-                    Showing {Math.min(filteredTasks.length, 10)} of {filteredTasks.length} tasks
+                
+                {/* Section 2: Tasks dari PM ke Team */}
+                <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border-2 border-green-500 overflow-hidden`}>
+                  <div className={`px-6 py-4 bg-green-50 ${theme.isDayTime ? 'bg-green-50' : 'bg-green-900/20'} border-b ${themeColors.border}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 ${theme.isDayTime ? 'bg-green-100' : 'bg-green-900/30'} rounded-lg`}>
+                          <TeamIcon />
+                        </div>
+                        <div>
+                          <h3 className={`text-lg font-semibold ${themeColors.text}`}>Team Tasks</h3>
+                          <p className={`text-sm ${themeColors.textLight}`}>
+                            Tasks assigned by you to your team ({pmTasksToTeam.length} tasks)
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 text-sm ${theme.isDayTime ? 'bg-green-100 text-green-800' : 'bg-green-900/30 text-green-300'} rounded-full`}>
+                        Team Management
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button className={`px-3 py-1 border ${themeColors.border} rounded text-sm hover:${themeColors.bgLight}`}>
-                      ← Previous
-                    </button>
-                    <button className={`px-3 py-1 border ${themeColors.border} rounded text-sm hover:${themeColors.bgLight}`}>
-                      Next →
-                    </button>
+                  
+                  <div className="divide-y divide-gray-200">
+                    {pmTasksToTeam.length > 0 ? (
+                      pmTasksToTeam.map(task => renderTaskItem(task, false))
+                    ) : (
+                      <div className="px-6 py-12 text-center">
+                        <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 className={`mt-4 text-lg font-medium ${themeColors.text}`}>No team tasks</h3>
+                        <p className={`mt-1 ${themeColors.textLight}`}>You haven't assigned any tasks to your team yet</p>
+                        <button 
+                          onClick={() => setIsNewTaskModalOpen(true)}
+                          className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 mx-auto"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                          </svg>
+                          Assign First Task
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              // List View untuk Employee dan Supervisor
+              <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden mb-8`}>
+                <div className={`px-6 py-4 border-b ${themeColors.border} ${themeColors.bgLight}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className={`text-lg font-semibold ${themeColors.text}`}>Task List</h3>
+                      <p className={`text-sm ${themeColors.textLight}`}>
+                        {currentUser?.role === 'employee' 
+                          ? 'Your assigned tasks - update progress by checking subtasks'
+                          : `Showing ${filteredTasks.length} tasks`}
+                      </p>
+                    </div>
+                    <div className={`text-sm ${themeColors.textLighter}`}>
+                      {(() => {
+                        if (currentUser?.role === 'supervisor') return 'Assigner → Assignee';
+                        if (currentUser?.role === 'employee') return 'Your Tasks';
+                        return '';
+                      })()}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="divide-y divide-gray-200">
+                  {filteredTasks.map((task) => renderTaskItem(task, false))}
+                </div>
+                
+                {filteredTasks.length === 0 && (
+                  <div className="px-6 py-12 text-center">
+                    <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 className={`mt-4 text-lg font-medium ${themeColors.text}`}>No tasks found</h3>
+                    <p className={`mt-1 ${themeColors.textLight}`}>
+                      {currentUser?.role === 'employee' 
+                        ? 'No tasks assigned to you yet'
+                        : 'Try adjusting your filters'}
+                    </p>
+                  </div>
+                )}
+                
+                <div className={`px-6 py-4 border-t ${themeColors.border} ${themeColors.bgLight}`}>
+                  <div className="flex items-center justify-between">
+                    <div className={`text-sm ${themeColors.textLight}`}>
+                      Showing {Math.min(filteredTasks.length, 10)} of {filteredTasks.length} tasks
+                    </div>
+                    <div className="flex gap-2">
+                      <button className={`px-3 py-1 border ${themeColors.border} rounded text-sm hover:${themeColors.bgLight}`}>
+                        ← Previous
+                      </button>
+                      <button className={`px-3 py-1 border ${themeColors.border} rounded text-sm hover:${themeColors.bgLight}`}>
+                        Next →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
           ) : (
             // Board View (Kanban)
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -812,6 +1452,11 @@ export default function TasksPage() {
                             }`}>
                               {task.priority.charAt(0).toUpperCase()}
                             </span>
+                            {currentUser?.role === 'pm' && task.assigner === "Alex Johnson" && (
+                              <span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                From Sup
+                              </span>
+                            )}
                             <button className="text-gray-400 hover:text-gray-600">
                               ⋮
                             </button>
@@ -826,7 +1471,11 @@ export default function TasksPage() {
                               <div className={`w-6 h-6 rounded-full ${theme.isDayTime ? 'bg-gray-200' : 'bg-gray-700'} flex items-center justify-center text-xs`}>
                                 {task.assignee.split(' ').map(n => n[0]).join('')}
                               </div>
-                              <span className={`text-xs ${themeColors.textLight}`}>{task.assignee}</span>
+                              <span className={`text-xs ${themeColors.textLight}`}>
+                                {currentUser?.role === 'supervisor' 
+                                  ? `${task.assigner?.split(' ').map(n => n[0]).join('')}→${task.assignee.split(' ').map(n => n[0]).join('')}`
+                                  : task.assignee}
+                              </span>
                             </div>
                             <div className="text-xs font-medium">{task.progress}%</div>
                           </div>
@@ -839,40 +1488,68 @@ export default function TasksPage() {
             </div>
           )}
           
-          {/* Task Analytics untuk Supervisor/PM */}
-          {currentUser.role !== 'employee' && (
+          {/* Task Monitoring untuk Supervisor/PM */}
+          {(currentUser?.role === 'supervisor' || currentUser?.role === 'pm') && (
             <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8`}>
-              <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Task Analytics</h3>
+              <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>
+                {currentUser.role === 'supervisor' ? 'Department Monitoring' : 'Team Progress'}
+              </h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
-                  <h4 className={`text-sm font-medium ${themeColors.textLight} mb-4`}>Completion Rate by Department</h4>
+                  <h4 className={`text-sm font-medium ${themeColors.textLight} mb-4`}>
+                    {currentUser.role === 'supervisor' ? 'Completion Rate by PM' : 'Progress by Team Member'}
+                  </h4>
                   <div className="space-y-4">
-                    {['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'].map(dept => (
-                      <div key={dept} className="flex items-center justify-between">
-                        <span className={`text-sm ${themeColors.textLight}`}>{dept}</span>
-                        <div className="flex items-center gap-3">
-                          <div className="w-32 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-500 h-2 rounded-full"
-                              style={{ width: `${Math.floor(Math.random() * 60) + 40}%` }}
-                            />
+                    {currentUser.role === 'supervisor' ? (
+                      // Supervisor melihat progress per PM
+                      <>
+                        {['Sarah Chen (Engineering)', 'Lisa Wong (Marketing)', 'Tom Wilson (Sales)'].map(pm => (
+                          <div key={pm} className="flex items-center justify-between">
+                            <span className={`text-sm ${themeColors.textLight}`}>{pm}</span>
+                            <div className="flex items-center gap-3">
+                              <div className="w-32 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-500 h-2 rounded-full"
+                                  style={{ width: `${Math.floor(Math.random() * 60) + 40}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium">{Math.floor(Math.random() * 60) + 40}%</span>
+                            </div>
                           </div>
-                          <span className="text-sm font-medium">{Math.floor(Math.random() * 60) + 40}%</span>
-                        </div>
-                      </div>
-                    ))}
+                        ))}
+                      </>
+                    ) : (
+                      // PM melihat progress per team member
+                      <>
+                        {['John Doe', 'Mike Brown', 'Alex Johnson'].map(member => (
+                          <div key={member} className="flex items-center justify-between">
+                            <span className={`text-sm ${themeColors.textLight}`}>{member}</span>
+                            <div className="flex items-center gap-3">
+                              <div className="w-32 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-500 h-2 rounded-full"
+                                  style={{ width: `${Math.floor(Math.random() * 60) + 40}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium">{Math.floor(Math.random() * 60) + 40}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
                 <div>
-                  <h4 className={`text-sm font-medium ${themeColors.textLight} mb-4`}>Average Task Duration</h4>
+                  <h4 className={`text-sm font-medium ${themeColors.textLight} mb-4`}>Task Distribution</h4>
                   <div className="space-y-4">
                     {['High Priority', 'Medium Priority', 'Low Priority'].map(priority => (
                       <div key={priority} className="flex items-center justify-between">
                         <span className={`text-sm ${themeColors.textLight}`}>{priority}</span>
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-medium">
-                            {priority === 'High Priority' ? '3.2' : 
-                             priority === 'Medium Priority' ? '5.8' : '8.4'} days
+                            {priority === 'High Priority' ? filteredTasks.filter(t => t.priority === 'high').length : 
+                             priority === 'Medium Priority' ? filteredTasks.filter(t => t.priority === 'medium').length : 
+                             filteredTasks.filter(t => t.priority === 'low').length} tasks
                           </span>
                         </div>
                       </div>
@@ -884,11 +1561,11 @@ export default function TasksPage() {
           )}
           
           {/* Employee-specific content */}
-          {currentUser.role === 'employee' && (
+          {currentUser?.role === 'employee' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Task Statistics */}
               <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-                <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Your Task Statistics</h3>
+                <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Your Performance</h3>
                 <div className="space-y-6">
                   <div>
                     <div className="flex justify-between items-center mb-2">
@@ -901,12 +1578,14 @@ export default function TasksPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className={`p-4 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
-                      <div className="text-2xl font-bold text-blue-600">42</div>
+                      <div className="text-2xl font-bold text-blue-600">{stats.completed}</div>
                       <div className={`text-sm ${themeColors.textLight}`}>Tasks Completed</div>
                     </div>
                     <div className={`p-4 ${theme.isDayTime ? 'bg-green-50' : 'bg-green-900/20'} rounded-lg`}>
-                      <div className="text-2xl font-bold text-green-600">4.5</div>
-                      <div className={`text-sm ${themeColors.textLight}`}>Avg. Rating</div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%
+                      </div>
+                      <div className={`text-sm ${themeColors.textLight}`}>Completion Rate</div>
                     </div>
                   </div>
                 </div>
@@ -927,40 +1606,271 @@ export default function TasksPage() {
                   </button>
                   <button className={`w-full p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left flex items-center justify-between`}>
                     <div>
-                      <div className={`font-medium ${themeColors.text}`}>Submit Timesheet</div>
-                      <div className={`text-sm ${themeColors.textLight} mt-1`}>Log hours for completed tasks</div>
+                      <div className={`font-medium ${themeColors.text}`}>Report Issue</div>
+                      <div className={`text-sm ${themeColors.textLight} mt-1`}>Report problems with assigned task</div>
                     </div>
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
                   </button>
                 </div>
               </div>
             </div>
           )}
-          
-          {/* Bulk Actions untuk Supervisor/PM */}
-          {currentUser.role !== 'employee' && (
-            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-              <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Bulk Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left`}>
-                  <div className={`font-medium ${themeColors.text}`}>Assign Multiple Tasks</div>
-                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Assign tasks to team members</div>
+        </div>
+      </div>
+
+      {/* Modal for Task Details */}
+      {isModalOpen && selectedTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className={`text-xl font-bold ${themeColors.text}`}>{selectedTask.title}</h3>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className={`p-2 ${theme.isDayTime ? 'hover:bg-gray-100' : 'hover:bg-gray-700'} rounded-lg`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-                <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left`}>
-                  <div className={`font-medium ${themeColors.text}`}>Update Deadlines</div>
-                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Bulk update task deadlines</div>
-                </button>
-                <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left`}>
-                  <div className={`font-medium ${themeColors.text}`}>Export Task Report</div>
-                  <div className={`text-sm ${themeColors.textLight} mt-1`}>Generate detailed task report</div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium ${themeColors.textLight} mb-1`}>Description</label>
+                  <p className={`${themeColors.text}`}>{selectedTask.description}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-1`}>Assignee</label>
+                    <p className={`${themeColors.text}`}>{selectedTask.assignee}</p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-1`}>Assigned By</label>
+                    <p className={`${themeColors.text}`}>{selectedTask.assigner}</p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-1`}>Department</label>
+                    <p className={`${themeColors.text}`}>{selectedTask.department}</p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-1`}>Deadline</label>
+                    <p className={`${themeColors.text}`}>
+                      {new Date(selectedTask.deadline).toLocaleDateString('en-US', { 
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+                
+                {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>Subtasks</label>
+                    <div className="space-y-2">
+                      {selectedTask.subtasks.map((subtask) => (
+                        <div key={subtask.id} className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={subtask.completed}
+                            readOnly
+                            className="w-4 h-4 text-blue-600 rounded"
+                          />
+                          <span className={`text-sm ${subtask.completed ? 'line-through text-gray-500' : themeColors.text}`}>
+                            {subtask.description}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {selectedTask.comments && selectedTask.comments.length > 0 && (
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>Comments</label>
+                    <div className="space-y-3">
+                      {selectedTask.comments.map((comment) => (
+                        <div key={comment.id} className={`p-3 rounded-lg ${theme.isDayTime ? 'bg-gray-50' : 'bg-gray-800'}`}>
+                          <div className="flex justify-between items-start">
+                            <span className={`font-medium ${themeColors.text}`}>{comment.userName}</span>
+                            <span className={`text-xs ${themeColors.textLight}`}>{comment.timestamp}</span>
+                          </div>
+                          <p className={`text-sm ${themeColors.text} mt-1`}>{comment.comment}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                >
+                  Close
                 </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Modal for Assigning New Task (Supervisor & PM) */}
+      {isNewTaskModalOpen && (currentUser?.role === 'supervisor' || currentUser?.role === 'pm') && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className={`text-xl font-bold ${themeColors.text}`}>
+                  {currentUser.role === 'supervisor' ? 'Assign New Task' : 'Assign Task to Team'}
+                </h3>
+                <button 
+                  onClick={() => setIsNewTaskModalOpen(false)}
+                  className={`p-2 ${theme.isDayTime ? 'hover:bg-gray-100' : 'hover:bg-gray-700'} rounded-lg`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium ${themeColors.text} mb-1`}>Task Title</label>
+                  <input
+                    type="text"
+                    value={newTask.title}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                    className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                    placeholder="Enter task title"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium ${themeColors.text} mb-1`}>Description</label>
+                  <textarea
+                    value={newTask.description}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                    className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                    rows={3}
+                    placeholder="Enter task description"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.text} mb-1`}>Priority</label>
+                    <select
+                      value={newTask.priority}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, priority: e.target.value as "low" | "medium" | "high" }))}
+                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                    >
+                      <option value="low">Low Priority</option>
+                      <option value="medium">Medium Priority</option>
+                      <option value="high">High Priority</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.text} mb-1`}>Assignee</label>
+                    <select
+                      value={newTask.assignee}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, assignee: e.target.value }))}
+                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                    >
+                      <option value="">Select assignee</option>
+                      {getAssignableUsers().map(user => (
+                        <option key={user.name} value={user.name}>
+                          {user.name} ({user.role}, {user.department})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.text} mb-1`}>Deadline</label>
+                    <input
+                      type="date"
+                      value={newTask.deadline}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, deadline: e.target.value }))}
+                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.text} mb-1`}>Estimated Hours</label>
+                    <input
+                      type="number"
+                      value={newTask.estimatedHours}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, estimatedHours: parseInt(e.target.value) || 8 }))}
+                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                      min="1"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className={`block text-sm font-medium ${themeColors.text}`}>Subtasks</label>
+                    <button
+                      type="button"
+                      onClick={handleAddSubtask}
+                      className="text-sm text-blue-600 hover:text-blue-700"
+                    >
+                      + Add Subtask
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {newTask.subtasks.map((subtask, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={subtask.completed}
+                          disabled
+                          className="w-4 h-4 text-blue-600 rounded"
+                        />
+                        <input
+                          type="text"
+                          value={subtask.description}
+                          onChange={(e) => {
+                            const newSubtasks = [...newTask.subtasks];
+                            newSubtasks[index] = { ...subtask, description: e.target.value };
+                            setNewTask(prev => ({ ...prev, subtasks: newSubtasks }));
+                          }}
+                          className={`flex-1 px-3 py-1 border ${themeColors.border} rounded ${themeColors.bgLight} ${themeColors.text} text-sm`}
+                          placeholder="Subtask description"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                <button 
+                  onClick={() => setIsNewTaskModalOpen(false)}
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleAssignNewTask}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={!newTask.title || !newTask.assignee || !newTask.deadline}
+                >
+                  Assign Task
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

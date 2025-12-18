@@ -54,49 +54,44 @@ const availableUsers: User[] = [
   }
 ];
 
-// Daftar sponsor dibagi per baris sesuai permintaan
-const sponsorRows = [
-  // Baris 1: bergerak ke kanan
-  [
-    { name: "Gemini", logo: "/gemini.png" },
-    { name: "ChatGPT", logo: "/chatgpt.png" },
-    { name: "Microsoft", logo: "/microsoft.png" },
-    { name: "Google Cloud", logo: "/google-cloud.png" }
-  ],
-  // Baris 2: bergerak ke kiri
-  [
-    { name: "AWS", logo: "/aws.png" },
-    { name: "Slack", logo: "/slack.png" },
-    { name: "Notion", logo: "/notion.png" },
-    { name: "Figma", logo: "/figma.png" }
-  ],
-  // Baris 3: bergerak ke kanan
-  [
-    { name: "OpenAI", logo: "/openai.png" },
-    { name: "GitHub", logo: "/github.png" },
-    { name: "Vercel", logo: "/vercel.png" },
-    { name: "Tailwind", logo: "/tailwind.png" }
-  ]
+// Daftar sponsor (gunakan path sesuai asset yang Anda siapkan)
+const sponsors = [
+  { name: "Gemini", logo: "/sponsors/gemini.png" },
+  { name: "ChatGPT", logo: "/sponsors/chatgpt.png" },
+  { name: "Microsoft", logo: "/sponsors/microsoft.png" },
+  { name: "Google Cloud", logo: "/sponsors/google-cloud.png" },
+  { name: "AWS", logo: "/sponsors/aws.png" },
+  { name: "Slack", logo: "/sponsors/slack.png" },
+  { name: "Notion", logo: "/sponsors/notion.png" },
+  { name: "Figma", logo: "/sponsors/figma.png" },
+  { name: "OpenAI", logo: "/sponsors/openai.png" },
+  { name: "GitHub", logo: "/sponsors/github.png" },
+  { name: "Vercel", logo: "/sponsors/vercel.png" },
+  { name: "Tailwind", logo: "/sponsors/tailwind.png" }
 ];
 
 // Duplicate sponsors untuk infinite scroll effect
-const duplicatedSponsorRows = sponsorRows.map(row => [...row, ...row]);
+const sponsorRows = [
+  [...sponsors, ...sponsors], // Row 1: bergerak ke kanan
+  [...sponsors, ...sponsors], // Row 2: bergerak ke kiri
+  [...sponsors, ...sponsors]  // Row 3: bergerak ke kanan
+];
 
 // Memoized Icon Components
 const SunIcon = memo(() => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
   </svg>
 ));
 
 const MoonIcon = memo(() => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
   </svg>
 ));
 
-// Memoized Theme Toggle Component - DISIMPAN DI HEADER
-const ThemeToggleButton = memo(({ 
+// Memoized Theme Toggle Component - SIMPLIFIED version tanpa dropdown
+const ThemeToggle = memo(({ 
   theme, 
   toggleTheme
 }: { 
@@ -104,10 +99,10 @@ const ThemeToggleButton = memo(({
   toggleTheme: () => void;
 }) => (
   <button 
-    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+    className={`fixed top-6 right-6 z-50 px-5 py-2.5 rounded-full backdrop-blur-sm flex items-center gap-2 cursor-pointer transition-all duration-300 shadow-lg ${
       theme.isDayTime
-        ? "bg-gray-100 text-gray-900 hover:bg-gray-200"
-        : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+        ? "bg-white/90 text-gray-800 hover:bg-white border border-gray-200"
+        : "bg-gray-800/90 text-white hover:bg-gray-700 border border-gray-700"
     }`}
     onClick={toggleTheme}
     aria-label="Toggle theme"
@@ -117,69 +112,58 @@ const ThemeToggleButton = memo(({
         <div className="w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center">
           <SunIcon />
         </div>
-        <span className="text-sm font-medium">Day</span>
+        <span className="text-sm font-medium">Day Mode</span>
       </>
     ) : (
       <>
         <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
           <MoonIcon />
         </div>
-        <span className="text-sm font-medium">Night</span>
+        <span className="text-sm font-medium">Night Mode</span>
       </>
     )}
   </button>
 ));
 
-// New Header Navigation Component - DENGAN THEME TOGGLE DI BAR
+// New Header Navigation Component - UPDATED tanpa tombol "Get Started Free"
 const HeaderNav = memo(({ 
   themeColors, 
   setIsLoginModalOpen,
-  theme,
-  toggleTheme
+  theme 
 }: { 
   themeColors: any;
   setIsLoginModalOpen: (open: boolean) => void;
   theme: Theme;
-  toggleTheme: () => void;
 }) => (
   <header className={`sticky top-0 z-40 w-full border-b ${themeColors.border} ${themeColors.bg} backdrop-blur-sm bg-opacity-80`}>
     <div className="container mx-auto px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* Logo dengan Image - BACKGROUND SESUAI THEME */}
+        {/* Logo */}
         <div className="flex items-center space-x-2">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${
-            theme.isDayTime ? 'bg-white' : 'bg-gray-900'
-          }`}>
-            <Image 
-              src="/TechMaven.png" 
-              alt="TechMaven Logo" 
-              width={40} 
-              height={40}
-              className="object-contain"
-            />
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+            <span className="text-white font-bold text-xl">TM</span>
           </div>
           <span className={`text-xl font-bold ${themeColors.text}`}>TechMaven</span>
         </div>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
-          <Link href="#features" className={`${themeColors.navLink} hover:text-blue-600 transition-colors font-medium`}>
+          <Link href="#features" className={`${themeColors.textLight} hover:text-blue-600 transition-colors font-medium`}>
             Features
           </Link>
-          <Link href="#solutions" className={`${themeColors.navLink} hover:text-blue-600 transition-colors font-medium`}>
+          <Link href="#solutions" className={`${themeColors.textLight} hover:text-blue-600 transition-colors font-medium`}>
             Solutions
           </Link>
-          <Link href="#pricing" className={`${themeColors.navLink} hover:text-blue-600 transition-colors font-medium`}>
+          <Link href="#pricing" className={`${themeColors.textLight} hover:text-blue-600 transition-colors font-medium`}>
             Pricing
           </Link>
-          <Link href="#resources" className={`${themeColors.navLink} hover:text-blue-600 transition-colors font-medium`}>
+          <Link href="#resources" className={`${themeColors.textLight} hover:text-blue-600 transition-colors font-medium`}>
             Resources
           </Link>
         </nav>
 
-        {/* CTA Buttons - DENGAN THEME TOGGLE */}
+        {/* CTA Button - Hanya Sign In */}
         <div className="flex items-center space-x-4">
-          <ThemeToggleButton theme={theme} toggleTheme={toggleTheme} />
           <button
             onClick={() => setIsLoginModalOpen(true)}
             className={`px-5 py-2.5 rounded-lg font-medium transition-all ${theme.isDayTime ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
@@ -192,143 +176,96 @@ const HeaderNav = memo(({
   </header>
 ));
 
-// Individual Sponsor Item Component untuk effect hover yang independen
-const SponsorItem = memo(({ 
-  sponsor, 
-  index, 
-  themeColors, 
-  isPaused,
-  onMouseEnter,
-  onMouseLeave 
-}: { 
-  sponsor: any; 
-  index: number; 
-  themeColors: any;
-  isPaused: boolean;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <div 
-      key={`sponsor-${index}`}
-      className="flex-shrink-0 w-44 h-20 flex items-center justify-center"
-      onMouseEnter={() => {
-        setIsHovered(true);
-        onMouseEnter();
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        onMouseLeave();
-      }}
-    >
-      <div className={`
-        relative w-full h-full flex items-center justify-center p-6 rounded-xl 
-        transition-all duration-300 
-        ${themeColors.bgLight} 
-        ${isPaused ? 'opacity-100' : 'opacity-80 hover:opacity-100'}
-        ${isHovered ? 'scale-110 shadow-2xl z-10 translate-y-[-5px]' : 'hover:scale-105 hover:shadow-lg'}
-      `}>
-        <Image
-          src={sponsor.logo}
-          alt={sponsor.name}
-          width={140}
-          height={56}
-          className="object-contain"
-        />
-      </div>
-    </div>
-  );
-});
-
-// Sponsors Marquee Component dengan animasi horizontal dan pembagian per baris
+// Sponsors Marquee Component dengan animasi horizontal
 const SponsorsMarquee = memo(({ theme, themeColors }: { theme: Theme; themeColors: any }) => {
-  const [pausedRows, setPausedRows] = useState([false, false, false]);
-  const rowRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
-
-  const handleRowHover = useCallback((rowIndex: number, isHovered: boolean) => {
-    setPausedRows(prev => {
-      const newPaused = [...prev];
-      newPaused[rowIndex] = isHovered;
-      return newPaused;
-    });
-  }, []);
+  const [isPaused, setIsPaused] = useState(false);
 
   return (
-    <section className="py-12 border-y ${themeColors.border} overflow-hidden">
+    <section className="py-10 border-y ${themeColors.border} overflow-hidden">
       <div className="container mx-auto px-6">
         <div className="text-center mb-10">
-          <h3 className={`text-lg font-semibold ${themeColors.text} mb-2`}>
+          <h3 className={`text-lg font-semibold ${themeColors.textLight} mb-2`}>
             Trusted by industry leaders
           </h3>
-          <p className={`text-sm ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>
+          <p className={`text-sm ${themeColors.textLighter}`}>
             Partnered with the world's most innovative companies
           </p>
         </div>
         
-        {/* Row 1 - Bergerak ke kanan (Gemini, ChatGPT, Microsoft, Google Cloud) */}
+        {/* Row 1 - Bergerak ke kanan */}
         <div 
-          ref={rowRefs[0]}
-          className="flex mb-8 relative"
-          onMouseEnter={() => handleRowHover(0, true)}
-          onMouseLeave={() => handleRowHover(0, false)}
+          className="flex mb-8"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
         >
-          <div className={`flex space-x-16 ${pausedRows[0] ? 'animate-pause' : 'animate-marquee-right'}`}>
-            {duplicatedSponsorRows[0].map((sponsor, index) => (
-              <SponsorItem
+          <div className={`flex space-x-12 ${isPaused ? 'animate-pause' : 'animate-marquee-right'}`}>
+            {sponsorRows[0].map((sponsor, index) => (
+              <div 
                 key={`row1-${index}`}
-                sponsor={sponsor}
-                index={index}
-                themeColors={themeColors}
-                isPaused={pausedRows[0]}
-                onMouseEnter={() => handleRowHover(0, true)}
-                onMouseLeave={() => handleRowHover(0, false)}
-              />
+                className="flex-shrink-0 w-40 h-16 flex items-center justify-center"
+              >
+                <div className={`relative w-full h-full flex items-center justify-center p-4 rounded-lg transition-all duration-300 ${themeColors.bgLight} hover:scale-105 hover:shadow-md ${isPaused ? 'opacity-100' : 'opacity-80 hover:opacity-100'}`}>
+                  <Image
+                    src={sponsor.logo}
+                    alt={sponsor.name}
+                    width={120}
+                    height={48}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Row 2 - Bergerak ke kiri (AWS, Slack, Notion, Figma) */}
+        {/* Row 2 - Bergerak ke kiri */}
         <div 
-          ref={rowRefs[1]}
-          className="flex mb-8 relative"
-          onMouseEnter={() => handleRowHover(1, true)}
-          onMouseLeave={() => handleRowHover(1, false)}
+          className="flex mb-8"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
         >
-          <div className={`flex space-x-16 ${pausedRows[1] ? 'animate-pause' : 'animate-marquee-left'}`}>
-            {duplicatedSponsorRows[1].map((sponsor, index) => (
-              <SponsorItem
+          <div className={`flex space-x-12 ${isPaused ? 'animate-pause' : 'animate-marquee-left'}`}>
+            {sponsorRows[1].map((sponsor, index) => (
+              <div 
                 key={`row2-${index}`}
-                sponsor={sponsor}
-                index={index}
-                themeColors={themeColors}
-                isPaused={pausedRows[1]}
-                onMouseEnter={() => handleRowHover(1, true)}
-                onMouseLeave={() => handleRowHover(1, false)}
-              />
+                className="flex-shrink-0 w-40 h-16 flex items-center justify-center"
+              >
+                <div className={`relative w-full h-full flex items-center justify-center p-4 rounded-lg transition-all duration-300 ${themeColors.bgLight} hover:scale-105 hover:shadow-md ${isPaused ? 'opacity-100' : 'opacity-80 hover:opacity-100'}`}>
+                  <Image
+                    src={sponsor.logo}
+                    alt={sponsor.name}
+                    width={120}
+                    height={48}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Row 3 - Bergerak ke kanan (OpenAI, GitHub, Vercel, Tailwind) */}
+        {/* Row 3 - Bergerak ke kanan */}
         <div 
-          ref={rowRefs[2]}
-          className="flex relative"
-          onMouseEnter={() => handleRowHover(2, true)}
-          onMouseLeave={() => handleRowHover(2, false)}
+          className="flex"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
         >
-          <div className={`flex space-x-16 ${pausedRows[2] ? 'animate-pause' : 'animate-marquee-right'}`}>
-            {duplicatedSponsorRows[2].map((sponsor, index) => (
-              <SponsorItem
+          <div className={`flex space-x-12 ${isPaused ? 'animate-pause' : 'animate-marquee-right'}`}>
+            {sponsorRows[2].map((sponsor, index) => (
+              <div 
                 key={`row3-${index}`}
-                sponsor={sponsor}
-                index={index}
-                themeColors={themeColors}
-                isPaused={pausedRows[2]}
-                onMouseEnter={() => handleRowHover(2, true)}
-                onMouseLeave={() => handleRowHover(2, false)}
-              />
+                className="flex-shrink-0 w-40 h-16 flex items-center justify-center"
+              >
+                <div className={`relative w-full h-full flex items-center justify-center p-4 rounded-lg transition-all duration-300 ${themeColors.bgLight} hover:scale-105 hover:shadow-md ${isPaused ? 'opacity-100' : 'opacity-80 hover:opacity-100'}`}>
+                  <Image
+                    src={sponsor.logo}
+                    alt={sponsor.name}
+                    width={120}
+                    height={48}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -388,7 +325,7 @@ const HeroSection = memo(({
 
             {/* Main Headline */}
             <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight">
-              <span className="block text-gray-900" style={{ fontFamily: "'Inter', sans-serif" }}>
+              <span className="block" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {displayedText || "Welcome to TechMaven Portal"}
               </span>
               <span className="block text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mt-4">
@@ -397,7 +334,7 @@ const HeroSection = memo(({
             </h1>
 
             {/* Subheadline */}
-            <p className={`text-xl md:text-2xl ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} max-w-3xl mx-auto mb-12 leading-relaxed`}>
+            <p className={`text-xl md:text-2xl ${theme.isDayTime ? 'text-gray-600' : 'text-gray-300'} max-w-3xl mx-auto mb-12 leading-relaxed`}>
               A comprehensive platform for tracking employee performance, managing projects, and optimizing team productivity across your organization.
             </p>
 
@@ -432,7 +369,7 @@ const HeroSection = memo(({
                   <div className={`text-3xl font-bold ${theme.isDayTime ? 'text-gray-900' : 'text-white'} mb-2`}>
                     {stat.value}
                   </div>
-                  <div className={theme.isDayTime ? 'text-gray-700' : 'text-gray-400'}>
+                  <div className={theme.isDayTime ? 'text-gray-600' : 'text-gray-400'}>
                     {stat.label}
                   </div>
                 </div>
@@ -459,10 +396,10 @@ const FeaturesSection = memo(({
     <div className="container mx-auto px-6">
       <div className="text-center max-w-3xl mx-auto mb-16">
         <h2 className="text-4xl md:text-5xl font-bold mb-6">
-          <span className="text-gray-900">Built for Every Role in Your</span>
+          <span className={themeColors.text}>Built for Every Role in Your</span>
           <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Organization</span>
         </h2>
-        <p className={`text-xl ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>
+        <p className={`text-xl ${themeColors.textLight}`}>
           Tailored solutions for supervisors, project managers, and employees to optimize workflow and productivity.
         </p>
       </div>
@@ -476,8 +413,8 @@ const FeaturesSection = memo(({
           <div className={`inline-flex items-center px-3 py-1 rounded-full ${theme.isDayTime ? 'bg-purple-100 text-purple-800' : 'bg-purple-900/30 text-purple-200'} text-xs font-medium mb-4`}>
             Executive Level
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Supervisor</h3>
-          <p className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} mb-6`}>
+          <h3 className={`text-2xl font-bold ${themeColors.text} mb-4`}>Supervisor</h3>
+          <p className={`${themeColors.textLight} mb-6`}>
             Complete oversight across all departments with advanced analytics and reporting capabilities.
           </p>
           
@@ -493,7 +430,7 @@ const FeaturesSection = memo(({
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                   </svg>
                 </div>
-                <span className={`text-sm ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>{feature}</span>
+                <span className={`text-sm ${themeColors.textLight}`}>{feature}</span>
               </div>
             ))}
           </div>
@@ -517,8 +454,8 @@ const FeaturesSection = memo(({
           <div className={`inline-flex items-center px-3 py-1 rounded-full ${theme.isDayTime ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/30 text-blue-200'} text-xs font-medium mb-4`}>
             Management Level
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Project Manager</h3>
-          <p className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} mb-6`}>
+          <h3 className={`text-2xl font-bold ${themeColors.text} mb-4`}>Project Manager</h3>
+          <p className={`${themeColors.textLight} mb-6`}>
             Streamline project workflows, track team performance, and meet deadlines efficiently.
           </p>
           
@@ -534,7 +471,7 @@ const FeaturesSection = memo(({
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                   </svg>
                 </div>
-                <span className={`text-sm ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>{feature}</span>
+                <span className={`text-sm ${themeColors.textLight}`}>{feature}</span>
               </div>
             ))}
           </div>
@@ -558,8 +495,8 @@ const FeaturesSection = memo(({
           <div className={`inline-flex items-center px-3 py-1 rounded-full ${theme.isDayTime ? 'bg-green-100 text-green-800' : 'bg-green-900/30 text-green-200'} text-xs font-medium mb-4`}>
             Team Member
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Employee</h3>
-          <p className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} mb-6`}>
+          <h3 className={`text-2xl font-bold ${themeColors.text} mb-4`}>Employee</h3>
+          <p className={`${themeColors.textLight} mb-6`}>
             Personal productivity dashboard with task management and performance insights.
           </p>
           
@@ -575,7 +512,7 @@ const FeaturesSection = memo(({
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                   </svg>
                 </div>
-                <span className={`text-sm ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>{feature}</span>
+                <span className={`text-sm ${themeColors.textLight}`}>{feature}</span>
               </div>
             ))}
           </div>
@@ -595,28 +532,20 @@ const FeaturesSection = memo(({
   </section>
 ));
 
-// New Footer Component dengan logo TechMaven
-const Footer = memo(({ themeColors, theme }: { themeColors: any; theme: Theme }) => (
+// New Footer Component
+const Footer = memo(({ themeColors }: { themeColors: any }) => (
   <footer className={`${themeColors.bg} border-t ${themeColors.border} py-12`}>
     <div className="container mx-auto px-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-        {/* Company Info dengan Logo - BACKGROUND SESUAI THEME */}
+        {/* Company Info */}
         <div>
           <div className="flex items-center space-x-2 mb-6">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${
-              theme.isDayTime ? 'bg-white' : 'bg-gray-900'
-            }`}>
-              <Image 
-                src="/TechMaven.png" 
-                alt="TechMaven Logo" 
-                width={40} 
-                height={40}
-                className="object-contain"
-              />
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+              <span className="text-white font-bold text-xl">TM</span>
             </div>
             <span className={`text-xl font-bold ${themeColors.text}`}>TechMaven</span>
           </div>
-          <p className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} text-sm mb-6`}>
+          <p className={`${themeColors.textLight} text-sm mb-6`}>
             Empowering organizations with intelligent employee monitoring and performance management solutions.
           </p>
           <div className="flex space-x-4">
@@ -637,10 +566,10 @@ const Footer = memo(({ themeColors, theme }: { themeColors: any; theme: Theme })
         <div>
           <h4 className={`font-bold ${themeColors.text} mb-6`}>Product</h4>
           <ul className="space-y-3">
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Features</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Pricing</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>API</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Documentation</a></li>
+            <li><a href="#" className={`${themeColors.textLight} hover:text-blue-600 transition-colors text-sm`}>Features</a></li>
+            <li><a href="#" className={`${themeColors.textLight} hover:text-blue-600 transition-colors text-sm`}>Pricing</a></li>
+            <li><a href="#" className={`${themeColors.textLight} hover:text-blue-600 transition-colors text-sm`}>API</a></li>
+            <li><a href="#" className={`${themeColors.textLight} hover:text-blue-600 transition-colors text-sm`}>Documentation</a></li>
           </ul>
         </div>
 
@@ -648,10 +577,10 @@ const Footer = memo(({ themeColors, theme }: { themeColors: any; theme: Theme })
         <div>
           <h4 className={`font-bold ${themeColors.text} mb-6`}>Company</h4>
           <ul className="space-y-3">
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>About</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Careers</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Blog</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Press</a></li>
+            <li><a href="#" className={`${themeColors.textLight} hover:text-blue-600 transition-colors text-sm`}>About</a></li>
+            <li><a href="#" className={`${themeColors.textLight} hover:text-blue-600 transition-colors text-sm`}>Careers</a></li>
+            <li><a href="#" className={`${themeColors.textLight} hover:text-blue-600 transition-colors text-sm`}>Blog</a></li>
+            <li><a href="#" className={`${themeColors.textLight} hover:text-blue-600 transition-colors text-sm`}>Press</a></li>
           </ul>
         </div>
 
@@ -659,12 +588,12 @@ const Footer = memo(({ themeColors, theme }: { themeColors: any; theme: Theme })
         <div>
           <h4 className={`font-bold ${themeColors.text} mb-6`}>Contact</h4>
           <ul className="space-y-3">
-            <li className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} text-sm`}>support@techmaven.com</li>
-            <li className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} text-sm`}>+1 (555) 123-4567</li>
-            <li className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} text-sm`}>123 Tech Street, San Francisco, CA</li>
+            <li className={`${themeColors.textLight} text-sm`}>support@techmaven.com</li>
+            <li className={`${themeColors.textLight} text-sm`}>+1 (555) 123-4567</li>
+            <li className={`${themeColors.textLight} text-sm`}>123 Tech Street, San Francisco, CA</li>
           </ul>
           <div className="mt-8">
-            <p className={`${theme.isDayTime ? 'text-gray-600' : 'text-gray-400'} text-xs`}>© 2024 TechMaven. All rights reserved.</p>
+            <p className={`${themeColors.textLight} text-xs`}>© 2024 TechMaven. All rights reserved.</p>
           </div>
         </div>
       </div>
@@ -885,13 +814,12 @@ export default function LandingPage() {
     };
   }, []);
 
-  // Theme colors untuk landing page - UPDATED untuk day mode dengan warna lebih gelap
+  // Theme colors untuk landing page
   const themeColors = theme.isDayTime ? {
     bg: "bg-white",
-    text: "text-gray-900", // Hitam untuk teks utama
-    navLink: "text-gray-700 hover:text-blue-600", // Abu-abu gelap untuk navigasi
-    textLight: "text-gray-700", // Abu-abu gelap untuk teks sekunder
-    textLighter: "text-gray-600", // Abu-abu sedang untuk teks tersier
+    text: "text-gray-900",
+    textLight: "text-gray-600",
+    textLighter: "text-gray-500",
     border: "border-gray-200",
     borderLight: "border-gray-100",
     bgLight: "bg-gray-50",
@@ -902,7 +830,6 @@ export default function LandingPage() {
   } : {
     bg: "bg-gray-900",
     text: "text-gray-100",
-    navLink: "text-gray-300 hover:text-blue-400",
     textLight: "text-gray-300",
     textLighter: "text-gray-400",
     border: "border-gray-700",
@@ -935,6 +862,11 @@ export default function LandingPage() {
         themeColors={themeColors} 
         setIsLoginModalOpen={setIsLoginModalOpen}
         theme={theme}
+      />
+      
+      {/* Simple Theme Toggle Button */}
+      <ThemeToggle 
+        theme={theme}
         toggleTheme={toggleTheme}
       />
       
@@ -959,10 +891,10 @@ export default function LandingPage() {
       <section className={`py-20 ${themeColors.bgLight}`}>
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-8">
-            <span className="text-gray-900">Ready to transform your</span>
+            <span className={themeColors.text}>Ready to transform your</span>
             <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">workplace productivity?</span>
           </h2>
-          <p className={`text-xl ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} max-w-2xl mx-auto mb-12`}>
+          <p className={`text-xl ${themeColors.textLight} max-w-2xl mx-auto mb-12`}>
             Join thousands of companies that trust TechMaven for their employee monitoring and performance management needs.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -979,7 +911,7 @@ export default function LandingPage() {
         </div>
       </section>
       
-      <Footer themeColors={themeColors} theme={theme} />
+      <Footer themeColors={themeColors} />
       
       {/* Login Modal */}
       {isLoginModalOpen && (
@@ -1000,7 +932,7 @@ export default function LandingPage() {
                     )}
                     <span>{getRoleDisplayInfo().title}</span>
                   </h2>
-                  <p className="text-sm text-gray-700 mt-1">
+                  <p className="text-sm text-gray-500 mt-1">
                     {selectedRole 
                       ? `Login as ${selectedRole === 'pm' ? 'Project Manager' : selectedRole}`
                       : 'Login to your account'}
@@ -1012,7 +944,7 @@ export default function LandingPage() {
                     setSelectedRole(null);
                     setLoginError('');
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-full text-gray-700"
+                  className="p-2 hover:bg-gray-100 rounded-full"
                 >
                   ✕
                 </button>
@@ -1028,7 +960,7 @@ export default function LandingPage() {
                   className={`flex-1 py-2 px-4 rounded-md transition-all ${
                     loginTab === 'login'
                       ? 'bg-white text-blue-600 shadow-sm font-medium'
-                      : 'text-gray-700 hover:text-gray-900'
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Login
@@ -1041,7 +973,7 @@ export default function LandingPage() {
                   className={`flex-1 py-2 px-4 rounded-md transition-all ${
                     loginTab === 'register'
                       ? 'bg-white text-blue-600 shadow-sm font-medium'
-                      : 'text-gray-700 hover:text-gray-900'
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Register
@@ -1058,7 +990,7 @@ export default function LandingPage() {
               {loginTab === 'login' ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Username
                     </label>
                     <input
@@ -1066,13 +998,13 @@ export default function LandingPage() {
                       value={credentials.username}
                       onChange={(e) => setCredentials({...credentials, username: e.target.value})}
                       onKeyPress={handleKeyPress}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter username"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Password
                     </label>
                     <input
@@ -1080,7 +1012,7 @@ export default function LandingPage() {
                       value={credentials.password}
                       onChange={(e) => setCredentials({...credentials, password: e.target.value})}
                       onKeyPress={handleKeyPress}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter password"
                     />
                   </div>
@@ -1106,13 +1038,13 @@ export default function LandingPage() {
                       <div className="w-full border-t border-gray-200"></div>
                     </div>
                     <div className="relative flex justify-center text-sm">
-                      <span className="px-4 bg-white text-gray-700">Or fast access</span>
+                      <span className="px-4 bg-white text-gray-500">Or fast access</span>
                     </div>
                   </div>
 
                   {/* Fast Access Accounts */}
                   <div className="space-y-3">
-                    <p className="text-sm text-gray-700 font-medium">Available Accounts:</p>
+                    <p className="text-sm text-gray-600 font-medium">Available Accounts:</p>
                     {availableUsers
                       .filter(user => !selectedRole || user.role === selectedRole)
                       .map((user) => (
@@ -1126,7 +1058,7 @@ export default function LandingPage() {
                           </div>
                           <div className="flex-1">
                             <p className="font-semibold text-gray-900 group-hover:text-blue-700">{user.name}</p>
-                            <p className="text-sm text-gray-700 capitalize">{user.role} • {user.department}</p>
+                            <p className="text-sm text-gray-500 capitalize">{user.role} • {user.department}</p>
                           </div>
                           <div className="text-blue-600 font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity">
                             Login →
@@ -1138,7 +1070,7 @@ export default function LandingPage() {
                   {selectedRole && (
                     <button
                       onClick={() => setSelectedRole(null)}
-                      className="w-full text-sm text-gray-700 hover:text-gray-900 mt-4"
+                      className="w-full text-sm text-gray-600 hover:text-gray-900 mt-4"
                     >
                       View all accounts
                     </button>
@@ -1148,59 +1080,59 @@ export default function LandingPage() {
                 /* Register Tab */
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Full Name
                     </label>
                     <input
                       type="text"
                       value={registerData.name}
                       onChange={(e) => setRegisterData({...registerData, name: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter your full name"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Email
                     </label>
                     <input
                       type="email"
                       value={registerData.email}
                       onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter your email"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Username
                     </label>
                     <input
                       type="text"
                       value={registerData.username}
                       onChange={(e) => setRegisterData({...registerData, username: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Choose a username"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Password
                     </label>
                     <input
                       type="password"
                       value={registerData.password}
                       onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Create a password"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Confirm Password
                     </label>
                     <input
@@ -1208,7 +1140,7 @@ export default function LandingPage() {
                       value={registerData.confirmPassword}
                       onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
                       onKeyPress={handleKeyPress}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Confirm your password"
                     />
                   </div>
@@ -1220,7 +1152,7 @@ export default function LandingPage() {
                     Register
                   </button>
 
-                  <p className="text-xs text-gray-700 text-center mt-4">
+                  <p className="text-xs text-gray-500 text-center mt-4">
                     By registering, you agree to our Terms of Service and Privacy Policy
                   </p>
                 </div>
@@ -1236,7 +1168,7 @@ export default function LandingPage() {
           <div className="bg-white rounded-xl p-8 shadow-2xl text-center">
             <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-900 font-medium">Logging in...</p>
-            <p className="text-sm text-gray-700 mt-2">Please wait</p>
+            <p className="text-sm text-gray-500 mt-2">Please wait</p>
           </div>
         </div>
       )}
@@ -1289,7 +1221,6 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
       background-color: ${theme.isDayTime ? 'white' : '#0a0f1f'};
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       transition: background-color 0.3s ease;
-      color: ${theme.isDayTime ? '#1f2937' : '#f3f4f6'};
     }
     
     /* Marquee Animations */
@@ -1312,11 +1243,11 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
     }
     
     .animate-marquee-right {
-      animation: marquee-right 30s linear infinite;
+      animation: marquee-right 40s linear infinite;
     }
     
     .animate-marquee-left {
-      animation: marquee-left 30s linear infinite;
+      animation: marquee-left 40s linear infinite;
     }
     
     .animate-pause {

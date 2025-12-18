@@ -21,8 +21,17 @@ export interface UserCredentials {
   password: string;
 }
 
+export type TaskSubtask = {
+  id: number;
+  description: string;
+  completed: boolean;
+};
+
+
 // Interface untuk data yang digunakan di berbagai halaman
 export interface Task {
+  assigner?: string; // who assigned this task
+  subtasks?: TaskSubtask[];
   id: number;
   title: string;
   description?: string;
