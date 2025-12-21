@@ -1,10 +1,26 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { User, UserRole } from '../types/user';
+import { useUser } from '../providers/userProvider';
+
+// Types
+interface User {
+  id: string;
+  username: string;
+  password?: string; // Hanya untuk development
+  name: string;
+  role: 'supervisor' | 'pm' | 'employee';
+  initials: string;
+  department: string;
+  employeeCount: number;
+  color: string;
+  email: string;
+  phone?: string;
+  joinDate: string;
+}
 
 interface Theme {
   isDayTime: boolean;
@@ -12,7 +28,14 @@ interface Theme {
   theme: 'light' | 'dark';
 }
 
-// Data user yang ada di sistem
+const tabs = [
+  { id: "dashboard", name: "Dashboard", path: "/dashboard", icon: "📊" },
+  { id: "attendance", name: "Attendance", path: "/attendance", icon: "⏰" },
+  { id: "tasks", name: "Tasks", path: "/tasks", icon: "✅" },
+  { id: "reports", name: "Reports", path: "/reports", icon: "📈" },
+];
+
+// Data user fallback untuk development
 const availableUsers: User[] = [
   {
     id: "supervisor_001",
@@ -56,16 +79,9 @@ const availableUsers: User[] = [
   }
 ];
 
-const tabs = [
-  { id: "dashboard", name: "Dashboard", path: "/dashboard", icon: "📊" },
-  { id: "attendance", name: "Attendance", path: "/attendance", icon: "⏰" },
-  { id: "tasks", name: "Tasks", path: "/tasks", icon: "✅" },
-  { id: "reports", name: "Reports", path: "/reports", icon: "📈" },
-];
-
 export default function NavigationBar() {
+  const { login, logout } = useUser();
   const pathname = usePathname();
-  const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSwitchAccountMode, setIsSwitchAccountMode] = useState(false);
@@ -73,8 +89,9 @@ export default function NavigationBar() {
   const [loginError, setLoginError] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  // Theme state - sync dengan localStorage
+  // Theme state
   const [theme, setTheme] = useState<Theme>({
     isDayTime: true,
     backgroundImage: "/backgroundDay.jpg",
@@ -123,7 +140,8 @@ export default function NavigationBar() {
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       try {
-        setCurrentUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        setCurrentUser(parsedUser);
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('currentUser');
@@ -191,29 +209,60 @@ export default function NavigationBar() {
     notificationDot: "bg-red-500"
   };
 
-  // Handle login dari landing page (redirect ke dashboard)
-  const handleLoginFromLanding = () => {
+  // Handle login dari landing page (redirect ke dashboard) - VERSI YANG DIPERBAIKI
+  const handleLoginFromLanding = async () => {
     setLoginError('');
+    setIsSwitchingAccount(true);
     
-    const user = availableUsers.find(
-      u => u.username === credentials.username && u.password === credentials.password
-    );
-    
-    if (user) {
-      const { password, ...userWithoutPassword } = user;
+    try {
+      const success = await login(credentials.username, credentials.password);
       
-      setIsSwitchingAccount(true);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-      setIsLoginOpen(false);
-      setCredentials({ username: '', password: '' });
-      window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
-      
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 100);
-    } else {
-      setLoginError('Invalid username or password');
+      if (success) {
+        setIsLoginOpen(false);
+        setCredentials({ username: '', password: '' });
+        
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 100);
+      } else {
+        setLoginError('Invalid username or password');
+        setIsSwitchingAccount(false);
+      }
+    } catch (error: any) {
+      setLoginError(error.response?.data?.message || 'Login failed');
+      setIsSwitchingAccount(false);
     }
+  };
+
+  // Handle login fallback untuk development (tanpa API)
+  const handleLoginFromLandingFallback = () => {
+    setLoginError('');
+    setIsLoggingIn(true);
+    
+    // Simulasi delay API
+    setTimeout(() => {
+      const user = availableUsers.find(
+        u => u.username === credentials.username && u.password === credentials.password
+      );
+      
+      if (user) {
+        const { password, ...userWithoutPassword } = user;
+        
+        localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+        setCurrentUser(userWithoutPassword);
+        setIsLoginOpen(false);
+        setCredentials({ username: '', password: '' });
+        window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
+        setIsLoggingIn(false);
+        
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 100);
+      } else {
+        setLoginError('Invalid username or password');
+        setIsLoggingIn(false);
+      }
+    }, 500);
   };
 
   // Handle switch account
@@ -224,6 +273,7 @@ export default function NavigationBar() {
     localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
     setIsLoginOpen(false);
     setIsSwitchAccountMode(false);
+    setCurrentUser(userWithoutPassword);
     window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
     
     setTimeout(() => {
@@ -232,11 +282,9 @@ export default function NavigationBar() {
   };
 
   // Handle logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoggingOut(true);
-    localStorage.removeItem('currentUser');
-    window.dispatchEvent(new CustomEvent('userChange', { detail: null }));
-    setCurrentUser(null);
+    await logout();
     
     setTimeout(() => {
       window.location.href = '/';
@@ -254,7 +302,12 @@ export default function NavigationBar() {
   // Handle key press
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleLoginFromLanding();
+      // Cek apakah API_URL ada untuk menentukan mode
+      if (process.env.NEXT_PUBLIC_API_URL) {
+        handleLoginFromLanding();
+      } else {
+        handleLoginFromLandingFallback();
+      }
     }
   };
 
@@ -262,11 +315,16 @@ export default function NavigationBar() {
   const handleQuickLogin = (user: User) => {
     setCredentials({
       username: user.username,
-      password: user.password
+      password: user.password || ''
     });
     
     setTimeout(() => {
-      handleLoginFromLanding();
+      // Cek apakah API_URL ada untuk menentukan mode
+      if (process.env.NEXT_PUBLIC_API_URL) {
+        handleLoginFromLanding();
+      } else {
+        handleLoginFromLandingFallback();
+      }
     }, 200);
   };
 
@@ -434,7 +492,7 @@ export default function NavigationBar() {
         )}
       </div>
 
-      {/* Login Modal - dengan theme support */}
+      {/* Login Modal */}
       {isLoginOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className={`${themeColors.dropdownBg} rounded-xl shadow-xl w-full max-w-md`}>
@@ -529,11 +587,17 @@ export default function NavigationBar() {
                   </div>
 
                   <button
-                    onClick={handleLoginFromLanding}
-                    disabled={isSwitchingAccount}
+                    onClick={() => {
+                      if (process.env.NEXT_PUBLIC_API_URL) {
+                        handleLoginFromLanding();
+                      } else {
+                        handleLoginFromLandingFallback();
+                      }
+                    }}
+                    disabled={isLoggingIn}
                     className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {isSwitchingAccount ? (
+                    {isLoggingIn ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         Logging in...

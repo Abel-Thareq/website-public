@@ -1,13 +1,23 @@
 "use client";
+
 import { useState, useEffect, useRef, useCallback, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { User } from "./types/user";
+import { useUser } from './providers/userProvider';
 
 interface Theme {
   isDayTime: boolean;
   backgroundImage: string;
   theme: 'light' | 'dark';
+}
+
+interface UserContextType {
+  currentUser: User | null;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  switchUser: (user: User) => void;
+  loading: boolean;
 }
 
 // Available users untuk fast access
@@ -673,6 +683,8 @@ const Footer = memo(({ themeColors, theme }: { themeColors: any; theme: Theme })
 ));
 
 export default function LandingPage() {
+  // Handle login
+  const { login } = useUser();
   const [theme, setTheme] = useState<Theme>({
     isDayTime: true,
     backgroundImage: "/backgroundDay.jpg",
@@ -758,40 +770,27 @@ export default function LandingPage() {
     setLoginError('');
   };
 
-  // Handle login
-  const handleLogin = () => {
-    setLoginError('');
-    
-    const user = availableUsers.find(
-      u => u.username === credentials.username && u.password === credentials.password
-    );
-    
-    if (user) {
-      // Check if role matches (optional validation)
-      if (selectedRole && user.role !== selectedRole) {
-        setLoginError(`This account is for ${user.role}, not ${selectedRole}`);
-        return;
-      }
+  
 
-      const { password, ...userWithoutPassword } = user;
+  const handleLogin = async () => {
+    setLoginError('');
+    setIsLoggingIn(true);
+    
+    try {
+      const success = await login(credentials.username, credentials.password);
       
-      setIsLoggingIn(true);
-      
-      // Save to localStorage
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-      
-      // Dispatch event
-      window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
-      
-      // Close modal
-      setIsLoginModalOpen(false);
-      
-      // Redirect to dashboard with full page reload
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 100);
-    } else {
-      setLoginError('Invalid username or password');
+      if (success) {
+        setIsLoginModalOpen(false);
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 100);
+      } else {
+        setLoginError('Invalid username or password');
+        setIsLoggingIn(false);
+      }
+    } catch (error: any) {
+      setLoginError(error.response?.data?.message || 'Login failed');
+      setIsLoggingIn(false);
     }
   };
 

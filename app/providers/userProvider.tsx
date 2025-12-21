@@ -1,106 +1,88 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '../types/user';
+import { User } from '../types/user';
+import { authApi } from '../../lib/api';
 
 interface UserContextType {
   currentUser: User | null;
-  login: (username: string, password: string) => boolean;
-  logout: () => void;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   switchUser: (user: User) => void;
+  loading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Data user yang ada di sistem
-const availableUsers: User[] = [
-  {
-    id: "supervisor_001",
-    username: "supervisor",
-    password: "supervisor123",
-    name: "Alex Johnson",
-    role: "supervisor",
-    initials: "AJ",
-    department: "All Departments",
-    employeeCount: 124,
-    color: "from-purple-500 to-purple-600",
-    email: "alex.johnson@techmaven.com",
-    joinDate: "2023-01-15"
-  },
-  {
-    id: "pm_001",
-    username: "pm",
-    password: "pm123",
-    name: "Sarah Chen",
-    role: "pm",
-    initials: "SC",
-    department: "Engineering",
-    employeeCount: 25,
-    color: "from-blue-500 to-blue-600",
-    email: "sarah.chen@techmaven.com",
-    joinDate: "2023-03-20"
-  },
-  {
-    id: "employee_001",
-    username: "john.doe",
-    password: "employee123",
-    name: "John Doe",
-    role: "employee",
-    initials: "JD",
-    department: "Engineering",
-    employeeCount: 1,
-    color: "from-green-500 to-green-600",
-    email: "john.doe@techmaven.com",
-    phone: "+1-555-0123",
-    joinDate: "2023-06-10"
-  }
-];
-
 export function UserProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        setCurrentUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('currentUser');
+    setMounted(true);
+    
+    // Check if user is logged in
+    try {
+      const token = localStorage.getItem('auth_token');
+      const savedUser = localStorage.getItem('currentUser');
+
+      if (token && savedUser) {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
       }
+    } catch (error) {
+      console.error('Error parsing saved user:', error);
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('auth_token');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const login = (username: string, password: string): boolean => {
-    const user = availableUsers.find(
-      u => u.username === username && u.password === password
-    );
-    
-    if (user) {
-      const { password: _, ...userWithoutPassword } = user;
-      setCurrentUser(userWithoutPassword as User);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-      return true;
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await authApi.login(username, password);
+      
+      if (response.token && response.user) {
+        localStorage.setItem('auth_token', response.token);
+        localStorage.setItem('currentUser', JSON.stringify(response.user));
+        setCurrentUser(response.user);
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setCurrentUser(null);
+      if (mounted) {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('auth_token');
+      }
+    }
   };
 
   const switchUser = (user: User) => {
     setCurrentUser(user);
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    // Force reload to reset all states
+    if (mounted) {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    }
     if (typeof window !== 'undefined') {
-      window.location.href = '/';
+      window.location.href = '/dashboard';
     }
   };
 
   return (
-    <UserContext.Provider value={{ currentUser, login, logout, switchUser }}>
+    <UserContext.Provider value={{ currentUser, login, logout, switchUser, loading }}>
       {children}
     </UserContext.Provider>
   );

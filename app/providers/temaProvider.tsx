@@ -17,55 +17,77 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const DEFAULT_THEME: Theme = {
+  isDayTime: true,
+  backgroundImage: "/backgroundDay.jpg",
+  theme: 'light'
+};
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window !== 'undefined') {
+  // ✅ Initialize with default theme first
+  const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
+  const [mounted, setMounted] = useState(false);
+
+  // ✅ Load from localStorage after mount
+  useEffect(() => {
+    setMounted(true);
+    
+    try {
       const savedTheme = localStorage.getItem('selectedTheme');
       if (savedTheme) {
-        try {
-          return JSON.parse(savedTheme);
-        } catch (error) {
-          console.error('Error parsing saved theme:', error);
-        }
+        const parsed = JSON.parse(savedTheme);
+        setTheme(parsed);
       }
+    } catch (error) {
+      console.error('Error loading theme:', error);
     }
-    return {
-      isDayTime: true,
-      backgroundImage: "/backgroundDay.jpg",
-      theme: 'light' as const
-    };
-  });
+  }, []);
 
   const toggleTheme = () => {
     const newIsDayTime = !theme.isDayTime;
-    const newTheme = {
+    const newTheme: Theme = {
       isDayTime: newIsDayTime,
       backgroundImage: newIsDayTime ? "/backgroundDay.jpg" : "/backgroundNight.jpg",
-      theme: newIsDayTime ? 'light' : 'dark' as 'light' | 'dark'
+      theme: newIsDayTime ? 'light' : 'dark'
     };
     setTheme(newTheme);
-    localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    if (mounted) {
+      localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    }
   };
 
   const setDayMode = () => {
-    const newTheme = {
+    const newTheme: Theme = {
       isDayTime: true,
       backgroundImage: "/backgroundDay.jpg",
-      theme: 'light' as const
+      theme: 'light'
     };
     setTheme(newTheme);
-    localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    if (mounted) {
+      localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    }
   };
 
   const setNightMode = () => {
-    const newTheme = {
+    const newTheme: Theme = {
       isDayTime: false,
       backgroundImage: "/backgroundNight.jpg",
-      theme: 'dark' as const
+      theme: 'dark'
     };
     setTheme(newTheme);
-    localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    if (mounted) {
+      localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    }
   };
+
+  // ✅ Prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <ThemeContext.Provider value={{ theme: DEFAULT_THEME, toggleTheme, setDayMode, setNightMode }}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setDayMode, setNightMode }}>
