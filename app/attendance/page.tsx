@@ -3,10 +3,12 @@
 import { useState, useEffect, useMemo } from "react";
 import NavigationBar from "../components/navigationBar";
 import Link from "next/link";
-import { AttendanceRecord } from "../types/user";
+import { AttendanceRecord, User } from "../types/user";
 import { useTheme } from "../providers/temaProvider";
 import { useUser } from "../providers/userProvider";
 import { useRouter } from "next/navigation";
+import CameraCapture from "../components/cameraCapture";
+import Image from "next/image";
 
 // Icon Components
 const ClockIcon = () => (
@@ -33,6 +35,29 @@ const UserGroupIcon = () => (
   </svg>
 );
 
+const CameraIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const UploadIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+  </svg>
+);
+
+// Attendance Form Types
+interface AttendanceFormData {
+  checkIn?: string;
+  checkOut?: string;
+  eodReport: string;
+  documentation: File | string | null;
+  documentationType: 'camera' | 'upload' | 'none';
+  isCheckIn: boolean;
+}
+
 export default function AttendancePage() {
   const { theme } = useTheme();
   const { currentUser } = useUser();
@@ -41,6 +66,31 @@ export default function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<"today" | "week" | "month">("today");
+  
+  // State untuk attendance form
+  const [showAttendanceForm, setShowAttendanceForm] = useState<boolean>(false);
+  const [formData, setFormData] = useState<AttendanceFormData>({
+    eodReport: '',
+    documentation: null,
+    documentationType: 'none',
+    isCheckIn: true
+  });
+  const [showCamera, setShowCamera] = useState<boolean>(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  
+  // State untuk attendance records
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  
+  // State untuk status check in/out hari ini
+  const [todayStatus, setTodayStatus] = useState<{
+    hasCheckedIn: boolean;
+    hasCheckedOut: boolean;
+    todayRecord: AttendanceRecord | null;
+  }>({
+    hasCheckedIn: false,
+    hasCheckedOut: false,
+    todayRecord: null
+  });
 
   // Redirect ke home jika user berubah (saat switch account)
   useEffect(() => {
@@ -49,81 +99,142 @@ export default function AttendancePage() {
     }
   }, [currentUser, router]);
 
-  // Data berdasarkan role
-  const attendanceData = useMemo(() => {
-    if (!currentUser) return [];
+  // Load attendance data dari localStorage
+  useEffect(() => {
+    if (!currentUser) return;
 
-    const baseData: AttendanceRecord[] = [];
-
-    if (currentUser.role === 'supervisor') {
-      // Data untuk supervisor (semua departemen)
-      for (let i = 0; i < 50; i++) {
-        const status = Math.random() > 0.8 ? 'late' : Math.random() > 0.9 ? 'absent' : 'on-time';
-        const depts = ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'];
-        const dept = depts[Math.floor(Math.random() * depts.length)];
-        baseData.push({
-          id: i + 1,
-          employeeId: `EMP${1000 + i}`,
-          employeeName: `Employee ${i + 1}`,
-          department: dept,
-          date: selectedDate,
-          checkIn: status === 'absent' ? '--:--' : `08:${30 + Math.floor(Math.random() * 30)}`,
-          checkOut: status === 'absent' ? '--:--' : `17:${30 + Math.floor(Math.random() * 30)}`,
-          status: status,
-          lateMinutes: status === 'late' ? Math.floor(Math.random() * 60) + 1 : undefined,
-          workHours: status === 'absent' ? 0 : 8 + Math.random(),
-          notes: status === 'late' ? ['Traffic', 'Transportation', 'Personal', 'Meeting'][Math.floor(Math.random() * 4)] : undefined
-        });
-      }
-    } else if (currentUser.role === 'pm') {
-      // Data untuk PM (Engineering department saja)
-      for (let i = 0; i < 25; i++) {
-        const status = Math.random() > 0.85 ? 'late' : Math.random() > 0.95 ? 'absent' : 'on-time';
-        baseData.push({
-          id: i + 1,
-          employeeId: `ENG${2000 + i}`,
-          employeeName: `Engineering Member ${i + 1}`,
-          department: 'Engineering',
-          date: selectedDate,
-          checkIn: status === 'absent' ? '--:--' : `08:${45 + Math.floor(Math.random() * 15)}`,
-          checkOut: status === 'absent' ? '--:--' : `17:${30 + Math.floor(Math.random() * 30)}`,
-          status: status,
-          lateMinutes: status === 'late' ? Math.floor(Math.random() * 30) + 1 : undefined,
-          workHours: status === 'absent' ? 0 : 8.5 + Math.random(),
-          notes: status === 'late' ? ['Code Review', 'Standup Meeting', 'Client Call'][Math.floor(Math.random() * 3)] : undefined
-        });
-      }
+    const savedRecords = localStorage.getItem(`attendance_${currentUser.id}`);
+    if (savedRecords) {
+      const records = JSON.parse(savedRecords);
+      setAttendanceRecords(records);
     } else {
-      // Data untuk employee (hanya dirinya sendiri, dengan histori)
-      for (let i = 0; i < 30; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        let status: 'on-time' | 'late' | 'absent' | 'leave';
-        if (i === 0) status = 'on-time';
-        else if (i === 2 || i === 5) status = 'late';
-        else if (i === 10) status = 'absent';
-        else status = 'on-time';
+      // Generate initial data TANPA record untuk hari ini
+      const baseData: AttendanceRecord[] = [];
+      const today = new Date().toISOString().split('T')[0];
 
-        baseData.push({
-          id: i + 1,
-          employeeId: currentUser.id,
-          employeeName: currentUser.name,
-          department: currentUser.department,
-          date: dateStr,
-          checkIn: status === 'absent' ? '--:--' : i % 7 === 0 ? '09:15' : '08:45',
-          checkOut: status === 'absent' ? '--:--' : '17:30',
-          status: status,
-          lateMinutes: status === 'late' ? 30 : undefined,
-          workHours: status === 'absent' ? 0 : 8.75,
-          notes: status === 'late' ? 'Traffic jam' : status === 'absent' ? 'Sick Leave' : undefined
-        });
+      if (currentUser.role === 'supervisor') {
+        // Data untuk supervisor (semua departemen) - TANPA hari ini
+        for (let i = 0; i < 50; i++) {
+          const date = new Date();
+          date.setDate(date.getDate() - (i + 1)); // Selalu tanggal kemarin atau sebelumnya
+          const dateStr = date.toISOString().split('T')[0];
+          
+          const status = Math.random() > 0.8 ? 'late' : Math.random() > 0.9 ? 'absent' : 'on-time';
+          const depts = ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'];
+          const dept = depts[Math.floor(Math.random() * depts.length)];
+          baseData.push({
+            id: i + 1,
+            employeeId: `EMP${1000 + i}`,
+            employeeName: `Employee ${i + 1}`,
+            department: dept,
+            date: dateStr, // Bukan hari ini
+            checkIn: status === 'absent' ? '--:--' : `08:${30 + Math.floor(Math.random() * 30)}`,
+            checkOut: status === 'absent' ? '--:--' : `17:${30 + Math.floor(Math.random() * 30)}`,
+            status: status,
+            lateMinutes: status === 'late' ? Math.floor(Math.random() * 60) + 1 : undefined,
+            workHours: status === 'absent' ? 0 : 8 + Math.random(),
+            notes: status === 'late' ? ['Traffic', 'Transportation', 'Personal', 'Meeting'][Math.floor(Math.random() * 4)] : undefined,
+            eodReport: status !== 'absent' ? 'Completed daily tasks and attended meetings' : undefined,
+            hasDocumentation: Math.random() > 0.5
+          });
+        }
+      } else if (currentUser.role === 'pm') {
+        // Data untuk PM - TANPA record PM sendiri untuk hari ini
+        // Data team members (untuk hari-hari sebelumnya)
+        for (let i = 0; i < 25; i++) {
+          const date = new Date();
+          date.setDate(date.getDate() - (i + 1));
+          const dateStr = date.toISOString().split('T')[0];
+          
+          const status = Math.random() > 0.85 ? 'late' : Math.random() > 0.95 ? 'absent' : 'on-time';
+          baseData.push({
+            id: i + 1,
+            employeeId: `ENG${2000 + i}`,
+            employeeName: `Engineering Member ${i + 1}`,
+            department: 'Engineering',
+            date: dateStr,
+            checkIn: status === 'absent' ? '--:--' : `08:${45 + Math.floor(Math.random() * 15)}`,
+            checkOut: status === 'absent' ? '--:--' : `17:${30 + Math.floor(Math.random() * 30)}`,
+            status: status,
+            lateMinutes: status === 'late' ? Math.floor(Math.random() * 30) + 1 : undefined,
+            workHours: status === 'absent' ? 0 : 8.5 + Math.random(),
+            notes: status === 'late' ? ['Code Review', 'Standup Meeting', 'Client Call'][Math.floor(Math.random() * 3)] : undefined,
+            eodReport: status !== 'absent' ? 'Worked on project features and bug fixes' : undefined,
+            hasDocumentation: Math.random() > 0.6
+          });
+        }
+      } else {
+        // Data untuk employee (hanya dirinya sendiri, dengan histori) - TANPA hari ini
+        for (let i = 1; i <= 30; i++) { // Mulai dari 1, bukan 0
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toISOString().split('T')[0];
+          
+          let status: 'on-time' | 'late' | 'absent' | 'leave';
+          if (i === 2 || i === 5) status = 'late';
+          else if (i === 10) status = 'absent';
+          else status = 'on-time';
+
+          baseData.push({
+            id: i,
+            employeeId: currentUser.id,
+            employeeName: currentUser.name,
+            department: currentUser.department,
+            date: dateStr,
+            checkIn: status === 'absent' ? '--:--' : i % 7 === 0 ? '09:15' : '08:45',
+            checkOut: status === 'absent' ? '--:--' : '17:30',
+            status: status,
+            lateMinutes: status === 'late' ? 30 : undefined,
+            workHours: status === 'absent' ? 0 : 8.75,
+            notes: status === 'late' ? 'Traffic jam' : status === 'absent' ? 'Sick Leave' : undefined,
+            eodReport: status !== 'absent' ? `Completed daily tasks for ${dateStr}` : undefined,
+            hasDocumentation: i % 3 === 0
+          });
+        }
       }
-    }
 
-    return baseData;
+      setAttendanceRecords(baseData);
+      localStorage.setItem(`attendance_${currentUser.id}`, JSON.stringify(baseData));
+    }
   }, [currentUser, selectedDate]);
+
+  // Update status check in/out hari ini
+  useEffect(() => {
+    if (!currentUser || currentUser.role === 'supervisor') return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecord = attendanceRecords.find(record => 
+      record.date === today && record.employeeId === currentUser.id
+    );
+
+    const hasCheckedIn = todayRecord?.checkIn && todayRecord.checkIn !== '--:--';
+    const hasCheckedOut = todayRecord?.checkOut && todayRecord.checkOut !== '--:--';
+
+    setTodayStatus({
+      hasCheckedIn: !!hasCheckedIn,
+      hasCheckedOut: !!hasCheckedOut,
+      todayRecord: todayRecord || null
+    });
+
+    // Update form data berdasarkan status
+    if (todayRecord) {
+      setFormData(prev => ({
+        ...prev,
+        isCheckIn: false, // Jika ada record, artinya sudah check in
+        checkIn: todayRecord.checkIn,
+        checkOut: todayRecord.checkOut,
+        eodReport: todayRecord.eodReport || ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        isCheckIn: true, // Belum ada record, artinya belum check in
+        checkIn: undefined,
+        checkOut: undefined,
+        eodReport: ''
+      }));
+    }
+  }, [attendanceRecords, currentUser]);
 
   // Theme colors berdasarkan tema
   const themeColors = useMemo(() => {
@@ -154,9 +265,9 @@ export default function AttendancePage() {
 
   // Filter data berdasarkan department
   const filteredData = useMemo(() => {
-    if (selectedDepartment === "all") return attendanceData;
-    return attendanceData.filter(record => record.department === selectedDepartment);
-  }, [attendanceData, selectedDepartment]);
+    if (selectedDepartment === "all") return attendanceRecords;
+    return attendanceRecords.filter(record => record.department === selectedDepartment);
+  }, [attendanceRecords, selectedDepartment]);
 
   // Hitung statistik
   const stats = useMemo(() => {
@@ -171,12 +282,349 @@ export default function AttendancePage() {
     return { total, onTime, late, absent, averageWorkHours };
   }, [filteredData]);
 
+  // Fungsi untuk mendapatkan waktu sekarang dalam format HH:mm
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // Handle check in button click
+  const handleCheckInClick = () => {
+    setFormData({
+      eodReport: '',
+      documentation: null,
+      documentationType: 'none',
+      isCheckIn: true,
+      checkIn: getCurrentTime(),
+      checkOut: undefined
+    });
+    setShowAttendanceForm(true);
+  };
+
+  // Handle check out button click
+  const handleCheckOutClick = () => {
+    setFormData(prev => ({
+      ...prev,
+      isCheckIn: false,
+      checkOut: getCurrentTime(),
+      checkIn: todayStatus.todayRecord?.checkIn || getCurrentTime()
+    }));
+    setShowAttendanceForm(true);
+  };
+
+  // Handle form input changes
+  const handleFormChange = (field: keyof AttendanceFormData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        setFormData(prev => ({
+          ...prev,
+          documentation: file,
+          documentationType: 'upload'
+        }));
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPreviewImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please upload an image file');
+      }
+    }
+  };
+
+  // Handle camera capture
+  const handleCameraCapture = (imageData: string) => {
+    // Convert data URL to Blob
+    fetch(imageData)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], `attendance_${new Date().getTime()}.jpg`, { type: 'image/jpeg' });
+        setFormData(prev => ({
+          ...prev,
+          documentation: file,
+          documentationType: 'camera'
+        }));
+        setPreviewImage(imageData);
+        setShowCamera(false);
+      });
+  };
+
+  // Handle form submission
+  const handleSubmitAttendance = () => {
+    if (!currentUser) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Validasi
+    if (formData.isCheckIn && !formData.checkIn) {
+      alert('Please fill check in time');
+      return;
+    }
+
+    if (!formData.isCheckIn && !formData.checkOut) {
+      alert('Please fill check out time');
+      return;
+    }
+
+    if (!formData.isCheckIn && !formData.eodReport.trim()) {
+      alert('Please fill your End of Day report');
+      return;
+    }
+
+    // Hitung work hours jika ada check in dan check out
+    let workHours = 0;
+    if (formData.checkIn && formData.checkOut) {
+      const [inHour, inMin] = formData.checkIn.split(':').map(Number);
+      const [outHour, outMin] = formData.checkOut.split(':').map(Number);
+      const inTime = inHour * 60 + inMin;
+      const outTime = outHour * 60 + outMin;
+      workHours = (outTime - inTime) / 60;
+    }
+
+    // Tentukan status (late jika check in setelah 09:00)
+    let status: 'on-time' | 'late' = 'on-time';
+    let lateMinutes = undefined;
+    if (formData.checkIn) {
+      const [hour, minute] = formData.checkIn.split(':').map(Number);
+      if (hour > 9 || (hour === 9 && minute > 0)) {
+        status = 'late';
+        lateMinutes = (hour - 9) * 60 + minute;
+      }
+    }
+
+    // Update atau buat record baru
+    const updatedRecords = [...attendanceRecords];
+    const existingIndex = updatedRecords.findIndex(record => 
+      record.date === today && record.employeeId === currentUser.id
+    );
+
+    const newRecord: AttendanceRecord = {
+      id: existingIndex >= 0 ? updatedRecords[existingIndex].id : updatedRecords.length + 1,
+      employeeId: currentUser.id,
+      employeeName: currentUser.name,
+      department: currentUser.department,
+      date: today,
+      checkIn: formData.checkIn || (existingIndex >= 0 ? updatedRecords[existingIndex].checkIn : '--:--'),
+      checkOut: formData.checkOut || (existingIndex >= 0 ? updatedRecords[existingIndex].checkOut : '--:--'),
+      status: status,
+      lateMinutes: lateMinutes,
+      workHours: workHours,
+      eodReport: formData.eodReport,
+      hasDocumentation: formData.documentation !== null,
+      documentationFile: formData.documentation instanceof File ? formData.documentation.name : undefined
+    };
+
+    if (existingIndex >= 0) {
+      updatedRecords[existingIndex] = newRecord;
+    } else {
+      updatedRecords.unshift(newRecord);
+    }
+
+    setAttendanceRecords(updatedRecords);
+    localStorage.setItem(`attendance_${currentUser.id}`, JSON.stringify(updatedRecords));
+    
+    // Reset form
+    setFormData({
+      eodReport: '',
+      documentation: null,
+      documentationType: 'none',
+      isCheckIn: false // Setelah submit check out, set isCheckIn ke false
+    });
+    setPreviewImage(null);
+    setShowAttendanceForm(false);
+    
+    alert('Attendance submitted successfully!');
+  };
+
+  // Cek apakah user perlu mengisi attendance (hanya untuk employee dan PM)
+  const shouldShowAttendanceButtons = useMemo(() => {
+    if (!currentUser) return false;
+    return currentUser.role === 'employee' || currentUser.role === 'pm';
+  }, [currentUser]);
+
+  // Fungsi untuk reset data demo
+  const resetDemoData = () => {
+    if (currentUser && confirm('Reset semua data attendance? Ini akan menghapus semua record hari ini.')) {
+      localStorage.removeItem(`attendance_${currentUser.id}`);
+      window.location.reload();
+    }
+  };
+
   if (!currentUser) {
     return null; // Akan di-redirect oleh useEffect
   }
 
   return (
     <>
+      {/* Attendance Form Modal */}
+      {showAttendanceForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} max-w-lg w-full max-h-[90vh] overflow-y-auto`}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className={`text-xl font-bold ${themeColors.text}`}>
+                  {formData.isCheckIn ? 'Check In Attendance' : 'Check Out Attendance'}
+                </h3>
+                <button
+                  onClick={() => setShowAttendanceForm(false)}
+                  className={`p-2 ${themeColors.textLight} hover:${themeColors.text}`}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Time Fields */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>
+                      Check In Time
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <ClockIcon />
+                      <input
+                        type="text"
+                        value={formData.checkIn || ''}
+                        readOnly
+                        className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                      />
+                    </div>
+                  </div>
+                  
+                  {!formData.isCheckIn && (
+                    <div>
+                      <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>
+                        Check Out Time
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <ClockIcon />
+                        <input
+                          type="text"
+                          value={formData.checkOut || ''}
+                          readOnly
+                          className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* End of Day Report (hanya untuk check out) */}
+                {!formData.isCheckIn && (
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>
+                      End of Day Report *
+                    </label>
+                    <textarea
+                      value={formData.eodReport}
+                      onChange={(e) => handleFormChange('eodReport', e.target.value)}
+                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                      rows={4}
+                      placeholder="What did you work on today? (Required for check out)"
+                      required
+                    />
+                    <p className={`text-xs ${themeColors.textLighter} mt-1`}>
+                      Please describe your tasks and accomplishments for today
+                    </p>
+                  </div>
+                )}
+
+                {/* Documentation (hanya untuk check out) */}
+                {!formData.isCheckIn && (
+                  <div>
+                    <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>
+                      Documentation (Optional)
+                    </label>
+                    
+                    <div className="flex gap-3 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowCamera(true)}
+                        className={`flex-1 py-3 border ${themeColors.border} rounded-lg flex flex-col items-center justify-center gap-2 hover:${themeColors.bgLight}`}
+                      >
+                        <CameraIcon />
+                        <span className={`text-sm ${themeColors.text}`}>Take Photo</span>
+                      </button>
+                      
+                      <label className="flex-1 py-3 border border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <UploadIcon />
+                        <span className={`text-sm ${themeColors.text}`}>Upload Image</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {previewImage && (
+                      <div className="mt-4">
+                        <p className={`text-sm ${themeColors.textLight} mb-2`}>Preview:</p>
+                        <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                          <Image
+                            src={previewImage}
+                            alt="Documentation preview"
+                            fill
+                            className="object-cover"
+                          />
+                          <button
+                            onClick={() => {
+                              setPreviewImage(null);
+                              handleFormChange('documentation', null);
+                              handleFormChange('documentationType', 'none');
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => setShowAttendanceForm(false)}
+                    className={`flex-1 py-3 border ${themeColors.border} rounded-lg ${themeColors.text} hover:${themeColors.bgLight}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitAttendance}
+                    className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    {formData.isCheckIn ? 'Submit Check In' : 'Submit Check Out'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Camera Capture Modal */}
+      {showCamera && (
+        <CameraCapture
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+          theme={theme}
+        />
+      )}
+
       {/* Hero Section */}
       <div className="relative h-64 md:h-80 flex items-center justify-center bg-cover bg-center bg-no-repeat bg-fixed"
         style={{
@@ -240,12 +688,54 @@ export default function AttendancePage() {
               </div>
               
               <div className="flex flex-wrap gap-3">
+                {/* Attendance Buttons (hanya untuk employee dan PM) */}
+                {shouldShowAttendanceButtons && (
+                  <div className="flex gap-3">
+                    {/* Check In Button (hijau) - hanya muncul jika belum check in */}
+                    {!todayStatus.hasCheckedIn && (
+                      <button
+                        onClick={handleCheckInClick}
+                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 font-medium"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Check In Now
+                      </button>
+                    )}
+                    
+                    {/* Check Out Button (biru) - hanya muncul jika sudah check in tapi belum check out */}
+                    {todayStatus.hasCheckedIn && !todayStatus.hasCheckedOut && (
+                      <button
+                        onClick={handleCheckOutClick}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 font-medium"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Check Out Now
+                      </button>
+                    )}
+                  </div>
+                )}
+                
                 <Link 
                   href="/"
                   className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} flex items-center gap-2`}
                 >
                   ← Back to Dashboard
                 </Link>
+                
+                {/* Reset Button untuk testing */}
+                <button 
+                  onClick={resetDemoData}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Reset Data
+                </button>
                 
                 {currentUser.role !== 'employee' && (
                   <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
@@ -258,6 +748,73 @@ export default function AttendancePage() {
               </div>
             </div>
           </div>
+          
+          {/* Today's Status Card (hanya untuk employee dan PM) */}
+          {(currentUser.role === 'employee' || currentUser.role === 'pm') && (
+            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8`}>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h3 className={`text-lg font-semibold ${themeColors.text} mb-2`}>Today's Status</h3>
+                  <div className="flex items-center gap-4">
+                    <div className={`px-4 py-2 rounded-lg ${todayStatus.hasCheckedIn ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'}`}>
+                      <span className="font-medium">Check In:</span> {todayStatus.todayRecord?.checkIn || 'Not yet'}
+                    </div>
+                    <div className={`px-4 py-2 rounded-lg ${todayStatus.hasCheckedOut ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'}`}>
+                      <span className="font-medium">Check Out:</span> {todayStatus.todayRecord?.checkOut || 'Not yet'}
+                    </div>
+                  </div>
+                </div>
+                
+                {shouldShowAttendanceButtons && (
+                  <div className="flex gap-3">
+                    {/* Check In Button (hijau) */}
+                    {!todayStatus.hasCheckedIn && (
+                      <button
+                        onClick={handleCheckInClick}
+                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 font-medium"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Check In Now
+                      </button>
+                    )}
+                    
+                    {/* Check Out Button (biru) */}
+                    {todayStatus.hasCheckedIn && !todayStatus.hasCheckedOut && (
+                      <button
+                        onClick={handleCheckOutClick}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 font-medium"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Check Out Now
+                      </button>
+                    )}
+                    
+                    {/* Status jika sudah check in dan check out */}
+                    {todayStatus.hasCheckedIn && todayStatus.hasCheckedOut && (
+                      <div className="px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg flex items-center gap-2 font-medium">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Attendance Complete for Today
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {todayStatus.hasCheckedIn && !todayStatus.hasCheckedOut && (
+                <div className={`mt-4 p-4 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
+                  <p className={`text-sm ${themeColors.text}`}>
+                    <span className="font-medium">Reminder:</span> Don't forget to fill your End of Day report when checking out.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -410,7 +967,7 @@ export default function AttendancePage() {
                   </p>
                 </div>
                 <div className={`text-sm ${themeColors.textLighter}`}>
-                  Last updated: Today, 10:45 AM
+                  Last updated: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
             </div>
@@ -428,7 +985,8 @@ export default function AttendancePage() {
                     <th className={`px-6 py-3 text-left text-xs font-medium ${themeColors.textLight} uppercase tracking-wider`}>Check Out</th>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${themeColors.textLight} uppercase tracking-wider`}>Status</th>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${themeColors.textLight} uppercase tracking-wider`}>Work Hours</th>
-                    {currentUser.role !== 'employee' && <th className={`px-6 py-3 text-left text-xs font-medium ${themeColors.textLight} uppercase tracking-wider`}>Notes</th>}
+                    {currentUser.role !== 'employee' && <th className={`px-6 py-3 text-left text-xs font-medium ${themeColors.textLight} uppercase tracking-wider`}>EOD Report</th>}
+                    {currentUser.role !== 'employee' && <th className={`px-6 py-3 text-left text-xs font-medium ${themeColors.textLight} uppercase tracking-wider`}>Documentation</th>}
                     <th className={`px-6 py-3 text-left text-xs font-medium ${themeColors.textLight} uppercase tracking-wider`}>Actions</th>
                   </tr>
                 </thead>
@@ -490,9 +1048,18 @@ export default function AttendancePage() {
                         {record.workHours.toFixed(1)} hours
                       </td>
                       {currentUser.role !== 'employee' && (
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${themeColors.textLight}`}>
-                          {record.notes || '-'}
-                        </td>
+                        <>
+                          <td className={`px-6 py-4 whitespace-nowrap text-sm ${themeColors.textLight} max-w-xs truncate`}>
+                            {record.eodReport || '-'}
+                          </td>
+                          <td className={`px-6 py-4 whitespace-nowrap text-sm ${themeColors.textLight}`}>
+                            {record.hasDocumentation ? (
+                              <span className="text-green-600">✓ Available</span>
+                            ) : (
+                              <span className="text-gray-400">No</span>
+                            )}
+                          </td>
+                        </>
                       )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button className="text-blue-600 hover:text-blue-900 mr-3">

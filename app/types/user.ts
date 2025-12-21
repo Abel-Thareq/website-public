@@ -14,6 +14,7 @@ export interface User {
   phone?: string;
   joinDate: string;
   position?: string;
+  avatar?: string;
 }
 
 export interface UserCredentials {
@@ -71,6 +72,9 @@ export interface AttendanceRecord {
   lateMinutes?: number;
   workHours: number;
   notes?: string;
+  eodReport?: string;
+  hasDocumentation?: boolean;
+  documentationFile?: string;
 }
 
 export interface Report {
