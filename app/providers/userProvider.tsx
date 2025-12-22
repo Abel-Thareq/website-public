@@ -10,6 +10,7 @@ interface UserContextType {
   logout: () => Promise<void>;
   switchUser: (user: User) => void;
   loading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -21,68 +22,164 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    
-    // Check if user is logged in
+    checkAuth();
+  }, []);
+
+  // Fungsi untuk verify token dengan backend
+  const checkAuth = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const savedUser = localStorage.getItem('currentUser');
-
-      if (token && savedUser) {
-        const user = JSON.parse(savedUser);
-        setCurrentUser(user);
+      
+      if (!token) {
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Error parsing saved user:', error);
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('auth_token');
+
+      // Verify token dengan backend
+      const userData = await authApi.me();
+      
+      // Transform backend user data ke frontend format
+      const user: User = {
+        id: userData.id.toString(),
+        username: userData.username,
+        password: '', // Jangan simpan password di frontend
+        name: userData.name,
+        role: userData.role,
+        initials: userData.initials,
+        department: userData.department,
+        email: userData.email,
+        phone: userData.phone || '',
+        joinDate: userData.created_at || new Date().toISOString(),
+        position: userData.position || userData.role,
+        avatar: userData.avatar,
+        color: 'from-blue-500 to-blue-600' // Default color
+      };
+
+      setCurrentUser(user);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    } catch (error: any) {
+      console.error('Auth check failed:', error);
+      
+      // Token invalid, clear storage
+      if (error.response?.status === 401) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('currentUser');
+        setCurrentUser(null);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await authApi.login(username, password);
       
       if (response.token && response.user) {
+        // Save token
         localStorage.setItem('auth_token', response.token);
-        localStorage.setItem('currentUser', JSON.stringify(response.user));
-        setCurrentUser(response.user);
+        
+        // Transform and save user
+        const user: User = {
+          id: response.user.id.toString(),
+          username: response.user.username,
+          password: '', 
+          name: response.user.name,
+          role: response.user.role,
+          initials: response.user.initials,
+          department: response.user.department,
+          email: response.user.email,
+          phone: response.user.phone || '',
+          joinDate: response.user.created_at || new Date().toISOString(),
+          position: response.user.position || response.user.role,
+          avatar: response.user.avatar,
+          color: 'from-blue-500 to-blue-600'
+        };
+        
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        setCurrentUser(user);
         return true;
       }
       return false;
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Show error message to user
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else if (error.response?.status === 401) {
+        alert('Invalid username or password');
+      } else {
+        alert('Login failed. Please try again.');
+      }
+      
       return false;
     }
   };
 
   const logout = async () => {
     try {
+      // Call backend logout
       await authApi.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Clear state and storage
       setCurrentUser(null);
-      if (mounted) {
+      
+      if (mounted && typeof window !== 'undefined') {
         localStorage.removeItem('currentUser');
         localStorage.removeItem('auth_token');
+        
+        // Redirect to home
+        window.location.href = '/';
       }
     }
   };
 
-  const switchUser = (user: User) => {
-    setCurrentUser(user);
-    if (mounted) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
-    }
-    if (typeof window !== 'undefined') {
-      window.location.href = '/dashboard';
+  // Switch user - untuk demo/testing purposes
+  // ⚠️ CATATAN: Ini tidak aman untuk production! 
+  // Seharusnya user harus logout dan login ulang dengan credentials yang berbeda
+  const switchUser = async (user: User) => {
+    try {
+      // Option 1: Logout current user dan redirect ke login
+      // await logout();
+      // window.location.href = '/';
+      
+      // Option 2: Force switch (ONLY for demo/development)
+      setCurrentUser(user);
+      if (mounted) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      }
+      
+      // Refresh page to reload all data
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Switch user error:', error);
     }
   };
 
+  // Refresh user data from backend
+  const refreshUser = async () => {
+    await checkAuth();
+  };
+
+  // Prevent rendering until mounted (avoid hydration mismatch)
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <UserContext.Provider value={{ currentUser, login, logout, switchUser, loading }}>
+    <UserContext.Provider value={{ 
+      currentUser, 
+      login, 
+      logout, 
+      switchUser, 
+      loading,
+      refreshUser 
+    }}>
       {children}
     </UserContext.Provider>
   );

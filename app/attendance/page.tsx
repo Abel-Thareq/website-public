@@ -9,6 +9,7 @@ import { useUser } from "../providers/userProvider";
 import { useRouter } from "next/navigation";
 import CameraCapture from "../components/cameraCapture";
 import Image from "next/image";
+import { attendanceApi } from "../../lib/api";
 
 // Icon Components
 const ClockIcon = () => (
@@ -99,104 +100,25 @@ export default function AttendancePage() {
     }
   }, [currentUser, router]);
 
-  // Load attendance data dari localStorage
+  // Load attendance data dari API
   useEffect(() => {
     if (!currentUser) return;
 
-    const savedRecords = localStorage.getItem(`attendance_${currentUser.id}`);
-    if (savedRecords) {
-      const records = JSON.parse(savedRecords);
-      setAttendanceRecords(records);
-    } else {
-      // Generate initial data TANPA record untuk hari ini
-      const baseData: AttendanceRecord[] = [];
-      const today = new Date().toISOString().split('T')[0];
-
-      if (currentUser.role === 'supervisor') {
-        // Data untuk supervisor (semua departemen) - TANPA hari ini
-        for (let i = 0; i < 50; i++) {
-          const date = new Date();
-          date.setDate(date.getDate() - (i + 1)); // Selalu tanggal kemarin atau sebelumnya
-          const dateStr = date.toISOString().split('T')[0];
-          
-          const status = Math.random() > 0.8 ? 'late' : Math.random() > 0.9 ? 'absent' : 'on-time';
-          const depts = ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Operations'];
-          const dept = depts[Math.floor(Math.random() * depts.length)];
-          baseData.push({
-            id: i + 1,
-            employeeId: `EMP${1000 + i}`,
-            employeeName: `Employee ${i + 1}`,
-            department: dept,
-            date: dateStr, // Bukan hari ini
-            checkIn: status === 'absent' ? '--:--' : `08:${30 + Math.floor(Math.random() * 30)}`,
-            checkOut: status === 'absent' ? '--:--' : `17:${30 + Math.floor(Math.random() * 30)}`,
-            status: status,
-            lateMinutes: status === 'late' ? Math.floor(Math.random() * 60) + 1 : undefined,
-            workHours: status === 'absent' ? 0 : 8 + Math.random(),
-            notes: status === 'late' ? ['Traffic', 'Transportation', 'Personal', 'Meeting'][Math.floor(Math.random() * 4)] : undefined,
-            eodReport: status !== 'absent' ? 'Completed daily tasks and attended meetings' : undefined,
-            hasDocumentation: Math.random() > 0.5
-          });
-        }
-      } else if (currentUser.role === 'pm') {
-        // Data untuk PM - TANPA record PM sendiri untuk hari ini
-        // Data team members (untuk hari-hari sebelumnya)
-        for (let i = 0; i < 25; i++) {
-          const date = new Date();
-          date.setDate(date.getDate() - (i + 1));
-          const dateStr = date.toISOString().split('T')[0];
-          
-          const status = Math.random() > 0.85 ? 'late' : Math.random() > 0.95 ? 'absent' : 'on-time';
-          baseData.push({
-            id: i + 1,
-            employeeId: `ENG${2000 + i}`,
-            employeeName: `Engineering Member ${i + 1}`,
-            department: 'Engineering',
-            date: dateStr,
-            checkIn: status === 'absent' ? '--:--' : `08:${45 + Math.floor(Math.random() * 15)}`,
-            checkOut: status === 'absent' ? '--:--' : `17:${30 + Math.floor(Math.random() * 30)}`,
-            status: status,
-            lateMinutes: status === 'late' ? Math.floor(Math.random() * 30) + 1 : undefined,
-            workHours: status === 'absent' ? 0 : 8.5 + Math.random(),
-            notes: status === 'late' ? ['Code Review', 'Standup Meeting', 'Client Call'][Math.floor(Math.random() * 3)] : undefined,
-            eodReport: status !== 'absent' ? 'Worked on project features and bug fixes' : undefined,
-            hasDocumentation: Math.random() > 0.6
-          });
-        }
-      } else {
-        // Data untuk employee (hanya dirinya sendiri, dengan histori) - TANPA hari ini
-        for (let i = 1; i <= 30; i++) { // Mulai dari 1, bukan 0
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          const dateStr = date.toISOString().split('T')[0];
-          
-          let status: 'on-time' | 'late' | 'absent' | 'leave';
-          if (i === 2 || i === 5) status = 'late';
-          else if (i === 10) status = 'absent';
-          else status = 'on-time';
-
-          baseData.push({
-            id: i,
-            employeeId: currentUser.id,
-            employeeName: currentUser.name,
-            department: currentUser.department,
-            date: dateStr,
-            checkIn: status === 'absent' ? '--:--' : i % 7 === 0 ? '09:15' : '08:45',
-            checkOut: status === 'absent' ? '--:--' : '17:30',
-            status: status,
-            lateMinutes: status === 'late' ? 30 : undefined,
-            workHours: status === 'absent' ? 0 : 8.75,
-            notes: status === 'late' ? 'Traffic jam' : status === 'absent' ? 'Sick Leave' : undefined,
-            eodReport: status !== 'absent' ? `Completed daily tasks for ${dateStr}` : undefined,
-            hasDocumentation: i % 3 === 0
-          });
-        }
+    const loadAttendanceData = async () => {
+      try {
+        const response = await attendanceApi.getAll();
+        const data = response.data || [];
+        console.log('Loaded attendance data from API:', data.length, 'records');
+        setAttendanceRecords(data);
+      } catch (error) {
+        console.error('Error loading attendance data:', error);
+        // Fallback ke empty array if error
+        setAttendanceRecords([]);
       }
+    };
 
-      setAttendanceRecords(baseData);
-      localStorage.setItem(`attendance_${currentUser.id}`, JSON.stringify(baseData));
-    }
-  }, [currentUser, selectedDate]);
+    loadAttendanceData();
+  }, [currentUser]);
 
   // Update status check in/out hari ini
   useEffect(() => {
@@ -276,7 +198,7 @@ export default function AttendancePage() {
     const late = filteredData.filter(r => r.status === 'late').length;
     const absent = filteredData.filter(r => r.status === 'absent').length;
     const averageWorkHours = filteredData.length > 0 
-      ? (filteredData.reduce((sum, r) => sum + r.workHours, 0) / filteredData.length).toFixed(1)
+      ? (filteredData.reduce((sum, r) => sum + (r.workHours || 0), 0) / filteredData.length).toFixed(1)
       : '0.0';
 
     return { total, onTime, late, absent, averageWorkHours };
@@ -361,7 +283,7 @@ export default function AttendancePage() {
   };
 
   // Handle form submission
-  const handleSubmitAttendance = () => {
+  const handleSubmitAttendance = async () => {
     if (!currentUser) return;
 
     const today = new Date().toISOString().split('T')[0];
@@ -382,69 +304,106 @@ export default function AttendancePage() {
       return;
     }
 
-    // Hitung work hours jika ada check in dan check out
-    let workHours = 0;
-    if (formData.checkIn && formData.checkOut) {
-      const [inHour, inMin] = formData.checkIn.split(':').map(Number);
-      const [outHour, outMin] = formData.checkOut.split(':').map(Number);
-      const inTime = inHour * 60 + inMin;
-      const outTime = outHour * 60 + outMin;
-      workHours = (outTime - inTime) / 60;
-    }
-
-    // Tentukan status (late jika check in setelah 09:00)
-    let status: 'on-time' | 'late' = 'on-time';
-    let lateMinutes = undefined;
-    if (formData.checkIn) {
-      const [hour, minute] = formData.checkIn.split(':').map(Number);
-      if (hour > 9 || (hour === 9 && minute > 0)) {
-        status = 'late';
-        lateMinutes = (hour - 9) * 60 + minute;
+    try {
+      // Hitung work hours jika ada check in dan check out
+      let workHours = 0;
+      if (formData.checkIn && formData.checkOut) {
+        const [inHour, inMin] = formData.checkIn.split(':').map(Number);
+        const [outHour, outMin] = formData.checkOut.split(':').map(Number);
+        const inTime = inHour * 60 + inMin;
+        const outTime = outHour * 60 + outMin;
+        workHours = (outTime - inTime) / 60;
       }
+
+      // Tentukan status (late jika check in setelah 09:00)
+      let status: 'on-time' | 'late' = 'on-time';
+      let lateMinutes = undefined;
+      if (formData.checkIn) {
+        const [hour, minute] = formData.checkIn.split(':').map(Number);
+        if (hour > 9 || (hour === 9 && minute > 0)) {
+          status = 'late';
+          lateMinutes = (hour - 9) * 60 + minute;
+        }
+      }
+
+      // Prepare data for API
+      const submitData: any = {
+        date: today
+      };
+
+      // Only add check_in/check_out if they have values
+      if (formData.checkIn) {
+        submitData.check_in = formData.checkIn;
+      }
+      if (formData.checkOut) {
+        submitData.check_out = formData.checkOut;
+      }
+      if (formData.eodReport) {
+        submitData.eod_report = formData.eodReport;
+      }
+      if (status) {
+        submitData.status = status;
+      }
+      if (lateMinutes !== undefined) {
+        submitData.late_minutes = lateMinutes;
+      }
+      if (workHours > 0) {
+        submitData.work_hours = workHours;
+      }
+
+      console.log('Submitting to API:', submitData);
+
+      // Call API to save attendance
+      const response = await attendanceApi.create(submitData);
+      console.log('API Response:', response);
+
+      if (response.data) {
+        // Update local state immediately
+        const updatedRecords = [...attendanceRecords];
+        const existingIndex = updatedRecords.findIndex(record => 
+          record.date === today && record.employeeId === currentUser.id
+        );
+
+        const newRecord: AttendanceRecord = {
+          id: response.data.id || (existingIndex >= 0 ? updatedRecords[existingIndex].id : updatedRecords.length + 1),
+          employeeId: currentUser.id,
+          employeeName: currentUser.name,
+          department: currentUser.department,
+          date: today,
+          checkIn: formData.checkIn || (existingIndex >= 0 ? updatedRecords[existingIndex].checkIn : '--:--'),
+          checkOut: formData.checkOut || (existingIndex >= 0 ? updatedRecords[existingIndex].checkOut : '--:--'),
+          status: status,
+          lateMinutes: lateMinutes,
+          workHours: workHours,
+          eodReport: formData.eodReport,
+          hasDocumentation: formData.documentation !== null,
+          documentationFile: formData.documentation instanceof File ? formData.documentation.name : undefined
+        };
+
+        if (existingIndex >= 0) {
+          updatedRecords[existingIndex] = newRecord;
+        } else {
+          updatedRecords.unshift(newRecord);
+        }
+
+        setAttendanceRecords(updatedRecords);
+      }
+      
+      // Reset form
+      setFormData({
+        eodReport: '',
+        documentation: null,
+        documentationType: 'none',
+        isCheckIn: false
+      });
+      setPreviewImage(null);
+      setShowAttendanceForm(false);
+      
+      alert('Attendance submitted successfully!');
+    } catch (error: any) {
+      console.error('Error submitting attendance:', error);
+      alert('Failed to submit attendance: ' + (error.response?.data?.message || error.message));
     }
-
-    // Update atau buat record baru
-    const updatedRecords = [...attendanceRecords];
-    const existingIndex = updatedRecords.findIndex(record => 
-      record.date === today && record.employeeId === currentUser.id
-    );
-
-    const newRecord: AttendanceRecord = {
-      id: existingIndex >= 0 ? updatedRecords[existingIndex].id : updatedRecords.length + 1,
-      employeeId: currentUser.id,
-      employeeName: currentUser.name,
-      department: currentUser.department,
-      date: today,
-      checkIn: formData.checkIn || (existingIndex >= 0 ? updatedRecords[existingIndex].checkIn : '--:--'),
-      checkOut: formData.checkOut || (existingIndex >= 0 ? updatedRecords[existingIndex].checkOut : '--:--'),
-      status: status,
-      lateMinutes: lateMinutes,
-      workHours: workHours,
-      eodReport: formData.eodReport,
-      hasDocumentation: formData.documentation !== null,
-      documentationFile: formData.documentation instanceof File ? formData.documentation.name : undefined
-    };
-
-    if (existingIndex >= 0) {
-      updatedRecords[existingIndex] = newRecord;
-    } else {
-      updatedRecords.unshift(newRecord);
-    }
-
-    setAttendanceRecords(updatedRecords);
-    localStorage.setItem(`attendance_${currentUser.id}`, JSON.stringify(updatedRecords));
-    
-    // Reset form
-    setFormData({
-      eodReport: '',
-      documentation: null,
-      documentationType: 'none',
-      isCheckIn: false // Setelah submit check out, set isCheckIn ke false
-    });
-    setPreviewImage(null);
-    setShowAttendanceForm(false);
-    
-    alert('Attendance submitted successfully!');
   };
 
   // Cek apakah user perlu mengisi attendance (hanya untuk employee dan PM)
@@ -1045,7 +1004,7 @@ export default function AttendancePage() {
                         </span>
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${themeColors.text}`}>
-                        {record.workHours.toFixed(1)} hours
+                        {(record.workHours || 0).toFixed(1)} hours
                       </td>
                       {currentUser.role !== 'employee' && (
                         <>
