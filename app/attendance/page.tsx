@@ -108,8 +108,26 @@ export default function AttendancePage() {
       try {
         const response = await attendanceApi.getAll();
         const data = response.data || [];
-        console.log('Loaded attendance data from API:', data.length, 'records');
-        setAttendanceRecords(data);
+        // Transform snake_case to camelCase
+        const transformedData = data.map((record: any) => ({
+          id: record.id,
+          userId: record.user_id,
+          date: record.date,
+          checkIn: record.check_in,
+          checkOut: record.check_out,
+          status: record.status,
+          lateMinutes: parseInt(record.late_minutes) || 0,
+          workHours: parseFloat(record.work_hours) || 0,
+          notes: record.notes,
+          eodReport: record.eod_report,
+          hasDocumentation: record.has_documentation,
+          documentationFile: record.documentation_file,
+          employeeId: record.employee_id,
+          employeeName: record.employee_name,
+          department: record.department,
+        }));
+        console.log('Loaded attendance data from API:', transformedData.length, 'records');
+        setAttendanceRecords(transformedData);
       } catch (error) {
         console.error('Error loading attendance data:', error);
         // Fallback ke empty array if error
