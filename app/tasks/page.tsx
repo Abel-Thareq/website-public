@@ -70,6 +70,11 @@ export default function TasksPage() {
   });
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  
+  // Tambahkan state untuk delete confirmation modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Redirect ke home jika user berubah
   useEffect(() => {
@@ -112,6 +117,41 @@ export default function TasksPage() {
       alert('Failed to load tasks');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fungsi untuk handle delete task
+  const handleDeleteTask = async () => {
+    if (!taskToDelete || !currentUser) return;
+    
+    // Check permissions - only assigner or supervisor can delete
+    if (currentUser.role === 'employee') {
+      alert('You do not have permission to delete tasks');
+      return;
+    }
+    
+    if (currentUser.role === 'pm' && taskToDelete.assigner !== currentUser.name) {
+      alert('You can only delete tasks that you assigned');
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      await tasksApi.delete(taskToDelete.id);
+      
+      // Close modal
+      setIsDeleteModalOpen(false);
+      setTaskToDelete(null);
+      
+      // Reload tasks
+      await loadTasks();
+      
+      alert(`Task "${taskToDelete.title}" has been deleted successfully!`);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Failed to delete task. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -206,30 +246,63 @@ export default function TasksPage() {
     return filtered;
   }, [tasks, selectedFilter, selectedPriority, selectedDepartment, searchTerm, currentUser]);
 
-  // Hitung statistik berdasarkan role
+  // ============================================
+  // STATS CALCULATION - Paste ini di dalam component TasksPage
+  // Letakkan SETELAH filteredTasks calculation
+  // ============================================
+
+  // Hitung statistik berdasarkan role - PENTING: Gunakan 'tasks' asli, BUKAN 'filteredTasks'
   const stats = useMemo(() => {
     // Tentukan tasks mana yang dihitung berdasarkan role
-    let relevantTasks = tasks;
+    let relevantTasks = tasks; // Gunakan tasks asli yang belum difilter
     
     if (currentUser?.role === 'employee') {
+      // Employee: hanya task yang assigned ke dia
       relevantTasks = tasks.filter(task => task.assignee === currentUser.name);
     } else if (currentUser?.role === 'pm') {
+      // PM: 
+      // 1. Task dari supervisor ke PM (task.assignee === PM.name)
+      // 2. Task dari PM ke tim (task.assigner === PM.name && task.assignee !== PM.name)
       relevantTasks = tasks.filter(task => 
-        task.assignee === currentUser.name || 
-        (task.department === currentUser.department && task.assigner === currentUser.name)
+        task.assignee === currentUser.name || // Task yang assigned ke PM
+        (task.assigner === currentUser.name && task.assignee !== currentUser.name) // Task yang PM assign ke tim
       );
     }
+    // Supervisor: semua task (tidak difilter, pakai tasks langsung)
     
     const total = relevantTasks.length;
-    const completed = relevantTasks.filter(t => t.status === 'completed').length;
-    const inProgress = relevantTasks.filter(t => t.status === 'in-progress').length;
-    const pending = relevantTasks.filter(t => t.status === 'pending').length;
-    const overdue = relevantTasks.filter(t => 
-      new Date(t.deadline) < new Date() && t.status !== 'completed'
+    
+    // Completed: task dengan status 'completed' ATAU progress === 100
+    // Dihitung dari semua task (baik task pribadi maupun task yang diassign ke tim)
+    const completed = relevantTasks.filter(t => 
+      t.status === 'completed' || t.progress === 100
     ).length;
     
+    // In Progress: task dengan progress > 0 tapi < 100 DAN status bukan 'completed'
+    // Ini artinya task sedang dikerjakan tapi belum selesai
+    const inProgress = relevantTasks.filter(t => 
+      t.progress > 0 && 
+      t.progress < 100 && 
+      t.status !== 'completed'
+    ).length;
+    
+    // Pending: task dengan progress === 0 dan status masih 'pending'
+    // Ini artinya task belum mulai dikerjakan
+    const pending = relevantTasks.filter(t => 
+      (t.progress === 0 || !t.progress) && 
+      t.status === 'pending'
+    ).length;
+    
+    // Overdue: task yang melewati deadline DAN belum selesai
+    // Dihitung dari semua task yang relevan
+    const overdue = relevantTasks.filter(t => {
+      const isOverdue = new Date(t.deadline) < new Date();
+      const notCompleted = t.status !== 'completed' && t.progress !== 100;
+      return isOverdue && notCompleted;
+    }).length;
+    
     return { total, completed, inProgress, pending, overdue };
-  }, [tasks, currentUser]);
+  }, [tasks, currentUser]); // PENTING: Dependency ke 'tasks' asli, bukan 'filteredTasks'
 
   // Handle checkbox subtask (untuk employee DAN PM)
   const handleSubtaskToggle = async (taskId: number, subtaskId: number) => {
@@ -379,6 +452,12 @@ export default function TasksPage() {
     const canEditSubtasks = currentUser && (
       (currentUser.role === 'employee' && task.assignee === currentUser.name) ||
       (currentUser.role === 'pm' && task.assignee === currentUser.name)
+    );
+    
+    // Check if current user can delete this task
+    const canDelete = currentUser && (
+      currentUser.role === 'supervisor' ||
+      (currentUser.role === 'pm' && task.assigner === currentUser.name)
     );
 
     return (
@@ -553,58 +632,89 @@ export default function TasksPage() {
             )}
           </div>
           
+          {/* ACTION BUTTONS - UPDATED */}
           <div className="ml-6 flex flex-col gap-2">
-            {/* Tombol berbeda berdasarkan role */}
             {currentUser?.role === 'employee' && task.assignee === currentUser.name ? (
               <>
                 <button 
                   onClick={() => handleSubmitProgress(task.id)}
-                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center"
                 >
-                  Submit Progress
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Submit
                 </button>
                 <button 
                   onClick={() => {
                     setSelectedTask(task);
                     setIsModalOpen(true);
                   }}
-                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} flex items-center gap-2 justify-center`}
                 >
-                  View Details
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  View
                 </button>
               </>
             ) : currentUser?.role === 'pm' && task.assignee === currentUser.name ? (
               <>
                 <button 
                   onClick={() => handleSubmitProgress(task.id)}
-                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center"
                 >
-                  Update Progress
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Update
                 </button>
                 <button 
                   onClick={() => {
                     setSelectedTask(task);
                     setIsModalOpen(true);
                   }}
-                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} flex items-center gap-2 justify-center`}
                 >
-                  View Details
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  View
                 </button>
               </>
             ) : (
               <>
-                <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
-                  Manage
-                </button>
                 <button 
                   onClick={() => {
                     setSelectedTask(task);
                     setIsModalOpen(true);
                   }}
-                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} text-sm border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 flex items-center gap-2 justify-center"
                 >
-                  Details
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Manage
                 </button>
+                
+                {/* DELETE BUTTON - Only for users who can delete */}
+                {canDelete && (
+                  <button 
+                    onClick={() => {
+                      setTaskToDelete(task);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 flex items-center gap-2 justify-center"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -723,10 +833,11 @@ export default function TasksPage() {
             </div>
           )}
           
-          {/* Stats Cards */}
+          {/* Stats Cards - Ganti dengan versi baru */}
           {!loading && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* TOTAL TASKS */}
                 <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
                   <div className="flex items-center justify-between">
                     <div>
@@ -734,7 +845,7 @@ export default function TasksPage() {
                       <p className={`text-3xl font-bold ${themeColors.text} mt-2`}>{stats.total}</p>
                     </div>
                     <div className={`p-3 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
                     </div>
@@ -744,12 +855,13 @@ export default function TasksPage() {
                       {currentUser?.role === 'employee' 
                         ? 'Your assigned tasks'
                         : currentUser?.role === 'pm'
-                        ? `Tasks in ${currentUser.department}`
+                        ? 'Tasks from supervisor + tasks to team'
                         : 'All company tasks'}
                     </p>
                   </div>
                 </div>
                 
+                {/* COMPLETED TASKS */}
                 <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
                   <div className="flex items-center justify-between">
                     <div>
@@ -757,22 +869,32 @@ export default function TasksPage() {
                       <p className="text-3xl font-bold text-green-600 mt-2">{stats.completed}</p>
                     </div>
                     <div className={`p-3 ${theme.isDayTime ? 'bg-green-50' : 'bg-green-900/20'} rounded-lg`}>
-                      <CheckCircleIcon />
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </div>
                   </div>
                   <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                       <div 
-                        className="bg-green-500 h-2 rounded-full" 
+                        className="bg-green-500 h-2 rounded-full transition-all duration-500" 
                         style={{ width: `${stats.total > 0 ? (stats.completed / stats.total) * 100 : 0}%` }}
                       />
                     </div>
-                    <p className={`text-xs ${themeColors.textLighter} mt-1`}>
-                      {stats.total > 0 ? `${((stats.completed / stats.total) * 100).toFixed(1)}% completion rate` : 'No tasks'}
-                    </p>
+                    <div className="flex justify-between items-center">
+                      <p className={`text-xs ${themeColors.textLighter}`}>
+                        {stats.total > 0 ? `${((stats.completed / stats.total) * 100).toFixed(1)}% completion rate` : 'No tasks'}
+                      </p>
+                      {stats.completed > 0 && (
+                        <span className="text-xs font-medium text-green-600">
+                          ↑ {stats.completed}/{stats.total}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
+                {/* IN PROGRESS */}
                 <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
                   <div className="flex items-center justify-between">
                     <div>
@@ -780,16 +902,37 @@ export default function TasksPage() {
                       <p className="text-3xl font-bold text-blue-600 mt-2">{stats.inProgress}</p>
                     </div>
                     <div className={`p-3 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
-                      <ClockIcon />
+                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </div>
                   </div>
                   <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
-                    <p className={`text-xs ${themeColors.textLighter}`}>
-                      Actively being worked on
-                    </p>
+                    <div className="flex justify-between items-center mb-1">
+                      <p className={`text-xs ${themeColors.textLighter}`}>
+                        Being worked on
+                      </p>
+                      <span className={`text-xs font-medium ${themeColors.text}`}>
+                        {stats.pending} pending
+                      </span>
+                    </div>
+                    {stats.inProgress > 0 && (
+                      <div className="flex items-center gap-1 mt-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                          <div 
+                            className="bg-blue-500 h-1.5 rounded-full"
+                            style={{ width: `${stats.total > 0 ? (stats.inProgress / stats.total) * 100 : 0}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-blue-600 font-medium">
+                          {stats.total > 0 ? Math.round((stats.inProgress / stats.total) * 100) : 0}%
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
+                {/* OVERDUE */}
                 <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
                   <div className="flex items-center justify-between">
                     <div>
@@ -797,13 +940,36 @@ export default function TasksPage() {
                       <p className="text-3xl font-bold text-red-600 mt-2">{stats.overdue}</p>
                     </div>
                     <div className={`p-3 ${theme.isDayTime ? 'bg-red-50' : 'bg-red-900/20'} rounded-lg`}>
-                      <ExclamationIcon />
+                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.732-1.333-2.464 0L4.732 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
                     </div>
                   </div>
                   <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
-                    <p className={`text-xs ${themeColors.textLighter}`}>
-                      Past deadline
+                    <p className={`text-xs ${themeColors.textLighter} mb-2`}>
+                      Past deadline, not completed
                     </p>
+                    {stats.overdue > 0 && stats.total > 0 && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                          <div 
+                            className="bg-red-500 h-1.5 rounded-full"
+                            style={{ width: `${(stats.overdue / stats.total) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-red-600 font-medium">
+                          {Math.round((stats.overdue / stats.total) * 100)}%
+                        </span>
+                      </div>
+                    )}
+                    {stats.overdue === 0 && (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-xs font-medium">All on track!</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1236,7 +1402,7 @@ export default function TasksPage() {
                           <div className={`font-medium ${themeColors.text}`}>Report Issue</div>
                           <div className={`text-sm ${themeColors.textLight} mt-1`}>Report problems with assigned task</div>
                         </div>
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
                       </button>
@@ -1494,6 +1660,78 @@ export default function TasksPage() {
                   disabled={!newTask.title || !newTask.assignee || !newTask.deadline}
                 >
                   Assign Task
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {isDeleteModalOpen && taskToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} max-w-md w-full`}>
+            <div className="p-6">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="p-3 bg-red-100 rounded-full">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.732-1.333-2.464 0L4.732 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className={`text-lg font-bold ${themeColors.text} mb-2`}>Delete Task</h3>
+                  <p className={`text-sm ${themeColors.textLight}`}>
+                    Are you sure you want to delete this task?
+                  </p>
+                  <div className={`mt-3 p-3 ${theme.isDayTime ? 'bg-gray-50' : 'bg-gray-800'} rounded-lg`}>
+                    <p className={`text-sm font-medium ${themeColors.text}`}>{taskToDelete.title}</p>
+                    <p className={`text-xs ${themeColors.textLight} mt-1`}>
+                      Assigned to: {taskToDelete.assignee}
+                    </p>
+                    {taskToDelete.subtasks && taskToDelete.subtasks.length > 0 && (
+                      <p className={`text-xs ${themeColors.textLight} mt-1`}>
+                        {taskToDelete.subtasks.length} subtask(s) will also be deleted
+                      </p>
+                    )}
+                  </div>
+                  <p className={`text-xs ${themeColors.textLight} mt-3`}>
+                    ⚠️ This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3">
+                <button 
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setTaskToDelete(null);
+                  }}
+                  disabled={isDeleting}
+                  className={`px-4 py-2 ${themeColors.cardBg} ${themeColors.text} border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} disabled:opacity-50`}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDeleteTask}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Task
+                    </>
+                  )}
                 </button>
               </div>
             </div>
