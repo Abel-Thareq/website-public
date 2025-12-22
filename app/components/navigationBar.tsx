@@ -35,7 +35,6 @@ const tabs = [
   { id: "reports", name: "Reports", path: "/reports", icon: "📈" },
 ];
 
-// Data user fallback untuk development
 const availableUsers: User[] = [
   {
     id: "supervisor_001",
