@@ -247,11 +247,10 @@ export default function TasksPage() {
   }, [tasks, selectedFilter, selectedPriority, selectedDepartment, searchTerm, currentUser]);
 
   // ============================================
-  // STATS CALCULATION - Paste ini di dalam component TasksPage
-  // Letakkan SETELAH filteredTasks calculation
+  // STATS CALCULATION
   // ============================================
 
-  // Hitung statistik berdasarkan role - PENTING: Gunakan 'tasks' asli, BUKAN 'filteredTasks'
+  // Hitung statistik berdasarkan role
   const stats = useMemo(() => {
     // Tentukan tasks mana yang dihitung berdasarkan role
     let relevantTasks = tasks; // Gunakan tasks asli yang belum difilter
@@ -273,13 +272,11 @@ export default function TasksPage() {
     const total = relevantTasks.length;
     
     // Completed: task dengan status 'completed' ATAU progress === 100
-    // Dihitung dari semua task (baik task pribadi maupun task yang diassign ke tim)
     const completed = relevantTasks.filter(t => 
       t.status === 'completed' || t.progress === 100
     ).length;
     
     // In Progress: task dengan progress > 0 tapi < 100 DAN status bukan 'completed'
-    // Ini artinya task sedang dikerjakan tapi belum selesai
     const inProgress = relevantTasks.filter(t => 
       t.progress > 0 && 
       t.progress < 100 && 
@@ -287,14 +284,12 @@ export default function TasksPage() {
     ).length;
     
     // Pending: task dengan progress === 0 dan status masih 'pending'
-    // Ini artinya task belum mulai dikerjakan
     const pending = relevantTasks.filter(t => 
       (t.progress === 0 || !t.progress) && 
       t.status === 'pending'
     ).length;
     
     // Overdue: task yang melewati deadline DAN belum selesai
-    // Dihitung dari semua task yang relevan
     const overdue = relevantTasks.filter(t => {
       const isOverdue = new Date(t.deadline) < new Date();
       const notCompleted = t.status !== 'completed' && t.progress !== 100;
@@ -302,7 +297,7 @@ export default function TasksPage() {
     }).length;
     
     return { total, completed, inProgress, pending, overdue };
-  }, [tasks, currentUser]); // PENTING: Dependency ke 'tasks' asli, bukan 'filteredTasks'
+  }, [tasks, currentUser]);
 
   // Handle checkbox subtask (untuk employee DAN PM)
   const handleSubtaskToggle = async (taskId: number, subtaskId: number) => {
@@ -365,15 +360,40 @@ export default function TasksPage() {
     if (!currentUser || (currentUser.role !== 'supervisor' && currentUser.role !== 'pm')) return;
     
     try {
+      // Validasi input
+      if (!newTask.title.trim()) {
+        alert('Please enter a task title');
+        return;
+      }
+      
+      if (!newTask.assignee) {
+        alert('Please select an assignee');
+        return;
+      }
+      
+      if (!newTask.deadline) {
+        alert('Please select a deadline');
+        return;
+      }
+      
       const assigneeUser = getAssignableUsers().find(u => u.name === newTask.assignee);
       if (!assigneeUser) {
         alert('Please select a valid assignee');
         return;
       }
       
+      // PENTING: Jangan kirim id untuk subtasks, biarkan backend yang generate
+      const subtasksToSend = newTask.subtasks
+        .filter(st => st.description.trim()) // Hanya kirim subtask yang ada deskripsinya
+        .map(st => ({
+          description: st.description.trim(),
+          completed: false
+          // JANGAN kirim id di sini!
+        }));
+      
       await tasksApi.create({
-        title: newTask.title,
-        description: newTask.description,
+        title: newTask.title.trim(),
+        description: newTask.description.trim(),
         priority: newTask.priority,
         assignee_id: assigneeUser.id,
         assigner_id: currentUser.id,
@@ -382,11 +402,12 @@ export default function TasksPage() {
         estimated_hours: newTask.estimatedHours,
         status: 'pending',
         tags: ["New"],
-        subtasks: newTask.subtasks.map(st => ({
-          description: st.description,
-          completed: false
-        }))
+        subtasks: subtasksToSend
       });
+      
+      // Save title and assignee for success message before resetting
+      const taskTitle = newTask.title;
+      const assigneeName = newTask.assignee;
       
       // Reset form
       setNewTask({
@@ -403,20 +424,24 @@ export default function TasksPage() {
       // Reload tasks
       await loadTasks();
       
-      alert(`Task "${newTask.title}" assigned to ${newTask.assignee} successfully!`);
+      alert(`Task "${taskTitle}" assigned to ${assigneeName} successfully!`);
     } catch (error) {
       console.error('Error creating task:', error);
-      alert('Failed to create task');
+      alert('Failed to create task. Please try again.');
     }
   };
 
-  // Add subtask to new task form
+  // Add subtask to new task form - PERBAIKAN DI SINI
   const handleAddSubtask = () => {
     setNewTask(prev => ({
       ...prev,
       subtasks: [
         ...prev.subtasks,
-        { id: prev.subtasks.length + 1, description: "", completed: false }
+        { 
+          id: Date.now(), // Gunakan timestamp sebagai id sementara yang unik
+          description: "", 
+          completed: false 
+        }
       ]
     }));
   };
@@ -429,17 +454,17 @@ export default function TasksPage() {
       // Supervisor bisa assign ke semua PM dan employee
       return [
         { id: 2, name: "Sarah Chen", role: "pm", department: "Engineering" },
-        { id: 3, name: "Lisa Wong", role: "pm", department: "Marketing" },
-        { id: 4, name: "John Doe", role: "employee", department: "Engineering" },
-        { id: 5, name: "Mike Brown", role: "employee", department: "Engineering" },
-        { id: 6, name: "Jane Smith", role: "employee", department: "Marketing" }
+        { id: 99, name: "Lisa Wong", role: "pm", department: "Marketing" },
+        { id: 98, name: "John Doe", role: "employee", department: "Engineering" },
+        { id: 97, name: "Mike Brown", role: "employee", department: "Engineering" },
+        { id: 96, name: "Jane Smith", role: "employee", department: "Marketing" }
       ];
     } else if (currentUser.role === 'pm') {
       // PM hanya bisa assign ke employee di department-nya
       return [
-        { id: 4, name: "John Doe", role: "employee", department: "Engineering" },
-        { id: 5, name: "Mike Brown", role: "employee", department: "Engineering" },
-        { id: 7, name: "Alex Johnson", role: "employee", department: "Engineering" }
+        { id: 3, name: "John Doe", role: "employee", department: "Engineering" },
+        { id: 4, name: "Mike Brown", role: "employee", department: "Engineering" },
+        { id: 5, name: "Alex Engineer", role: "employee", department: "Engineering" }
       ];
     }
     
@@ -632,7 +657,7 @@ export default function TasksPage() {
             )}
           </div>
           
-          {/* ACTION BUTTONS - UPDATED */}
+          {/* ACTION BUTTONS */}
           <div className="ml-6 flex flex-col gap-2">
             {currentUser?.role === 'employee' && task.assignee === currentUser.name ? (
               <>
@@ -833,7 +858,7 @@ export default function TasksPage() {
             </div>
           )}
           
-          {/* Stats Cards - Ganti dengan versi baru */}
+          {/* Stats Cards */}
           {!loading && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1622,8 +1647,8 @@ export default function TasksPage() {
                     </button>
                   </div>
                   <div className="space-y-2">
-                    {newTask.subtasks.map((subtask, index) => (
-                      <div key={index} className="flex items-center gap-2">
+                    {newTask.subtasks.map((subtask) => (
+                      <div key={subtask.id} className="flex items-center gap-2"> {/* PERBAIKAN DI SINI: Gunakan subtask.id sebagai key */}
                         <input
                           type="checkbox"
                           checked={subtask.completed}
@@ -1634,16 +1659,34 @@ export default function TasksPage() {
                           type="text"
                           value={subtask.description}
                           onChange={(e) => {
-                            const newSubtasks = [...newTask.subtasks];
-                            newSubtasks[index] = { ...subtask, description: e.target.value };
+                            const newSubtasks = newTask.subtasks.map(st => 
+                              st.id === subtask.id ? { ...st, description: e.target.value } : st
+                            );
                             setNewTask(prev => ({ ...prev, subtasks: newSubtasks }));
                           }}
                           className={`flex-1 px-3 py-1 border ${themeColors.border} rounded ${themeColors.bgLight} ${themeColors.text} text-sm`}
                           placeholder="Subtask description"
                         />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSubtasks = newTask.subtasks.filter(st => st.id !== subtask.id);
+                            setNewTask(prev => ({ ...prev, subtasks: newSubtasks }));
+                          }}
+                          className="text-red-600 hover:text-red-700 p-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
                     ))}
                   </div>
+                  {newTask.subtasks.length > 0 && (
+                    <p className={`text-xs ${themeColors.textLight} mt-2`}>
+                      Subtasks with empty descriptions will not be saved
+                    </p>
+                  )}
                 </div>
               </div>
               
