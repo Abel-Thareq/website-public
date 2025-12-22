@@ -7,7 +7,7 @@ import { Task, TaskSubtask } from "../types/user";
 import { useTheme } from "../providers/temaProvider";
 import { useUser } from "../providers/userProvider";
 import { useRouter } from "next/navigation";
-import { tasksApi } from '../../lib/api';
+import { tasksApi, teamApi, authApi } from '../../lib/api';
 
 // Icon Components
 const CheckCircleIcon = () => (
@@ -76,6 +76,13 @@ export default function TasksPage() {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
+  // State untuk team management
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
+  const [loadingTeam, setLoadingTeam] = useState(false);
+  const [assignableUsers, setAssignableUsers] = useState<any[]>([]);
+
   // Redirect ke home jika user berubah
   useEffect(() => {
     if (!currentUser) {
@@ -89,6 +96,15 @@ export default function TasksPage() {
       loadTasks();
     }
   }, [currentUser, selectedFilter, selectedPriority, selectedDepartment, searchTerm]);
+
+  // Load team members untuk PM dan assignable users untuk supervisor
+  useEffect(() => {
+    if (currentUser?.role === 'pm') {
+      loadTeamMembers();
+    } else if (currentUser?.role === 'supervisor') {
+      loadAssignableUsers();
+    }
+  }, [currentUser]);
 
   const loadTasks = async () => {
     if (!currentUser) return;
@@ -117,6 +133,62 @@ export default function TasksPage() {
       alert('Failed to load tasks');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAssignableUsers = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const users = await authApi.getAssignableUsers();
+      setAssignableUsers(users);
+    } catch (error) {
+      console.error('Error loading assignable users:', error);
+    }
+  };
+
+  const loadTeamMembers = async () => {
+    if (!currentUser || currentUser.role !== 'pm') return;
+    
+    try {
+      const members = await teamApi.getTeamMembers();
+      setTeamMembers(members);
+    } catch (error) {
+      console.error('Error loading team members:', error);
+    }
+  };
+
+  const loadAvailableEmployees = async () => {
+    if (!currentUser || currentUser.role !== 'pm') return;
+    
+    setLoadingTeam(true);
+    try {
+      const employees = await teamApi.getAvailableEmployees();
+      setAvailableEmployees(employees);
+    } catch (error) {
+      console.error('Error loading available employees:', error);
+      alert('Failed to load available employees');
+    } finally {
+      setLoadingTeam(false);
+    }
+  };
+
+  const handleToggleTeamMember = async (employeeId: number, isCurrentlyInTeam: boolean) => {
+    try {
+      if (isCurrentlyInTeam) {
+        await teamApi.removeMember(employeeId);
+        alert('Team member removed successfully!');
+      } else {
+        await teamApi.addMember(employeeId);
+        alert('Team member added successfully!');
+      }
+      
+      // Reload data
+      await loadTeamMembers();
+      await loadAvailableEmployees();
+    } catch (error: any) {
+      console.error('Error toggling team member:', error);
+      alert(error.response?.data?.message || 'Failed to update team');
     }
   };
 
@@ -299,6 +371,26 @@ export default function TasksPage() {
     return { total, completed, inProgress, pending, overdue };
   }, [tasks, currentUser]);
 
+  // Update getAssignableUsers function untuk menggunakan data dari API
+  const getAssignableUsers = () => {
+    if (!currentUser) return [];
+    
+    if (currentUser.role === 'supervisor') {
+      // Supervisor bisa assign ke SEMUA PM dan employee dari API
+      return assignableUsers;
+    } else if (currentUser.role === 'pm') {
+      // PM hanya bisa assign ke team members-nya
+      return teamMembers.map(member => ({
+        id: member.id,
+        name: member.name,
+        role: member.role,
+        department: member.department
+      }));
+    }
+    
+    return [];
+  };
+
   // Handle checkbox subtask (untuk employee DAN PM)
   const handleSubtaskToggle = async (taskId: number, subtaskId: number) => {
     if (!currentUser) return;
@@ -444,31 +536,6 @@ export default function TasksPage() {
         }
       ]
     }));
-  };
-
-  // Get assignable users berdasarkan role
-  const getAssignableUsers = () => {
-    if (!currentUser) return [];
-    
-    if (currentUser.role === 'supervisor') {
-      // Supervisor bisa assign ke semua PM dan employee
-      return [
-        { id: 2, name: "Sarah Chen", role: "pm", department: "Engineering" },
-        { id: 99, name: "Lisa Wong", role: "pm", department: "Marketing" },
-        { id: 98, name: "John Doe", role: "employee", department: "Engineering" },
-        { id: 97, name: "Mike Brown", role: "employee", department: "Engineering" },
-        { id: 96, name: "Jane Smith", role: "employee", department: "Marketing" }
-      ];
-    } else if (currentUser.role === 'pm') {
-      // PM hanya bisa assign ke employee di department-nya
-      return [
-        { id: 3, name: "John Doe", role: "employee", department: "Engineering" },
-        { id: 4, name: "Mike Brown", role: "employee", department: "Engineering" },
-        { id: 5, name: "Alex Engineer", role: "employee", department: "Engineering" }
-      ];
-    }
-    
-    return [];
   };
 
   // Render Task Item
@@ -835,10 +902,34 @@ export default function TasksPage() {
                   ← Back to Dashboard
                 </Link>
                 
+                {/* Show Manage Team button only for PM */}
+                {currentUser?.role === 'pm' && (
+                  <button 
+                    onClick={() => {
+                      setIsTeamModalOpen(true);
+                      loadAvailableEmployees();
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Manage Team ({teamMembers.length})
+                  </button>
+                )}
+                
                 {/* Show Assign Task button only for Supervisor and PM */}
                 {(currentUser?.role === 'supervisor' || currentUser?.role === 'pm') && (
                   <button 
-                    onClick={() => setIsNewTaskModalOpen(true)}
+                    onClick={() => {
+                      if (currentUser.role === 'pm' && teamMembers.length === 0) {
+                        alert('Please add team members first before assigning tasks');
+                        setIsTeamModalOpen(true);
+                        loadAvailableEmployees();
+                        return;
+                      }
+                      setIsNewTaskModalOpen(true);
+                    }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -971,7 +1062,7 @@ export default function TasksPage() {
                     </div>
                   </div>
                   <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
-                    <p className={`text-xs ${themeColors.textLighter} mb-2`}>
+                    <p className={`text-xs ${themeColors.textLight} mb-2`}>
                       Past deadline, not completed
                     </p>
                     {stats.overdue > 0 && stats.total > 0 && (
@@ -1165,7 +1256,15 @@ export default function TasksPage() {
                             <h3 className={`mt-4 text-lg font-medium ${themeColors.text}`}>No team tasks</h3>
                             <p className={`mt-1 ${themeColors.textLight}`}>You haven't assigned any tasks to your team yet</p>
                             <button 
-                              onClick={() => setIsNewTaskModalOpen(true)}
+                              onClick={() => {
+                                if (teamMembers.length === 0) {
+                                  alert('Please add team members first before assigning tasks');
+                                  setIsTeamModalOpen(true);
+                                  loadAvailableEmployees();
+                                  return;
+                                }
+                                setIsNewTaskModalOpen(true);
+                              }}
                               className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 mx-auto"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1339,9 +1438,9 @@ export default function TasksPage() {
                         ) : (
                           // PM melihat progress per team member
                           <>
-                            {['John Doe', 'Mike Brown', 'Alex Johnson'].map(member => (
-                              <div key={member} className="flex items-center justify-between">
-                                <span className={`text-sm ${themeColors.textLight}`}>{member}</span>
+                            {teamMembers.map(member => (
+                              <div key={member.id} className="flex items-center justify-between">
+                                <span className={`text-sm ${themeColors.textLight}`}>{member.name}</span>
                                 <div className="flex items-center gap-3">
                                   <div className="w-32 bg-gray-200 rounded-full h-2">
                                     <div 
@@ -1648,7 +1747,7 @@ export default function TasksPage() {
                   </div>
                   <div className="space-y-2">
                     {newTask.subtasks.map((subtask) => (
-                      <div key={subtask.id} className="flex items-center gap-2"> {/* PERBAIKAN DI SINI: Gunakan subtask.id sebagai key */}
+                      <div key={subtask.id} className="flex items-center gap-2">
                         <input
                           type="checkbox"
                           checked={subtask.completed}
@@ -1775,6 +1874,109 @@ export default function TasksPage() {
                       Delete Task
                     </>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Team Management Modal (untuk PM) */}
+      {isTeamModalOpen && currentUser?.role === 'pm' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className={`text-xl font-bold ${themeColors.text}`}>Manage Your Team</h3>
+                  <p className={`text-sm ${themeColors.textLight} mt-1`}>
+                    Select employees from {currentUser.department} department to add to your team
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsTeamModalOpen(false)}
+                  className={`p-2 ${theme.isDayTime ? 'hover:bg-gray-100' : 'hover:bg-gray-700'} rounded-lg`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {loadingTeam ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <>
+                  <div className={`mb-6 p-4 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className={`text-sm font-medium ${themeColors.text}`}>Current Team Size: {teamMembers.length}</p>
+                        <p className={`text-xs ${themeColors.textLight}`}>
+                          You can only assign tasks to employees in your team
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {availableEmployees.length === 0 ? (
+                      <div className="text-center py-8">
+                        <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <p className={`${themeColors.text} font-medium`}>No employees available</p>
+                        <p className={`text-sm ${themeColors.textLight} mt-1`}>
+                          There are no employees in {currentUser.department} department
+                        </p>
+                      </div>
+                    ) : (
+                      availableEmployees.map((employee) => (
+                        <div 
+                          key={employee.id}
+                          className={`flex items-center justify-between p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight}`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full ${theme.isDayTime ? 'bg-blue-100' : 'bg-blue-900/30'} flex items-center justify-center`}>
+                              <span className="text-sm font-medium text-blue-600">
+                                {employee.name.split(' ').map((n: string) => n[0]).join('')}
+                              </span>
+                            </div>
+                            <div>
+                              <p className={`font-medium ${themeColors.text}`}>{employee.name}</p>
+                              <p className={`text-sm ${themeColors.textLight}`}>{employee.email}</p>
+                              <p className={`text-xs ${themeColors.textLight}`}>{employee.department}</p>
+                            </div>
+                          </div>
+                          
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={employee.isInTeam}
+                              onChange={() => handleToggleTeamMember(employee.id, employee.isInTeam)}
+                              className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span className={`ml-3 text-sm ${employee.isInTeam ? 'text-blue-600 font-medium' : themeColors.textLight}`}>
+                              {employee.isInTeam ? 'In Team' : 'Add to Team'}
+                            </span>
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+              
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                <button 
+                  onClick={() => setIsTeamModalOpen(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Done
                 </button>
               </div>
             </div>

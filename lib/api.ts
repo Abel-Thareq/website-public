@@ -31,7 +31,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
       localStorage.removeItem('auth_token');
       localStorage.removeItem('currentUser');
       window.location.href = '/';
@@ -46,24 +45,24 @@ export const authApi = {
     const response = await api.post('/login', { username, password });
     return response.data;
   },
-
   register: async (data: any) => {
     const response = await api.post('/register', data);
     return response.data;
   },
-
   logout: async () => {
     const response = await api.post('/logout');
     return response.data;
   },
-
   me: async () => {
     const response = await api.get('/me');
     return response.data;
   },
-
   availableUsers: async () => {
     const response = await api.get('/available-users');
+    return response.data;
+  },
+  getAssignableUsers: async () => {
+    const response = await api.get('/assignable-users');
     return response.data;
   },
 };
@@ -82,39 +81,56 @@ export const tasksApi = {
     const response = await api.get('/tasks', { params: filters });
     return response.data;
   },
-
   getById: async (id: number) => {
     const response = await api.get(`/tasks/${id}`);
     return response.data;
   },
-
   create: async (data: any) => {
     const response = await api.post('/tasks', data);
     return response.data;
   },
-
   update: async (id: number, data: any) => {
     const response = await api.put(`/tasks/${id}`, data);
     return response.data;
   },
-
   updateSubtask: async (taskId: number, subtaskId: number, completed: boolean) => {
     const response = await api.put(`/tasks/${taskId}/subtasks/${subtaskId}`, { completed });
     return response.data;
   },
-
   updateProgress: async (id: number, progress: number) => {
     const response = await api.put(`/tasks/${id}`, { progress });
     return response.data;
   },
-
   delete: async (id: number) => {
     const response = await api.delete(`/tasks/${id}`);
     return response.data;
   },
-
   getStats: async () => {
     const response = await api.get('/tasks/stats');
+    return response.data;
+  },
+};
+
+// Team Management API (untuk PM)
+export const teamApi = {
+  getTeamMembers: async () => {
+    const response = await api.get('/team');
+    return response.data;
+  },
+  getAvailableEmployees: async () => {
+    const response = await api.get('/team/available');
+    return response.data;
+  },
+  addMember: async (employeeId: number) => {
+    const response = await api.post('/team/members', { employee_id: employeeId });
+    return response.data;
+  },
+  removeMember: async (employeeId: number) => {
+    const response = await api.delete(`/team/members/${employeeId}`);
+    return response.data;
+  },
+  updateTeam: async (employeeIds: number[]) => {
+    const response = await api.put('/team', { employee_ids: employeeIds });
     return response.data;
   },
 };
@@ -125,17 +141,14 @@ export const attendanceApi = {
     const response = await api.get('/attendance', { params: filters });
     return response.data;
   },
-
   create: async (data: any) => {
     const response = await api.post('/attendance', data);
     return response.data;
   },
-
   getTodayStatus: async () => {
     const response = await api.get('/attendance/today');
     return response.data;
   },
-
   getStats: async () => {
     const response = await api.get('/attendance/stats');
     return response.data;
@@ -148,17 +161,14 @@ export const reportsApi = {
     const response = await api.get('/reports', { params: filters });
     return response.data;
   },
-
   getById: async (id: number) => {
     const response = await api.get(`/reports/${id}`);
     return response.data;
   },
-
   create: async (data: any) => {
     const response = await api.post('/reports', data);
     return response.data;
   },
-
   delete: async (id: number) => {
     const response = await api.delete(`/reports/${id}`);
     return response.data;
