@@ -1,21 +1,7 @@
 import axios from 'axios';
 
-const getApiUrl = () => {
-  // 1. Selalu gunakan environment variable JIKA ADA (priority tertinggi)
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-  
-  // 2. Jika development local
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:8000/api';
-  }
-  
-  // 3. Fallback (production tanpa env var)
-  return 'https://thermostable-phlebotomic-miss.ngrok-free.dev'; // Ganti dengan URL production default
-};
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://thermostable-phlebotomic-miss.ngrok-free.dev/api';
 
-const API_URL = getApiUrl();
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,

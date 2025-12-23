@@ -812,7 +812,7 @@ export default function AttendancePage() {
                     <div className="mt-2">
                       {(() => {
                         // Construct full URL pointing to Laravel's storage
-                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://thermostable-phlebotomic-miss.ngrok-free.dev/api';
                         const baseUrl = apiUrl.replace('/api', ''); // Remove /api to get base URL
                         const imageUrl = `${baseUrl}/storage/${selectedRecord.documentationFile}`;
                         console.log('Loading image from:', imageUrl);
@@ -851,7 +851,7 @@ export default function AttendancePage() {
                       })()}
                       <a
                         href={(() => {
-                          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+                          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://thermostable-phlebotomic-miss.ngrok-free.dev/api';
                           const baseUrl = apiUrl.replace('/api', '');
                           return `${baseUrl}/storage/${selectedRecord.documentationFile}`;
                         })()}
