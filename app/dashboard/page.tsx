@@ -703,6 +703,8 @@ export default function DashboardPage() {
     endTime: '18:00',
   });
   const [showWorkHoursEdit, setShowWorkHoursEdit] = useState(false);
+  const [selectedEmployeeForEdit, setSelectedEmployeeForEdit] = useState<number | null>(null);
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
 
   // Redirect ke home jika user belum login (tapi tunggu loading selesai dulu!)
   useEffect(() => {
@@ -723,6 +725,16 @@ export default function DashboardPage() {
         const usersResponse = await usersApi.getAll({ exclude_supervisors: true });
         const allUsers: DashboardUser[] = Array.isArray(usersResponse) ? usersResponse : (usersResponse.data || usersResponse);
         console.log('Dashboard - All users (non-supervisors):', allUsers);
+
+        // Store all employees for work hours editing (supervisor only)
+        if (currentUser.role === 'supervisor') {
+          setAllEmployees(allUsers);
+          // If no employee is selected yet, select the first one
+          if (!selectedEmployeeForEdit && allUsers.length > 0) {
+            const firstEmployeeId = typeof allUsers[0].id === 'string' ? parseInt(allUsers[0].id) : allUsers[0].id;
+            setSelectedEmployeeForEdit(firstEmployeeId);
+          }
+        }
 
         // Fetch team members for PM
         let pmTeamMembers: DashboardUser[] = [];
@@ -987,21 +999,48 @@ export default function DashboardPage() {
     const loadWorkHours = async () => {
       try {
         const response = await workHoursApi.get();
+        console.log('Work hours API response:', response);
+        console.log('Current user:', currentUser);
         
-        // Normalize API response - bisa dalam format berbeda
+        // Normalize API response - bisa array (supervisor/pm) atau single object (employee)
         let startTime = '08:00';
         let endTime = '18:00';
         
         if (response) {
-          // Check berbagai kemungkinan format dari API
-          if (response.start_time || response.startTime) {
-            startTime = (response.start_time || response.startTime).substring(0, 5);
-          }
-          if (response.end_time || response.endTime) {
-            endTime = (response.end_time || response.endTime).substring(0, 5);
+          // If supervisor or PM gets array, find current user's work hours
+          if (Array.isArray(response)) {
+            console.log('DEBUG: Response is array, current user id:', currentUser?.id);
+            console.log('DEBUG: All response items:', response.map((wh: any) => ({ user_id: wh.user_id, start_time: wh.start_time, end_time: wh.end_time })));
+            
+            const currentUserWorkHours = response.find((wh: any) => wh.user_id === currentUser?.id);
+            console.log('DEBUG: Found current user work hours:', currentUserWorkHours);
+            
+            if (currentUserWorkHours) {
+              startTime = (currentUserWorkHours.start_time || currentUserWorkHours.startTime || '08:00').substring(0, 5);
+              endTime = (currentUserWorkHours.end_time || currentUserWorkHours.endTime || '18:00').substring(0, 5);
+              console.log('DEBUG: Parsed from array:', { startTime, endTime });
+            } else {
+              console.warn('DEBUG: Current user not found in array, using first item');
+              // If current user not found (supervisor viewing other), use first
+              if (response.length > 0) {
+                startTime = (response[0].start_time || response[0].startTime || '08:00').substring(0, 5);
+                endTime = (response[0].end_time || response[0].endTime || '18:00').substring(0, 5);
+              }
+            }
+          } else {
+            // Single object response (employee)
+            console.log('DEBUG: Response is single object');
+            if (response.start_time || response.startTime) {
+              startTime = (response.start_time || response.startTime).substring(0, 5);
+            }
+            if (response.end_time || response.endTime) {
+              endTime = (response.end_time || response.endTime).substring(0, 5);
+            }
+            console.log('DEBUG: Parsed from single object:', { startTime, endTime });
           }
         }
         
+        console.log('DEBUG: Setting work hours from API:', { startTime, endTime });
         setWorkHours({
           startTime,
           endTime
@@ -1016,33 +1055,70 @@ export default function DashboardPage() {
       }
     };
 
+    // Only load on initial mount
     loadWorkHours();
     
     // Listen for work hours updates from other tabs via BroadcastChannel
     let channel: BroadcastChannel | null = null;
+    let interval: NodeJS.Timeout | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
       channel = new BroadcastChannel('work-hours-update');
       channel.addEventListener('message', (event) => {
         if (event.data.type === 'WORK_HOURS_UPDATED') {
           console.log('Received work hours update from another tab:', event.data);
-          // Immediately reload work hours
-          loadWorkHours();
+          // Only reload if not editing (modal is not open)
+          if (!showWorkHoursEdit) {
+            console.log('DEBUG: BroadcastChannel triggered reload');
+            loadWorkHours();
+          }
         }
       });
     } catch (e) {
       console.log('BroadcastChannel not supported in this browser');
     }
     
-    // Refresh work hours setiap 30 detik untuk sync antar tab
-    const interval = setInterval(loadWorkHours, 30000);
+    // Refresh work hours setiap 5 detik untuk real-time sync tanpa mengandalkan localStorage
+    // HANYA JIKA MODAL EDIT TIDAK TERBUKA
+    if (!showWorkHoursEdit) {
+      console.log('DEBUG: Modal closed, starting polling in 3 seconds');
+      // Add 3-second delay before starting polling to avoid race condition
+      // where polling fires immediately after save before UI fully updates
+      timeoutId = setTimeout(() => {
+        console.log('DEBUG: 3-second delay elapsed, starting polling');
+        interval = setInterval(() => {
+          console.log('DEBUG: Polling interval triggered, reloading work hours');
+          loadWorkHours();
+        }, 5000);
+      }, 3000);
+    } else {
+      console.log('DEBUG: Modal edit is open, polling paused');
+    }
     
+    // Cleanup function
     return () => {
-      clearInterval(interval);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (interval) {
+        clearInterval(interval);
+      }
       if (channel) {
         channel.close();
       }
     };
-  }, [currentUser]);
+    
+    // Cleanup function
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+      if (channel) {
+        channel.close();
+      }
+    };
+  }, [currentUser, showWorkHoursEdit]);
 
   // Optimasi efek mouse move dengan throttling
   useEffect(() => {
@@ -1408,47 +1484,56 @@ export default function DashboardPage() {
                 </div>
               </div>
               
-              {/* Work Hours Edit Modal for Supervisor */}
+              {/* Work Hours Edit Modal - Only for Supervisor */}
               {showWorkHoursEdit && currentUser.role === 'supervisor' && (
-                <div className={`mt-4 pt-4 border-t ${themeColors.borderLight} grid grid-cols-2 gap-4`}>
-                  <div>
-                    <label className={`text-sm ${themeColors.textLight} block mb-2`}>Start Time</label>
-                    <input
-                      type="time"
-                      value={workHours.startTime}
-                      onChange={(e) => {
-                        setWorkHours({...workHours, startTime: e.target.value});
-                      }}
-                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
-                    />
+                <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
+                  {/* Time inputs - Global work hours for all users */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className={`text-sm ${themeColors.textLight} block mb-2`}>Start Time</label>
+                      <input
+                        type="time"
+                        value={workHours.startTime}
+                        onChange={(e) => {
+                          setWorkHours({...workHours, startTime: e.target.value});
+                        }}
+                        className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`text-sm ${themeColors.textLight} block mb-2`}>End Time</label>
+                      <input
+                        type="time"
+                        value={workHours.endTime}
+                        onChange={(e) => {
+                          setWorkHours({...workHours, endTime: e.target.value});
+                        }}
+                        className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className={`text-sm ${themeColors.textLight} block mb-2`}>End Time</label>
-                    <input
-                      type="time"
-                      value={workHours.endTime}
-                      onChange={(e) => {
-                        setWorkHours({...workHours, endTime: e.target.value});
-                      }}
-                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
-                    />
-                  </div>
+                  
                   <button
                     onClick={async () => {
                       try {
-                        // Save to API
-                        await workHoursApi.update(workHours.startTime, workHours.endTime);
-                        setShowWorkHoursEdit(false);
-                        console.log('Work hours updated successfully');
+                        const newStartTime = workHours.startTime;
+                        const newEndTime = workHours.endTime;
+                        
+                        console.log('DEBUG: About to save work hours', { startTime: newStartTime, endTime: newEndTime });
+                        
+                        // Save global work hours (no user_id means it applies to all users)
+                        const response = await workHoursApi.update(newStartTime, newEndTime);
+                        console.log('DEBUG: API Response:', response);
+                        console.log('Work hours updated successfully for all users');
                         
                         // Notify other tabs about the update via BroadcastChannel
                         try {
                           const channel = new BroadcastChannel('work-hours-update');
                           channel.postMessage({
                             type: 'WORK_HOURS_UPDATED',
+                            startTime: newStartTime,
+                            endTime: newEndTime,
                             userId: currentUser?.id,
-                            startTime: workHours.startTime,
-                            endTime: workHours.endTime,
                             timestamp: new Date().toISOString()
                           });
                           channel.close();
@@ -1457,13 +1542,71 @@ export default function DashboardPage() {
                         }
                         
                         // Show success message
-                        alert('Work hours saved successfully!');
+                        alert('Work hours saved successfully for all users!');
+                        
+                        // IMMEDIATELY update display with the new values (trust what we just saved)
+                        setWorkHours({ startTime: newStartTime, endTime: newEndTime });
+                        
+                        // Close modal FIRST (this pauses polling)
+                        setShowWorkHoursEdit(false);
+                        
+                        // Then verify from API after a longer delay for database sync
+                        setTimeout(async () => {
+                          try {
+                            const response = await workHoursApi.get();
+                            console.log('DEBUG: Verification reload from API:', response);
+                            
+                            // Just verify it matches what we saved
+                            let startTime = newStartTime;
+                            let endTime = newEndTime;
+                            
+                            if (response) {
+                              if (Array.isArray(response)) {
+                                const userWH = response.find((wh: any) => wh.user_id === currentUser.id);
+                                console.log('DEBUG: Found user work hours in array:', userWH);
+                                if (userWH) {
+                                  const dbStart = (userWH.start_time || userWH.startTime || '08:00').substring(0, 5);
+                                  const dbEnd = (userWH.end_time || userWH.endTime || '18:00').substring(0, 5);
+                                  console.log('DEBUG: Database has:', { dbStart, dbEnd });
+                                  // Only override if different (shouldn't happen)
+                                  if (dbStart !== newStartTime || dbEnd !== newEndTime) {
+                                    console.warn('DEBUG: Database differs from saved values, updating');
+                                    startTime = dbStart;
+                                    endTime = dbEnd;
+                                  }
+                                }
+                              } else {
+                                if (response.start_time || response.startTime) {
+                                  const dbStart = (response.start_time || response.startTime).substring(0, 5);
+                                  console.log('DEBUG: Single response start_time:', dbStart);
+                                  if (dbStart !== newStartTime) {
+                                    startTime = dbStart;
+                                  }
+                                }
+                                if (response.end_time || response.endTime) {
+                                  const dbEnd = (response.end_time || response.endTime).substring(0, 5);
+                                  console.log('DEBUG: Single response end_time:', dbEnd);
+                                  if (dbEnd !== newEndTime) {
+                                    endTime = dbEnd;
+                                  }
+                                }
+                              }
+                            }
+                            
+                            console.log('DEBUG: Final verified work hours:', { startTime, endTime });
+                            // Update with verified data
+                            setWorkHours({ startTime, endTime });
+                          } catch (error) {
+                            console.error('Failed to verify work hours from API:', error);
+                            // Keep what we set (the saved values)
+                          }
+                        }, 2000);
                       } catch (error) {
                         console.error('Failed to update work hours:', error);
                         alert('Failed to update work hours');
                       }
                     }}
-                    className="col-span-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
                   >
                     Save Work Hours
                   </button>

@@ -193,11 +193,15 @@ export const reportsApi = {
 // Work Hours API
 export const workHoursApi = {
   get: async () => {
+    console.log('DEBUG API: Fetching /work-hours');
     const response = await api.get('/work-hours');
+    console.log('DEBUG API: Response data:', response.data);
     return response.data;
   },
   getByUserId: async (userId: number) => {
+    console.log('DEBUG API: Fetching /work-hours/' + userId);
     const response = await api.get(`/work-hours/${userId}`);
+    console.log('DEBUG API: Response data:', response.data);
     return response.data;
   },
   update: async (startTime: string, endTime: string, userId?: number) => {
@@ -205,7 +209,9 @@ export const workHoursApi = {
     if (userId) {
       data.user_id = userId;
     }
+    console.log('DEBUG API: Updating work hours with:', data);
     const response = await api.put('/work-hours', data);
+    console.log('DEBUG API: Update response:', response.data);
     return response.data;
   },
 };
