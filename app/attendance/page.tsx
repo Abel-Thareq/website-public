@@ -108,11 +108,22 @@ export default function AttendancePage() {
       try {
         const response = await attendanceApi.getAll();
         const data = response.data || [];
+        console.log('Raw API response count:', data.length);
+        console.log('Raw API response sample (first 3):', data.slice(0, 3).map((r: any) => ({
+          id: r.id,
+          date: r.date,
+          check_in: r.check_in,
+          check_out: r.check_out,
+          employee_id: r.employee_id,
+          employee_name: r.employee_name,
+          user_id: r.user_id
+        })));
+        
         // Transform snake_case to camelCase
         const transformedData = data.map((record: any) => ({
           id: record.id,
           userId: record.user_id,
-          date: record.date,
+          date: record.date ? record.date.split('T')[0] : record.date, // Extract just the date part (2025-12-23 from 2025-12-23T00:00:00.000000Z)
           checkIn: record.check_in,
           checkOut: record.check_out,
           status: record.status,
@@ -126,7 +137,34 @@ export default function AttendancePage() {
           employeeName: record.employee_name,
           department: record.department,
         }));
+        
         console.log('Loaded attendance data from API:', transformedData.length, 'records');
+        console.log('Transformed data sample (first 3):', transformedData.slice(0, 3).map((r: AttendanceRecord) => ({
+          id: r.id,
+          date: r.date,
+          checkIn: r.checkIn,
+          checkOut: r.checkOut,
+          employeeId: r.employeeId,
+          employeeName: r.employeeName
+        })));
+        
+        const today = new Date().toISOString().split('T')[0];
+        const todayRecords = transformedData.filter((r: AttendanceRecord) => r.date === today);
+        console.log('Today records for', today, ':', todayRecords.map((r: AttendanceRecord) => ({
+          id: r.id,
+          date: r.date,
+          employeeId: r.employeeId,
+          employeeName: r.employeeName,
+          checkIn: r.checkIn
+        })));
+        
+        // Debug: Show unique dates and employeeIds in API response
+        const uniqueDates = [...new Set(transformedData.map((r: AttendanceRecord) => r.date))].sort().slice(-5);
+        const pmRecords = transformedData.filter((r: AttendanceRecord) => r.employeeId === 'pm');
+        console.log('Last 5 unique dates in DB:', uniqueDates);
+        console.log('Total records for user "pm":', pmRecords.length);
+        console.log('PM records dates:', [...new Set(pmRecords.map((r: AttendanceRecord) => r.date))].sort());
+        
         setAttendanceRecords(transformedData);
       } catch (error) {
         console.error('Error loading attendance data:', error);
@@ -143,32 +181,50 @@ export default function AttendancePage() {
     if (!currentUser || currentUser.role === 'supervisor') return;
 
     const today = new Date().toISOString().split('T')[0];
-    const todayRecord = attendanceRecords.find(record => 
-      record.date === today && record.employeeId === currentUser.id
-    );
+    
+    // Find today's record - compare by date and employeeId (username)
+    const todayRecord = attendanceRecords.find(record => {
+      const isSameDay = record.date === today;
+      const isSameEmployee = record.employeeId === currentUser.username;
+      return isSameDay && isSameEmployee;
+    });
 
-    const hasCheckedIn = todayRecord?.checkIn && todayRecord.checkIn !== '--:--';
-    const hasCheckedOut = todayRecord?.checkOut && todayRecord.checkOut !== '--:--';
+    console.log('Today status check:', {
+      today,
+      currentUsername: currentUser.username,
+      foundRecord: todayRecord ? {
+        id: todayRecord.id,
+        date: todayRecord.date,
+        employeeId: todayRecord.employeeId,
+        checkIn: todayRecord.checkIn,
+        checkOut: todayRecord.checkOut
+      } : null
+    });
+
+    // Check if has check in (any value that's not empty/null)
+    const hasCheckedIn = !!todayRecord?.checkIn;
+    // Check if has check out (any value that's not empty/null)
+    const hasCheckedOut = !!todayRecord?.checkOut;
 
     setTodayStatus({
-      hasCheckedIn: !!hasCheckedIn,
-      hasCheckedOut: !!hasCheckedOut,
+      hasCheckedIn,
+      hasCheckedOut,
       todayRecord: todayRecord || null
     });
 
-    // Update form data berdasarkan status
+    // Update form data based on status
     if (todayRecord) {
       setFormData(prev => ({
         ...prev,
-        isCheckIn: false, // Jika ada record, artinya sudah check in
-        checkIn: todayRecord.checkIn,
-        checkOut: todayRecord.checkOut,
+        isCheckIn: false, // If record exists, ready for check out
+        checkIn: todayRecord.checkIn || undefined,
+        checkOut: todayRecord.checkOut || undefined,
         eodReport: todayRecord.eodReport || ''
       }));
     } else {
       setFormData(prev => ({
         ...prev,
-        isCheckIn: true, // Belum ada record, artinya belum check in
+        isCheckIn: true, // No record yet, ready for check in
         checkIn: undefined,
         checkOut: undefined,
         eodReport: ''
@@ -306,6 +362,12 @@ export default function AttendancePage() {
 
     const today = new Date().toISOString().split('T')[0];
     
+    // Check if attendance is already complete for today
+    if (todayStatus.hasCheckedIn && todayStatus.hasCheckedOut) {
+      alert('Attendance already complete for today. You can check in/out again tomorrow.');
+      return;
+    }
+    
     // Validasi
     if (formData.isCheckIn && !formData.checkIn) {
       alert('Please fill check in time');
@@ -376,35 +438,82 @@ export default function AttendancePage() {
       console.log('API Response:', response);
 
       if (response.data) {
-        // Update local state immediately
-        const updatedRecords = [...attendanceRecords];
-        const existingIndex = updatedRecords.findIndex(record => 
-          record.date === today && record.employeeId === currentUser.id
-        );
-
+        // Transform the API response from snake_case to camelCase
+        const apiRecord = response.data;
+        console.log('Transforming API record:', apiRecord);
         const newRecord: AttendanceRecord = {
-          id: response.data.id || (existingIndex >= 0 ? updatedRecords[existingIndex].id : updatedRecords.length + 1),
-          employeeId: currentUser.id,
-          employeeName: currentUser.name,
-          department: currentUser.department,
-          date: today,
-          checkIn: formData.checkIn || (existingIndex >= 0 ? updatedRecords[existingIndex].checkIn : '--:--'),
-          checkOut: formData.checkOut || (existingIndex >= 0 ? updatedRecords[existingIndex].checkOut : '--:--'),
-          status: status,
-          lateMinutes: lateMinutes,
-          workHours: workHours,
-          eodReport: formData.eodReport,
-          hasDocumentation: formData.documentation !== null,
-          documentationFile: formData.documentation instanceof File ? formData.documentation.name : undefined
+          id: apiRecord.id,
+          date: apiRecord.date,
+          checkIn: apiRecord.check_in || formData.checkIn,
+          checkOut: apiRecord.check_out || formData.checkOut,
+          status: apiRecord.status || status,
+          lateMinutes: parseInt(apiRecord.late_minutes) || lateMinutes || 0,
+          workHours: parseFloat(apiRecord.work_hours) || workHours || 0,
+          notes: apiRecord.notes,
+          eodReport: apiRecord.eod_report || formData.eodReport,
+          hasDocumentation: apiRecord.has_documentation,
+          documentationFile: apiRecord.documentation_file,
+          employeeId: apiRecord.employee_id,
+          employeeName: apiRecord.employee_name,
+          department: apiRecord.department,
         };
 
-        if (existingIndex >= 0) {
-          updatedRecords[existingIndex] = newRecord;
-        } else {
-          updatedRecords.unshift(newRecord);
-        }
+        console.log('New record created:', newRecord);
 
-        setAttendanceRecords(updatedRecords);
+        // Reload from API to ensure sync with fresh data
+        try {
+          console.log('Reloading attendance data from API...');
+          const freshResponse = await attendanceApi.getAll();
+          const freshData = freshResponse.data || [];
+          console.log('Fresh API response count:', freshData.length);
+          console.log('Fresh API response sample (first 3):', freshData.slice(0, 3).map((r: any) => ({
+            id: r.id,
+            date: r.date,
+            check_in: r.check_in,
+            check_out: r.check_out,
+            employee_id: r.employee_id,
+            employee_name: r.employee_name,
+            user_id: r.user_id
+          })));
+          
+          const transformedData = freshData.map((record: any) => ({
+            id: record.id,
+            date: record.date ? record.date.split('T')[0] : record.date, // Extract just the date part
+            checkIn: record.check_in,
+            checkOut: record.check_out,
+            status: record.status,
+            lateMinutes: parseInt(record.late_minutes) || 0,
+            workHours: parseFloat(record.work_hours) || 0,
+            notes: record.notes,
+            eodReport: record.eod_report,
+            hasDocumentation: record.has_documentation,
+            documentationFile: record.documentation_file,
+            employeeId: record.employee_id,
+            employeeName: record.employee_name,
+            department: record.department,
+          }));
+          
+          console.log('Refreshed attendance data from API:', transformedData.length, 'records');
+          console.log('Transformed data sample (first 3):', transformedData.slice(0, 3).map((r: AttendanceRecord) => ({
+            id: r.id,
+            date: r.date,
+            checkIn: r.checkIn,
+            checkOut: r.checkOut,
+            employeeId: r.employeeId,
+            employeeName: r.employeeName
+          })));
+          console.log('Today records:', transformedData.filter((r: AttendanceRecord) => r.date === today).map((r: AttendanceRecord) => ({ 
+            id: r.id, 
+            date: r.date, 
+            employeeId: r.employeeId, 
+            checkIn: r.checkIn, 
+            checkOut: r.checkOut 
+          })));
+          
+          setAttendanceRecords(transformedData);
+        } catch (err) {
+          console.error('Failed to refresh attendance data:', err);
+        }
       }
       
       // Reset form
