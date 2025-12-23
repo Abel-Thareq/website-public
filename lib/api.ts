@@ -160,6 +160,14 @@ export const attendanceApi = {
     const response = await api.post('/attendance', data);
     return response.data;
   },
+  createWithFile: async (formData: FormData) => {
+    const response = await api.post('/attendance', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
   getTodayStatus: async () => {
     const response = await api.get('/attendance/today');
     return response.data;

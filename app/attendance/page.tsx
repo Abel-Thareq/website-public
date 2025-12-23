@@ -79,6 +79,10 @@ export default function AttendancePage() {
   const [showCamera, setShowCamera] = useState<boolean>(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   
+  // State untuk detail/documentation view
+  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
+  
   // State untuk attendance records
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   
@@ -356,6 +360,12 @@ export default function AttendancePage() {
       });
   };
 
+  // Handle details button click
+  const handleViewDetails = (record: AttendanceRecord) => {
+    setSelectedRecord(record);
+    setShowDetailsModal(true);
+  };
+
   // Handle form submission
   const handleSubmitAttendance = async () => {
     if (!currentUser) return;
@@ -433,8 +443,30 @@ export default function AttendancePage() {
 
       console.log('Submitting to API:', submitData);
 
-      // Call API to save attendance
-      const response = await attendanceApi.create(submitData);
+      // Prepare FormData if there's a file to upload
+      let response;
+      if (formData.documentation && typeof formData.documentation === 'object' && formData.documentation instanceof File) {
+        // Use FormData for file upload
+        const formDataWithFile = new FormData();
+        Object.keys(submitData).forEach(key => {
+          formDataWithFile.append(key, submitData[key]);
+        });
+        formDataWithFile.append('documentation', formData.documentation);
+        formDataWithFile.append('documentation_type', formData.documentationType);
+        console.log('Submitting FormData with file:', {
+          date: submitData.date,
+          check_in: submitData.check_in,
+          check_out: submitData.check_out,
+          eod_report: submitData.eod_report,
+          documentationType: formData.documentationType,
+          fileName: formData.documentation.name
+        });
+        response = await attendanceApi.createWithFile(formDataWithFile);
+      } else {
+        // Use regular JSON for no-file case
+        console.log('Submitting JSON data (no file)');
+        response = await attendanceApi.create(submitData);
+      }
       console.log('API Response:', response);
 
       if (response.data) {
@@ -709,6 +741,143 @@ export default function AttendancePage() {
           onClose={() => setShowCamera(false)}
           theme={theme}
         />
+      )}
+
+      {/* Details/Documentation Modal */}
+      {showDetailsModal && selectedRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className={`text-xl font-bold ${themeColors.text}`}>
+                  Attendance Details
+                </h3>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className={`p-2 ${themeColors.textLight} hover:${themeColors.text}`}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={`text-sm font-medium ${themeColors.textLight}`}>Date</label>
+                    <p className={`text-lg font-semibold ${themeColors.text}`}>{selectedRecord.date}</p>
+                  </div>
+                  <div>
+                    <label className={`text-sm font-medium ${themeColors.textLight}`}>Employee</label>
+                    <p className={`text-lg font-semibold ${themeColors.text}`}>{selectedRecord.employeeName}</p>
+                  </div>
+                  <div>
+                    <label className={`text-sm font-medium ${themeColors.textLight}`}>Check In</label>
+                    <p className={`text-lg font-semibold ${themeColors.text}`}>{selectedRecord.checkIn || '-'}</p>
+                  </div>
+                  <div>
+                    <label className={`text-sm font-medium ${themeColors.textLight}`}>Check Out</label>
+                    <p className={`text-lg font-semibold ${themeColors.text}`}>{selectedRecord.checkOut || '-'}</p>
+                  </div>
+                  <div>
+                    <label className={`text-sm font-medium ${themeColors.textLight}`}>Status</label>
+                    <p className={`text-lg font-semibold ${
+                      selectedRecord.status === 'on-time' ? 'text-green-600' :
+                      selectedRecord.status === 'late' ? 'text-amber-600' : 'text-red-600'
+                    }`}>
+                      {selectedRecord.status === 'on-time' ? 'On Time' :
+                       selectedRecord.status === 'late' ? `Late (${selectedRecord.lateMinutes}m)` : 'Absent'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className={`text-sm font-medium ${themeColors.textLight}`}>Work Hours</label>
+                    <p className={`text-lg font-semibold ${themeColors.text}`}>{(selectedRecord.workHours || 0).toFixed(1)} hours</p>
+                  </div>
+                </div>
+
+                {/* EOD Report */}
+                {selectedRecord.eodReport && (
+                  <div>
+                    <label className={`text-sm font-medium ${themeColors.textLight}`}>End of Day Report</label>
+                    <div className={`mt-2 p-4 ${themeColors.bgLight} rounded-lg`}>
+                      <p className={`${themeColors.text}`}>{selectedRecord.eodReport}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Documentation Image */}
+                {selectedRecord.hasDocumentation && selectedRecord.documentationFile && (
+                  <div>
+                    <label className={`text-sm font-medium ${themeColors.textLight}`}>Documentation</label>
+                    <div className="mt-2">
+                      {(() => {
+                        // Construct full URL pointing to Laravel's storage
+                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+                        const baseUrl = apiUrl.replace('/api', ''); // Remove /api to get base URL
+                        const imageUrl = `${baseUrl}/storage/${selectedRecord.documentationFile}`;
+                        console.log('Loading image from:', imageUrl);
+                        console.log('DocumentationFile value:', selectedRecord.documentationFile);
+                        return (
+                          <>
+                            <img
+                              src={imageUrl}
+                              alt="Documentation"
+                              className="w-full h-auto max-h-96 object-contain rounded-lg"
+                              onLoad={() => {
+                                console.log('Image loaded successfully:', imageUrl);
+                              }}
+                              onError={(e) => {
+                                console.error('Failed to load image from URL:', imageUrl);
+                                console.error('Image element src:', e.currentTarget.src);
+                                console.error('Documentation file path:', selectedRecord.documentationFile);
+                                
+                                // Show fallback message
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `
+                                    <div class="p-4 bg-red-50 rounded-lg text-center">
+                                      <p class="text-red-600 text-sm">Failed to load image</p>
+                                      <p class="text-red-500 text-xs mt-1">Path: ${selectedRecord.documentationFile}</p>
+                                      <p class="text-gray-500 text-xs mt-2">Attempted URL: ${imageUrl}</p>
+                                      <p class="text-gray-500 text-xs mt-2">Check that Laravel server is running and storage:link is configured</p>
+                                    </div>
+                                  `;
+                                }
+                              }}
+                            />
+                            <p className="text-xs text-gray-500 mt-2">File: {selectedRecord.documentationFile}</p>
+                          </>
+                        );
+                      })()}
+                      <a
+                        href={(() => {
+                          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+                          const baseUrl = apiUrl.replace('/api', '');
+                          return `${baseUrl}/storage/${selectedRecord.documentationFile}`;
+                        })()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block"
+                      >
+                        View Full Size →
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Close Button */}
+                <div className="flex gap-3 pt-4 border-t ${themeColors.border}">
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Hero Section */}
@@ -1148,7 +1317,9 @@ export default function AttendancePage() {
                         </>
                       )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button className="text-blue-600 hover:text-blue-900 mr-3">
+                        <button 
+                          onClick={() => handleViewDetails(record)}
+                          className="text-blue-600 hover:text-blue-900 mr-3">
                           Details
                         </button>
                         {currentUser.role !== 'employee' && record.status === 'late' && (
