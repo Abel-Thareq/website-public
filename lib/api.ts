@@ -136,6 +136,18 @@ export const teamApi = {
   },
 };
 
+// Users API
+export const usersApi = {
+  getAll: async (filters?: any) => {
+    const response = await api.get('/users', { params: filters });
+    return response.data;
+  },
+  getStats: async () => {
+    const response = await api.get('/users/stats');
+    return response.data;
+  },
+};
+
 // Attendance API
 export const attendanceApi = {
   getAll: async (filters?: any) => {

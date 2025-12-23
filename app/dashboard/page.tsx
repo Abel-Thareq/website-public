@@ -5,6 +5,7 @@ import Link from "next/link";
 import NavigationBar from "../components/navigationBar";
 import { User } from "../types/user";
 import { useRouter } from "next/navigation";
+import { attendanceApi, tasksApi, usersApi, teamApi } from "../../lib/api";
 
 interface TiltState {
   tiltX: number;
@@ -643,6 +644,50 @@ export default function DashboardPage() {
 
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Dashboard data types
+  interface DashboardUser {
+    id: number | string;
+    name: string;
+    email: string;
+    role: string;
+    department: string;
+    created_at?: string;
+  }
+
+  interface AttendanceRecord {
+    id: number;
+    user_id: number | string;
+    date: string;
+    check_in: string;
+    check_out?: string;
+    status: 'on-time' | 'late';
+  }
+
+  interface TaskData {
+    id: number;
+    title: string;
+    description?: string;
+    status: 'pending' | 'completed' | 'in-progress';
+    priority: 'low' | 'medium' | 'high';
+    assignee_id: number | string;
+    assigner_id: number | string;
+    department: string;
+    deadline?: string;
+    progress?: number;
+  }
+
+  // Dashboard data states
+  const [dashboardData, setDashboardData] = useState<any>({
+    totalEmployees: 0,
+    onTimeToday: 0,
+    lateToday: 0,
+    pendingTasks: 0,
+    completedTasks: 0,
+    lateEmployees: [],
+    tasksNeedingRevision: []
+  });
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
+
   // Redirect ke home jika user tidak login
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
@@ -675,101 +720,177 @@ export default function DashboardPage() {
     };
   }, [router]);
 
+  // Fetch dashboard data from API
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoadingDashboard(true);
+
+        // Fetch users data
+        const usersResponse = await usersApi.getAll({ exclude_supervisors: true });
+        const allUsers: DashboardUser[] = Array.isArray(usersResponse) ? usersResponse : (usersResponse.data || usersResponse);
+        console.log('Dashboard - All users (non-supervisors):', allUsers);
+
+        // Fetch today's attendance
+        const attendanceResponse = await attendanceApi.getAll({ date: new Date().toISOString().split('T')[0] });
+        const todayAttendance: AttendanceRecord[] = Array.isArray(attendanceResponse.data) ? attendanceResponse.data : attendanceResponse;
+        console.log('Dashboard - Today attendance:', todayAttendance);
+
+        // Fetch all tasks
+        const tasksResponse = await tasksApi.getAll();
+        const allTasks: TaskData[] = Array.isArray(tasksResponse) ? tasksResponse : (tasksResponse.data || tasksResponse);
+        console.log('Dashboard - All tasks:', allTasks);
+
+        // Filter data based on user role
+        let filteredUsers: DashboardUser[] = allUsers;
+        let filteredAttendance: AttendanceRecord[] = todayAttendance;
+        let filteredTasks: TaskData[] = allTasks;
+
+        if (currentUser.role === 'pm') {
+          // For PM, only show team members
+          filteredUsers = allUsers.filter((u: DashboardUser) => u.department === currentUser.department);
+          filteredAttendance = todayAttendance.filter((a: AttendanceRecord) => 
+            filteredUsers.some((u: DashboardUser) => u.id === a.user_id)
+          );
+          filteredTasks = allTasks.filter((t: TaskData) => 
+            String(t.assigner_id) === currentUser.id || 
+            (filteredUsers.some((u: DashboardUser) => u.id === t.assignee_id) && t.status === 'pending')
+          );
+        } else if (currentUser.role === 'employee') {
+          // For employee, only show their own data
+          filteredUsers = [{ ...currentUser, id: currentUser.id } as DashboardUser];
+          filteredAttendance = todayAttendance.filter((a: AttendanceRecord) => String(a.user_id) === currentUser.id);
+          filteredTasks = allTasks.filter((t: TaskData) => String(t.assignee_id) === currentUser.id);
+        }
+
+        // Calculate statistics
+        const totalEmployees = filteredUsers.length;
+        const onTimeCount = filteredAttendance.filter(a => a.status === 'on-time').length;
+        const lateCount = filteredAttendance.filter(a => a.status === 'late').length;
+        const onTimePercentage = totalEmployees > 0 
+          ? Math.round((onTimeCount / totalEmployees) * 100) 
+          : 0;
+
+        const pendingTasks = filteredTasks.filter(t => t.status === 'pending').length;
+        const completedTasks = filteredTasks.filter(t => t.status === 'completed').length;
+
+        // Get late employees (check_in > 09:00 and < 21:00)
+        const lateEmployees = filteredAttendance
+          .filter((a: AttendanceRecord) => a.status === 'late' && a.check_in)
+          .map((a: AttendanceRecord) => {
+            const employee = allUsers.find((u: DashboardUser) => u.id === a.user_id);
+            return {
+              name: employee?.name || 'Unknown',
+              time: a.check_in,
+              dept: employee?.department || 'N/A'
+            };
+          })
+          .slice(0, 5); // Show top 5
+
+        // Get tasks needing revision (pending tasks)
+        const tasksNeedingRevision = filteredTasks
+          .filter((t: TaskData) => t.status === 'pending')
+          .slice(0, 5) // Show top 5
+          .map((t: TaskData) => ({
+            id: t.id,
+            title: t.title,
+            employee: allUsers.find((u: DashboardUser) => u.id === t.assignee_id)?.name || 'Unknown',
+            deadline: t.deadline || 'No deadline',
+            priority: t.priority || 'Medium'
+          }));
+
+        const finalData = {
+          totalEmployees,
+          onTimeToday: onTimePercentage,
+          lateToday: lateCount,
+          pendingTasks,
+          completedTasks,
+          lateEmployees,
+          tasksNeedingRevision
+        };
+
+        console.log('Dashboard - Final calculated data:', finalData);
+        setDashboardData(finalData);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Keep default values if fetch fails
+      } finally {
+        setIsLoadingDashboard(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [currentUser]);
+
   // Data berdasarkan user role
   const roleBasedData = useMemo(() => {
     if (!currentUser) return {
-      totalEmployees: 124,
-      onTimeToday: 89,
-      lateToday: 12,
-      absentToday: 8,
-      pendingTasks: 47,
-      completedTasks: 156,
+      totalEmployees: dashboardData.totalEmployees,
+      onTimeToday: dashboardData.onTimeToday,
+      lateToday: dashboardData.lateToday,
+      absentToday: 0,
+      pendingTasks: dashboardData.pendingTasks,
+      completedTasks: dashboardData.completedTasks,
       department: "All Departments",
       greeting: "Welcome to TechMaven Portal",
-      departmentCount: 6,
+      departmentCount: 1,
       viewScope: "Company-wide",
-      lateEmployees: [],
-      tasksNeedingRevision: [],
+      lateEmployees: dashboardData.lateEmployees,
+      tasksNeedingRevision: dashboardData.tasksNeedingRevision,
       achievements: [],
       personalTasks: []
     };
 
     const baseData = {
       supervisor: {
-        totalEmployees: 124,
-        onTimeToday: 89,
-        lateToday: 12,
-        absentToday: 8,
-        pendingTasks: 47,
-        completedTasks: 156,
+        totalEmployees: dashboardData.totalEmployees,
+        onTimeToday: dashboardData.onTimeToday,
+        lateToday: dashboardData.lateToday,
+        absentToday: 0,
+        pendingTasks: dashboardData.pendingTasks,
+        completedTasks: dashboardData.completedTasks,
         department: "All Departments",
         greeting: `Good Morning, ${currentUser.name}`,
         departmentCount: 6,
         viewScope: "Company-wide",
-        lateEmployees: [
-          { name: "Alex Johnson", time: "09:15", reason: "Traffic", dept: "Marketing" },
-          { name: "Maria Garcia", time: "09:30", reason: "Personal", dept: "HR" },
-          { name: "David Kim", time: "09:45", reason: "Transport", dept: "Sales" },
-          { name: "Lisa Wong", time: "10:00", reason: "Meeting", dept: "Finance" },
-        ],
-        tasksNeedingRevision: [
-          { id: 1, title: "Q3 Marketing Report", employee: "Tom Wilson", deadline: "Today", priority: "High", dept: "Marketing" },
-          { id: 2, title: "Software Update Docs", employee: "Jane Smith", deadline: "Tomorrow", priority: "Medium", dept: "Engineering" },
-          { id: 3, title: "Client Presentation", employee: "Mike Brown", deadline: "2 days", priority: "High", dept: "Sales" },
-        ],
-        achievements: [
-          { employee: "Sarah Chen", achievement: "Best Code Review Q2", department: "Engineering" },
-          { employee: "James Wilson", achievement: "Highest Sales Q2", department: "Sales" },
-          { employee: "Emma Davis", achievement: "Most Innovative Solution", department: "Product" },
-        ],
+        lateEmployees: dashboardData.lateEmployees,
+        tasksNeedingRevision: dashboardData.tasksNeedingRevision,
+        achievements: [],
         personalTasks: []
       },
       pm: {
-        totalEmployees: 25,
-        onTimeToday: 22,
-        lateToday: 2,
-        absentToday: 1,
-        pendingTasks: 15,
-        completedTasks: 42,
-        department: "Engineering",
+        totalEmployees: dashboardData.totalEmployees,
+        onTimeToday: dashboardData.onTimeToday,
+        lateToday: dashboardData.lateToday,
+        absentToday: 0,
+        pendingTasks: dashboardData.pendingTasks,
+        completedTasks: dashboardData.completedTasks,
+        department: currentUser.department,
         greeting: `Good Morning, ${currentUser.name}`,
         departmentCount: 1,
-        viewScope: "Engineering Department",
-        lateEmployees: [
-          { name: "Tom Wilson", time: "09:20", reason: "Code Review", dept: "Engineering" },
-          { name: "Jane Smith", time: "09:45", reason: "Meeting", dept: "Engineering" },
-        ],
-        tasksNeedingRevision: [
-          { id: 1, title: "API Integration", employee: "Tom Wilson", deadline: "Today", priority: "High", dept: "Engineering" },
-          { id: 2, title: "UI Component Library", employee: "Jane Smith", deadline: "Tomorrow", priority: "Medium", dept: "Engineering" },
-          { id: 3, title: "Database Optimization", employee: "Mike Brown", deadline: "2 days", priority: "Medium", dept: "Engineering" },
-        ],
-        achievements: [
-          { employee: "Tom Wilson", achievement: "Fastest Bug Fix", department: "Engineering" },
-          { employee: "Jane Smith", achievement: "Best Documentation", department: "Engineering" },
-          { employee: "Mike Brown", achievement: "Most Efficient Code", department: "Engineering" },
-        ],
+        viewScope: `${currentUser.department} Department`,
+        lateEmployees: dashboardData.lateEmployees,
+        tasksNeedingRevision: dashboardData.tasksNeedingRevision,
+        achievements: [],
         personalTasks: []
       },
       employee: {
         totalEmployees: 1,
-        onTimeToday: 1,
-        lateToday: 0,
+        onTimeToday: dashboardData.onTimeToday,
+        lateToday: dashboardData.lateToday,
         absentToday: 0,
-        pendingTasks: 3,
-        completedTasks: 8,
-        department: "Engineering",
+        pendingTasks: dashboardData.pendingTasks,
+        completedTasks: dashboardData.completedTasks,
+        department: currentUser.department,
         greeting: `Good Morning, ${currentUser.name}`,
         departmentCount: 1,
         viewScope: "Personal Dashboard",
         lateEmployees: [],
-        tasksNeedingRevision: [],
+        tasksNeedingRevision: dashboardData.tasksNeedingRevision,
         achievements: [],
-        personalTasks: [
-          { id: 1, title: "Fix Login Bug", status: "In Progress", progress: 75, deadline: "Today" },
-          { id: 2, title: "Update Documentation", status: "Pending", progress: 30, deadline: "Tomorrow" },
-          { id: 3, title: "Code Review", status: "Completed", progress: 100, deadline: "Yesterday" },
-        ],
+        personalTasks: [],
         attendance: {
           clockIn: "08:45 AM",
           clockOut: "17:30 PM",
@@ -778,14 +899,14 @@ export default function DashboardPage() {
         },
         performance: {
           rating: 4.5,
-          completedTasks: 42,
-          onTimeRate: 95
+          completedTasks: dashboardData.completedTasks,
+          onTimeRate: dashboardData.onTimeToday
         }
       }
     };
 
     return baseData[currentUser.role];
-  }, [currentUser]);
+  }, [currentUser, dashboardData]);
 
   // Update stats dengan role-based data
   const stats = useMemo(() => ({
@@ -795,10 +916,11 @@ export default function DashboardPage() {
     absentToday: roleBasedData.absentToday,
     pendingTasks: roleBasedData.pendingTasks,
     completedTasks: roleBasedData.completedTasks,
-    bestEmployee: currentUser?.role === 'pm' ? "Tom Wilson" : 
-                  currentUser?.role === 'employee' ? currentUser?.name : "Sarah Chen",
+    bestEmployee: currentUser?.role === 'pm' ? "Team Lead" : 
+                  currentUser?.role === 'employee' ? currentUser?.name : "Top Performer",
     bestEmployeeDept: roleBasedData.department,
-  }), [roleBasedData, currentUser]);
+    isLoading: isLoadingDashboard
+  }), [roleBasedData, currentUser, isLoadingDashboard]);
 
   // Fungsi untuk tema - useCallback untuk mencegah re-render
   const toggleTheme = useCallback(() => {
@@ -1223,11 +1345,11 @@ export default function DashboardPage() {
                   value={stats.totalEmployees}
                   icon={getStatIcon("total")}
                   color={themeColors.text}
-                  subText={currentUser.role === 'pm' ? `${roleBasedData.department} Department` : "Across 6 departments"}
+                  subText={currentUser.role === 'pm' ? `${roleBasedData.department} Department` : "Across all departments"}
                   additionalContent={
                     <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
                       <p className={`text-xs ${themeColors.textLighter}`}>
-                        {currentUser.role === 'pm' ? '25 team members' : '124 total employees'}
+                        {currentUser.role === 'pm' ? `${stats.totalEmployees} team members` : `${stats.totalEmployees} total employees`}
                       </p>
                     </div>
                   }
@@ -1238,16 +1360,16 @@ export default function DashboardPage() {
                 <StatCard
                   cardId="onTime"
                   title={getStatTitle("onTime")}
-                  value={stats.onTimeToday}
+                  value={`${stats.onTimeToday}%`}
                   icon={getStatIcon("onTime")}
                   color="text-green-600"
-                  subText={`${((stats.onTimeToday / stats.totalEmployees) * 100).toFixed(1)}% ${currentUser.role === 'pm' ? 'of team' : 'of staff'}`}
+                  subText={`${currentUser.role === 'pm' ? 'of team' : 'of staff'} on time`}
                   additionalContent={
                     <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-green-500 h-2 rounded-full"
-                          style={{ width: `${(stats.onTimeToday / stats.totalEmployees) * 100}%` }}
+                          style={{ width: `${stats.onTimeToday}%` }}
                         ></div>
                       </div>
                     </div>
