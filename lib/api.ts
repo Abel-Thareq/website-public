@@ -190,4 +190,24 @@ export const reportsApi = {
   },
 };
 
+// Work Hours API
+export const workHoursApi = {
+  get: async () => {
+    const response = await api.get('/work-hours');
+    return response.data;
+  },
+  getByUserId: async (userId: number) => {
+    const response = await api.get(`/work-hours/${userId}`);
+    return response.data;
+  },
+  update: async (startTime: string, endTime: string, userId?: number) => {
+    const data: any = { start_time: startTime, end_time: endTime };
+    if (userId) {
+      data.user_id = userId;
+    }
+    const response = await api.put('/work-hours', data);
+    return response.data;
+  },
+};
+
 export default api;

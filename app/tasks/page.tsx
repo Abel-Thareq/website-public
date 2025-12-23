@@ -48,7 +48,7 @@ const TeamIcon = () => (
 
 export default function TasksPage() {
   const { theme } = useTheme();
-  const { currentUser } = useUser();
+  const { currentUser, loading: userLoading } = useUser();
   const router = useRouter();
   
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
@@ -83,12 +83,12 @@ export default function TasksPage() {
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState<any[]>([]);
 
-  // Redirect ke home jika user berubah
+  // Redirect ke home jika user belum login (tapi tunggu loading selesai dulu!)
   useEffect(() => {
-    if (!currentUser) {
+    if (!userLoading && !currentUser) {
       router.push('/');
     }
-  }, [currentUser, router]);
+  }, [currentUser, userLoading, router]);
 
   // Load tasks from API
   useEffect(() => {

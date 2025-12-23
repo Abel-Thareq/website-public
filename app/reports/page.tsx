@@ -29,7 +29,7 @@ const CalendarIcon = () => (
 
 export default function ReportsPage() {
   const { theme } = useTheme();
-  const { currentUser } = useUser();
+  const { currentUser, loading: userLoading } = useUser();
   const router = useRouter();
   
   const [selectedReportType, setSelectedReportType] = useState<string>("all");
@@ -37,12 +37,12 @@ export default function ReportsPage() {
   const [generatingReport, setGeneratingReport] = useState<boolean>(false);
   const [reportData, setReportData] = useState<any>(null);
 
-  // Redirect ke home jika user berubah
+  // Redirect ke home jika user belum login (tapi tunggu loading selesai dulu!)
   useEffect(() => {
-    if (!currentUser) {
+    if (!userLoading && !currentUser) {
       router.push('/');
     }
-  }, [currentUser, router]);
+  }, [currentUser, userLoading, router]);
 
   // Generate report data based on role
   const reportsData = useMemo(() => {

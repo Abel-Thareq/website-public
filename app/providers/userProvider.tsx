@@ -23,6 +23,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
     checkAuth();
+    
+    // Set up interval to check auth status every 30 seconds
+    // This ensures multi-tab sync - if logout in one tab, other tabs will detect it
+    const interval = setInterval(() => {
+      checkAuth();
+    }, 30000);
+    
+    // Listen for logout event from other tabs/windows
+    const handleLogoutEvent = () => {
+      setCurrentUser(null);
+    };
+    
+    window.addEventListener('logout', handleLogoutEvent);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('logout', handleLogoutEvent);
+    };
   }, []);
 
   // Fungsi untuk verify token dengan backend
@@ -56,6 +74,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       };
 
       setCurrentUser(user);
+      // Store in both sessionStorage and localStorage
+      // sessionStorage is per-tab, localStorage is global fallback
       sessionStorage.setItem('currentUser', JSON.stringify(user));
       localStorage.setItem('currentUser', JSON.stringify(user));
     } catch (error: any) {
@@ -79,7 +99,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const response = await authApi.login(username, password);
       
       if (response.token && response.user) {
-        // Save token
+        // Save token - using localStorage so it persists across tabs
         localStorage.setItem('auth_token', response.token);
         
         // Transform and save user
@@ -99,7 +119,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
           color: 'from-blue-500 to-blue-600'
         };
         
+        // Store in both storages
         localStorage.setItem('currentUser', JSON.stringify(user));
+        sessionStorage.setItem('currentUser', JSON.stringify(user));
         setCurrentUser(user);
         return true;
       }
@@ -137,8 +159,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem('currentUser');
         sessionStorage.removeItem('auth_token');
         
-        // Dispatch custom event to notify other components
+        // Dispatch custom event to notify other components and tabs
         window.dispatchEvent(new CustomEvent('logout'));
+        // Also dispatch on storage event for cross-tab communication
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'auth_token',
+          oldValue: null,
+          newValue: null,
+          storageArea: localStorage,
+        }));
         
         // Small delay to ensure state updates propagate
         setTimeout(() => {

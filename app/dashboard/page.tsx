@@ -5,7 +5,9 @@ import Link from "next/link";
 import NavigationBar from "../components/navigationBar";
 import { User } from "../types/user";
 import { useRouter } from "next/navigation";
-import { attendanceApi, tasksApi, usersApi, teamApi } from "../../lib/api";
+import { attendanceApi, tasksApi, usersApi, teamApi, workHoursApi } from "../../lib/api";
+import { useUser } from "../providers/userProvider";
+import { useTheme } from "../providers/temaProvider";
 
 interface TiltState {
   tiltX: number;
@@ -616,12 +618,19 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
 ));
 
 export default function DashboardPage() {
+  // Get user from context provider instead of creating own state
+  const { currentUser: userFromContext, loading: userLoading } = useUser();
+  const { theme: themeFromProvider } = useTheme();
+  const router = useRouter();
+  
+  // Local state for UI
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [isPointer, setIsPointer] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isOverText, setIsOverText] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const router = useRouter();
+  
+  // Use currentUser from context, not local state
+  const currentUser = userFromContext;
   
   // Theme state
   const [theme, setTheme] = useState<Theme>({
@@ -695,41 +704,12 @@ export default function DashboardPage() {
   });
   const [showWorkHoursEdit, setShowWorkHoursEdit] = useState(false);
 
-  // Redirect ke home jika user tidak login
+  // Redirect ke home jika user belum login (tapi tunggu loading selesai dulu!)
   useEffect(() => {
-    // Check sessionStorage first (per-tab), then localStorage (fallback)
-    const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
-    if (!savedUser) {
-      router.push('/');
-      return;
-    }
-
-    try {
-      const user = JSON.parse(savedUser);
-      setCurrentUser(user);
-    } catch (error) {
-      console.error('Error parsing saved user:', error);
-      sessionStorage.removeItem('currentUser');
-      localStorage.removeItem('currentUser');
+    if (!userLoading && !currentUser) {
       router.push('/');
     }
-
-    const handleUserChange = (event: CustomEvent) => {
-      if (event.detail === null) {
-        sessionStorage.removeItem('currentUser');
-        localStorage.removeItem('currentUser');
-        router.push('/');
-      } else {
-        setCurrentUser(event.detail);
-      }
-    };
-
-    window.addEventListener('userChange', handleUserChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('userChange', handleUserChange as EventListener);
-    };
-  }, [router]);
+  }, [currentUser, userLoading, router]);
 
   // Fetch dashboard data from API
   useEffect(() => {
@@ -983,7 +963,6 @@ export default function DashboardPage() {
   const handleLogout = useCallback(() => {
     sessionStorage.removeItem('currentUser');
     localStorage.removeItem('currentUser');
-    setCurrentUser(null);
     window.dispatchEvent(new CustomEvent('userChange', { detail: null }));
     // Redirect to home page
     router.push('/');
@@ -999,13 +978,71 @@ export default function DashboardPage() {
         theme: parsedTheme.theme as 'light' | 'dark'
       });
     }
-
-    // Load work hours from localStorage
-    const savedWorkHours = localStorage.getItem('workHours');
-    if (savedWorkHours) {
-      setWorkHours(JSON.parse(savedWorkHours));
-    }
   }, []);
+
+  // Load work hours dari API
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadWorkHours = async () => {
+      try {
+        const response = await workHoursApi.get();
+        
+        // Normalize API response - bisa dalam format berbeda
+        let startTime = '08:00';
+        let endTime = '18:00';
+        
+        if (response) {
+          // Check berbagai kemungkinan format dari API
+          if (response.start_time || response.startTime) {
+            startTime = (response.start_time || response.startTime).substring(0, 5);
+          }
+          if (response.end_time || response.endTime) {
+            endTime = (response.end_time || response.endTime).substring(0, 5);
+          }
+        }
+        
+        setWorkHours({
+          startTime,
+          endTime
+        });
+      } catch (error) {
+        console.error('Failed to load work hours:', error);
+        // Fallback ke default
+        setWorkHours({
+          startTime: '08:00',
+          endTime: '18:00'
+        });
+      }
+    };
+
+    loadWorkHours();
+    
+    // Listen for work hours updates from other tabs via BroadcastChannel
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel('work-hours-update');
+      channel.addEventListener('message', (event) => {
+        if (event.data.type === 'WORK_HOURS_UPDATED') {
+          console.log('Received work hours update from another tab:', event.data);
+          // Immediately reload work hours
+          loadWorkHours();
+        }
+      });
+    } catch (e) {
+      console.log('BroadcastChannel not supported in this browser');
+    }
+    
+    // Refresh work hours setiap 30 detik untuk sync antar tab
+    const interval = setInterval(loadWorkHours, 30000);
+    
+    return () => {
+      clearInterval(interval);
+      if (channel) {
+        channel.close();
+      }
+    };
+  }, [currentUser]);
 
   // Optimasi efek mouse move dengan throttling
   useEffect(() => {
@@ -1380,9 +1417,7 @@ export default function DashboardPage() {
                       type="time"
                       value={workHours.startTime}
                       onChange={(e) => {
-                        const newHours = {...workHours, startTime: e.target.value};
-                        setWorkHours(newHours);
-                        localStorage.setItem('workHours', JSON.stringify(newHours));
+                        setWorkHours({...workHours, startTime: e.target.value});
                       }}
                       className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
                     />
@@ -1393,13 +1428,45 @@ export default function DashboardPage() {
                       type="time"
                       value={workHours.endTime}
                       onChange={(e) => {
-                        const newHours = {...workHours, endTime: e.target.value};
-                        setWorkHours(newHours);
-                        localStorage.setItem('workHours', JSON.stringify(newHours));
+                        setWorkHours({...workHours, endTime: e.target.value});
                       }}
                       className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
                     />
                   </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Save to API
+                        await workHoursApi.update(workHours.startTime, workHours.endTime);
+                        setShowWorkHoursEdit(false);
+                        console.log('Work hours updated successfully');
+                        
+                        // Notify other tabs about the update via BroadcastChannel
+                        try {
+                          const channel = new BroadcastChannel('work-hours-update');
+                          channel.postMessage({
+                            type: 'WORK_HOURS_UPDATED',
+                            userId: currentUser?.id,
+                            startTime: workHours.startTime,
+                            endTime: workHours.endTime,
+                            timestamp: new Date().toISOString()
+                          });
+                          channel.close();
+                        } catch (e) {
+                          console.log('BroadcastChannel not supported');
+                        }
+                        
+                        // Show success message
+                        alert('Work hours saved successfully!');
+                      } catch (error) {
+                        console.error('Failed to update work hours:', error);
+                        alert('Failed to update work hours');
+                      }
+                    }}
+                    className="col-span-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                  >
+                    Save Work Hours
+                  </button>
                 </div>
               )}
             </div>

@@ -25,10 +25,14 @@ export default function ClientLayout({
         // Cek apakah user sudah login
         const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
         
+        // Protected routes - require authentication
+        const protectedRoutes = ['/dashboard', '/attendance', '/tasks', '/reports'];
+        const isProtectedRoute = protectedRoutes.some(route => pathname?.startsWith(route));
+        
         console.log('ClientLayout check:', {
           pathname,
           hasUser: !!savedUser,
-          isDashboard: pathname?.startsWith('/dashboard')
+          isProtectedRoute,
         });
         
         // Jika user sudah login dan mencoba akses halaman utama, redirect ke dashboard
@@ -36,9 +40,9 @@ export default function ClientLayout({
           console.log('User sudah login, redirect ke dashboard...');
           router.push('/dashboard');
         }
-        // Jika user belum login dan mencoba akses dashboard, redirect ke home
-        else if (!savedUser && pathname?.startsWith('/dashboard')) {
-          console.log('User belum login, redirect ke home...');
+        // Jika user belum login dan mencoba akses protected route, redirect ke home
+        else if (!savedUser && isProtectedRoute) {
+          console.log('User belum login, redirect ke home dari:', pathname);
           router.push('/');
         }
       } catch (error) {
@@ -51,6 +55,43 @@ export default function ClientLayout({
 
     return () => clearTimeout(timer);
   }, [hasChecked, pathname, router]);
+
+  // Listen for logout events from other tabs or the UserProvider
+  useEffect(() => {
+    const handleLogout = () => {
+      const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
+      
+      // Protected routes
+      const protectedRoutes = ['/dashboard', '/attendance', '/tasks', '/reports'];
+      const isProtectedRoute = protectedRoutes.some(route => pathname?.startsWith(route));
+      
+      // If logout event fired and on protected route, redirect to home
+      if (!savedUser && isProtectedRoute) {
+        router.push('/');
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      // Detect when auth_token is removed in another tab
+      if (e.key === 'auth_token' && e.newValue === null) {
+        // Token was removed, check if on protected route
+        const protectedRoutes = ['/dashboard', '/attendance', '/tasks', '/reports'];
+        const isProtectedRoute = protectedRoutes.some(route => pathname?.startsWith(route));
+        
+        if (isProtectedRoute) {
+          router.push('/');
+        }
+      }
+    };
+
+    window.addEventListener('logout', handleLogout);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('logout', handleLogout);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [pathname, router]);
 
   // Tampilkan loading spinner saat checking
   if (isChecking) {

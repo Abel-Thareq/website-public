@@ -61,7 +61,7 @@ interface AttendanceFormData {
 
 export default function AttendancePage() {
   const { theme } = useTheme();
-  const { currentUser } = useUser();
+  const { currentUser, loading } = useUser();
   const router = useRouter();
   
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -93,12 +93,12 @@ export default function AttendancePage() {
     todayRecord: null
   });
 
-  // Redirect ke home jika user berubah (saat switch account)
+  // Redirect ke home jika user belum login (tapi tunggu loading selesai dulu!)
   useEffect(() => {
-    if (!currentUser) {
+    if (!loading && !currentUser) {
       router.push('/');
     }
-  }, [currentUser, router]);
+  }, [currentUser, loading, router]);
 
   // Load attendance data dari API
   useEffect(() => {
