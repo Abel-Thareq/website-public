@@ -134,15 +134,16 @@ export default function NavigationBar() {
     return () => clearInterval(themeCheckInterval);
   }, []);
 
-  // Load user dari localStorage saat komponen mount
+  // Load user dari sessionStorage/localStorage saat komponen mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
+    const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
         setCurrentUser(parsedUser);
       } catch (error) {
         console.error('Error parsing saved user:', error);
+        sessionStorage.removeItem('currentUser');
         localStorage.removeItem('currentUser');
       }
     }

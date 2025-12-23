@@ -806,7 +806,9 @@ export default function LandingPage() {
     
     setIsLoggingIn(true);
     
-    // Save to localStorage
+    // Save to sessionStorage (per-tab) instead of localStorage for multi-tab support
+    sessionStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+    // Keep in localStorage as fallback for new tabs
     localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
     
     // Dispatch event

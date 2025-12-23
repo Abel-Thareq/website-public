@@ -16,7 +16,7 @@ export default function ClientLayout({
     const timer = setTimeout(() => {
       try {
         // Cek apakah user sudah login
-        const savedUser = localStorage.getItem('currentUser');
+        const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
         
         console.log('ClientLayout check:', {
           pathname,

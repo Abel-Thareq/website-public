@@ -56,13 +56,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
       };
 
       setCurrentUser(user);
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
       localStorage.setItem('currentUser', JSON.stringify(user));
     } catch (error: any) {
       console.error('Auth check failed:', error);
       
       // Token invalid, clear storage
       if (error.response?.status === 401) {
+        sessionStorage.removeItem('auth_token');
         localStorage.removeItem('auth_token');
+        sessionStorage.removeItem('currentUser');
         localStorage.removeItem('currentUser');
         setCurrentUser(null);
       }

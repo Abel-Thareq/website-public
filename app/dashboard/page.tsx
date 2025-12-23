@@ -688,9 +688,17 @@ export default function DashboardPage() {
   });
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
 
+  // Work hours and settings state
+  const [workHours, setWorkHours] = useState({
+    startTime: '08:00',
+    endTime: '18:00',
+  });
+  const [showWorkHoursEdit, setShowWorkHoursEdit] = useState(false);
+
   // Redirect ke home jika user tidak login
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
+    // Check sessionStorage first (per-tab), then localStorage (fallback)
+    const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
     if (!savedUser) {
       router.push('/');
       return;
@@ -701,12 +709,15 @@ export default function DashboardPage() {
       setCurrentUser(user);
     } catch (error) {
       console.error('Error parsing saved user:', error);
+      sessionStorage.removeItem('currentUser');
       localStorage.removeItem('currentUser');
       router.push('/');
     }
 
     const handleUserChange = (event: CustomEvent) => {
       if (event.detail === null) {
+        sessionStorage.removeItem('currentUser');
+        localStorage.removeItem('currentUser');
         router.push('/');
       } else {
         setCurrentUser(event.detail);
@@ -733,6 +744,19 @@ export default function DashboardPage() {
         const allUsers: DashboardUser[] = Array.isArray(usersResponse) ? usersResponse : (usersResponse.data || usersResponse);
         console.log('Dashboard - All users (non-supervisors):', allUsers);
 
+        // Fetch team members for PM
+        let pmTeamMembers: DashboardUser[] = [];
+        if (currentUser.role === 'pm') {
+          try {
+            const teamResponse = await teamApi.getTeamMembers();
+            pmTeamMembers = Array.isArray(teamResponse) ? teamResponse : (teamResponse.data || teamResponse);
+            console.log('Dashboard - PM team members:', pmTeamMembers);
+          } catch (error) {
+            console.log('Could not fetch PM team members, using department filter');
+            pmTeamMembers = allUsers.filter((u: DashboardUser) => u.department === currentUser.department && u.id !== currentUser.id);
+          }
+        }
+
         // Fetch today's attendance
         const attendanceResponse = await attendanceApi.getAll({ date: new Date().toISOString().split('T')[0] });
         const todayAttendance: AttendanceRecord[] = Array.isArray(attendanceResponse.data) ? attendanceResponse.data : attendanceResponse;
@@ -749,14 +773,14 @@ export default function DashboardPage() {
         let filteredTasks: TaskData[] = allTasks;
 
         if (currentUser.role === 'pm') {
-          // For PM, only show team members
-          filteredUsers = allUsers.filter((u: DashboardUser) => u.department === currentUser.department);
+          // For PM, only show actual team members (from team_members relationship)
+          filteredUsers = pmTeamMembers;
           filteredAttendance = todayAttendance.filter((a: AttendanceRecord) => 
             filteredUsers.some((u: DashboardUser) => u.id === a.user_id)
           );
           filteredTasks = allTasks.filter((t: TaskData) => 
             String(t.assigner_id) === currentUser.id || 
-            (filteredUsers.some((u: DashboardUser) => u.id === t.assignee_id) && t.status === 'pending')
+            (filteredUsers.some((u: DashboardUser) => u.id === t.assignee_id) && (t.status === 'pending' || t.status === 'in-progress'))
           );
         } else if (currentUser.role === 'employee') {
           // For employee, only show their own data
@@ -773,8 +797,8 @@ export default function DashboardPage() {
           ? Math.round((onTimeCount / totalEmployees) * 100) 
           : 0;
 
-        const pendingTasks = filteredTasks.filter(t => t.status === 'pending').length;
-        const completedTasks = filteredTasks.filter(t => t.status === 'completed').length;
+        const pendingTasks = filteredTasks.filter((t: TaskData) => t.status === 'pending' || t.status === 'in-progress').length;
+        const completedTasks = filteredTasks.filter((t: TaskData) => t.status === 'completed').length;
 
         // Get late employees (check_in > 09:00 and < 21:00)
         const lateEmployees = filteredAttendance
@@ -789,9 +813,9 @@ export default function DashboardPage() {
           })
           .slice(0, 5); // Show top 5
 
-        // Get tasks needing revision (pending tasks)
+        // Get tasks needing revision (pending + in-progress tasks)
         const tasksNeedingRevision = filteredTasks
-          .filter((t: TaskData) => t.status === 'pending')
+          .filter((t: TaskData) => t.status === 'pending' || t.status === 'in-progress')
           .slice(0, 5) // Show top 5
           .map((t: TaskData) => ({
             id: t.id,
@@ -956,6 +980,7 @@ export default function DashboardPage() {
 
   // Handle logout
   const handleLogout = useCallback(() => {
+    sessionStorage.removeItem('currentUser');
     localStorage.removeItem('currentUser');
     setCurrentUser(null);
     window.dispatchEvent(new CustomEvent('userChange', { detail: null }));
@@ -972,6 +997,12 @@ export default function DashboardPage() {
         ...parsedTheme,
         theme: parsedTheme.theme as 'light' | 'dark'
       });
+    }
+
+    // Load work hours from localStorage
+    const savedWorkHours = localStorage.getItem('workHours');
+    if (savedWorkHours) {
+      setWorkHours(JSON.parse(savedWorkHours));
     }
   }, []);
 
@@ -1304,14 +1335,28 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className={`text-sm ${themeColors.textLight}`}>Current Date & Time</p>
-                  <p className={`text-xl font-bold ${themeColors.text}`}>December 16, 2025 • 10:45 AM</p>
+                  <p className={`text-xl font-bold ${themeColors.text}`}>December 23, 2025 • {new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit', hour12: true})}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm ${themeColors.textLight}`}>
-                    {currentUser.role === 'supervisor' ? 'Work Hours Today' :
-                     currentUser.role === 'pm' ? 'Team Work Hours' : 'My Work Hours'}
-                  </p>
-                  <p className={`text-xl font-bold ${themeColors.text}`}>8:00 AM - 6:00 PM</p>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <p className={`text-sm ${themeColors.textLight}`}>
+                        {currentUser.role === 'supervisor' ? 'Work Hours Today' :
+                         currentUser.role === 'pm' ? 'Team Work Hours' : 'My Work Hours'}
+                      </p>
+                      <p className={`text-xl font-bold ${themeColors.text}`}>
+                        {workHours.startTime.replace(':', '').replace(/(\d{2})(\d{2})/, '$1:$2').replace(/^0/, '').replace(/^(\d)(?!:)/, '0$1')} - {workHours.endTime.replace(':', '').replace(/(\d{2})(\d{2})/, '$1:$2').replace(/^0/, '').replace(/^(\d)(?!:)/, '0$1')}
+                      </p>
+                    </div>
+                    {currentUser.role === 'supervisor' && (
+                      <button 
+                        onClick={() => setShowWorkHoursEdit(!showWorkHoursEdit)}
+                        className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        {showWorkHoursEdit ? 'Done' : 'Edit'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className={`text-sm ${themeColors.textLight}`}>
@@ -1324,6 +1369,38 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
+              
+              {/* Work Hours Edit Modal for Supervisor */}
+              {showWorkHoursEdit && currentUser.role === 'supervisor' && (
+                <div className={`mt-4 pt-4 border-t ${themeColors.borderLight} grid grid-cols-2 gap-4`}>
+                  <div>
+                    <label className={`text-sm ${themeColors.textLight} block mb-2`}>Start Time</label>
+                    <input
+                      type="time"
+                      value={workHours.startTime}
+                      onChange={(e) => {
+                        const newHours = {...workHours, startTime: e.target.value};
+                        setWorkHours(newHours);
+                        localStorage.setItem('workHours', JSON.stringify(newHours));
+                      }}
+                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`text-sm ${themeColors.textLight} block mb-2`}>End Time</label>
+                    <input
+                      type="time"
+                      value={workHours.endTime}
+                      onChange={(e) => {
+                        const newHours = {...workHours, endTime: e.target.value};
+                        setWorkHours(newHours);
+                        localStorage.setItem('workHours', JSON.stringify(newHours));
+                      }}
+                      className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
