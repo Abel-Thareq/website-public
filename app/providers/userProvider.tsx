@@ -127,15 +127,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear state and storage
+      // Clear state and storage FIRST
       setCurrentUser(null);
       
       if (mounted && typeof window !== 'undefined') {
+        // Clear ALL auth-related storage
         localStorage.removeItem('currentUser');
         localStorage.removeItem('auth_token');
+        sessionStorage.removeItem('currentUser');
+        sessionStorage.removeItem('auth_token');
         
-        // Redirect to home
-        window.location.href = '/';
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('logout'));
+        
+        // Small delay to ensure state updates propagate
+        setTimeout(() => {
+          // Use hard redirect to completely clear the page state
+          window.location.href = '/';
+        }, 50);
       }
     }
   };

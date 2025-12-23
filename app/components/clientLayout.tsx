@@ -10,8 +10,15 @@ export default function ClientLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
+    // Only check once on mount to avoid infinite redirect loops
+    if (hasChecked) {
+      setIsChecking(false);
+      return;
+    }
+
     // Tunggu sebentar untuk memastikan DOM sudah siap
     const timer = setTimeout(() => {
       try {
@@ -28,24 +35,22 @@ export default function ClientLayout({
         if (savedUser && pathname === '/') {
           console.log('User sudah login, redirect ke dashboard...');
           router.push('/dashboard');
-          return;
         }
-        
         // Jika user belum login dan mencoba akses dashboard, redirect ke home
-        if (!savedUser && pathname?.startsWith('/dashboard')) {
+        else if (!savedUser && pathname?.startsWith('/dashboard')) {
           console.log('User belum login, redirect ke home...');
           router.push('/');
-          return;
         }
       } catch (error) {
         console.error('Error in ClientLayout:', error);
       } finally {
         setIsChecking(false);
+        setHasChecked(true);
       }
     }, 100); // Tunggu 100ms untuk memastikan localStorage sudah bisa diakses
 
     return () => clearTimeout(timer);
-  }, [pathname, router]);
+  }, [hasChecked, pathname, router]);
 
   // Tampilkan loading spinner saat checking
   if (isChecking) {

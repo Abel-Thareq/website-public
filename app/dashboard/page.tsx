@@ -813,16 +813,17 @@ export default function DashboardPage() {
           })
           .slice(0, 5); // Show top 5
 
-        // Get tasks needing revision (pending + in-progress tasks)
+        // Get tasks needing revision (pending + in-progress tasks ONLY, exclude 100% progress)
         const tasksNeedingRevision = filteredTasks
-          .filter((t: TaskData) => t.status === 'pending' || t.status === 'in-progress')
+          .filter((t: TaskData) => (t.status === 'pending' || t.status === 'in-progress') && (t.progress ?? 0) < 100)
           .slice(0, 5) // Show top 5
           .map((t: TaskData) => ({
             id: t.id,
             title: t.title,
             employee: allUsers.find((u: DashboardUser) => u.id === t.assignee_id)?.name || 'Unknown',
             deadline: t.deadline || 'No deadline',
-            priority: t.priority || 'Medium'
+            priority: t.priority || 'Medium',
+            progress: t.progress || 0 // Get actual progress from task data
           }));
 
         const finalData = {
@@ -914,7 +915,7 @@ export default function DashboardPage() {
         lateEmployees: [],
         tasksNeedingRevision: dashboardData.tasksNeedingRevision,
         achievements: [],
-        personalTasks: [],
+        personalTasks: dashboardData.tasksNeedingRevision,
         attendance: {
           clockIn: "08:45 AM",
           clockOut: "17:30 PM",
@@ -1345,7 +1346,7 @@ export default function DashboardPage() {
                          currentUser.role === 'pm' ? 'Team Work Hours' : 'My Work Hours'}
                       </p>
                       <p className={`text-xl font-bold ${themeColors.text}`}>
-                        {workHours.startTime.replace(':', '').replace(/(\d{2})(\d{2})/, '$1:$2').replace(/^0/, '').replace(/^(\d)(?!:)/, '0$1')} - {workHours.endTime.replace(':', '').replace(/(\d{2})(\d{2})/, '$1:$2').replace(/^0/, '').replace(/^(\d)(?!:)/, '0$1')}
+                        {workHours.startTime} - {workHours.endTime}
                       </p>
                     </div>
                     {currentUser.role === 'supervisor' && (
@@ -1670,9 +1671,9 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-2">
                                 <span className={`text-xs ${themeColors.textLighter}`}>Progress:</span>
                                 <div className="w-24 bg-gray-200 rounded-full h-2">
-                                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+                                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${task.progress}%` }}></div>
                                 </div>
-                                <span className="text-xs font-medium">75%</span>
+                                <span className="text-xs font-medium">{task.progress}%</span>
                               </div>
                             </div>
                           </div>
