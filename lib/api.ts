@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NODE_ENV === 'production'
+  ? 'https://thermostable-phlebotomic-miss.ngrok-free.dev'  
+  : 'http://localhost:8000/api';
 
 // Create axios instance
 const api = axios.create({
