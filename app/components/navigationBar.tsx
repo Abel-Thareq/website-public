@@ -28,11 +28,16 @@ interface Theme {
   theme: 'light' | 'dark';
 }
 
-const tabs = [
+const baseTabs = [
   { id: "dashboard", name: "Dashboard", path: "/dashboard", icon: "📊" },
   { id: "attendance", name: "Attendance", path: "/attendance", icon: "⏰" },
   { id: "tasks", name: "Tasks", path: "/tasks", icon: "✅" },
   { id: "reports", name: "Reports", path: "/reports", icon: "📈" },
+];
+
+const supervisorTabs = [
+  ...baseTabs,
+  { id: "reports-management", name: "Upload Reports", path: "/reports-management", icon: "📤" },
 ];
 
 const availableUsers: User[] = [
@@ -358,7 +363,7 @@ export default function NavigationBar() {
             {/* Desktop Navigation */}
             {currentUser && (
               <div className="hidden md:flex gap-2 text-sm">
-                {tabs.map((tab) => {
+                {(currentUser.role === 'supervisor' ? supervisorTabs : baseTabs).map((tab) => {
                   const isActive = pathname === tab.path;
                   return (
                     <Link
@@ -469,8 +474,8 @@ export default function NavigationBar() {
         {/* Mobile Navigation */}
         {currentUser && (
           <div className="md:hidden mt-4">
-            <div className={`flex justify-around ${themeColors.mobileBg} rounded-lg p-1`}>
-              {tabs.map((tab) => {
+            <div className={`flex justify-around ${themeColors.mobileBg} rounded-lg p-1 overflow-x-auto`}>
+              {(currentUser.role === 'supervisor' ? supervisorTabs : baseTabs).map((tab) => {
                 const isActive = pathname === tab.path;
                 return (
                   <Link

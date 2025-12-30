@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://thermostable-phlebotomic-miss.ngrok-free.dev/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -192,8 +192,38 @@ export const reportsApi = {
     const response = await api.post('/reports', data);
     return response.data;
   },
+  createWithFile: async (formData: FormData) => {
+    const response = await api.post('/reports', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+  update: async (id: number, data: any) => {
+    const response = await api.put(`/reports/${id}`, data);
+    return response.data;
+  },
+  updateWithFile: async (id: number, formData: FormData) => {
+    const response = await api.put(`/reports/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
   delete: async (id: number) => {
     const response = await api.delete(`/reports/${id}`);
+    return response.data;
+  },
+  download: async (id: number) => {
+    const response = await api.get(`/reports/${id}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+  getStats: async () => {
+    const response = await api.get('/reports/stats');
     return response.data;
   },
 };
