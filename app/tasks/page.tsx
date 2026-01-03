@@ -954,10 +954,11 @@ export default function TasksPage() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {/* TOTAL TASKS */}
-                <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-                  <div className="flex items-center justify-between">
+                <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+                  <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+                  <div className="flex items-center justify-between relative z-10">
                     <div>
-                      <p className={`text-sm ${themeColors.textLight}`}>Total Tasks</p>
+                      <p className={`text-sm ${themeColors.textLight}`}>📋 Total Tasks</p>
                       <p className={`text-3xl font-bold ${themeColors.text} mt-2`}>{stats.total}</p>
                     </div>
                     <div className={`p-3 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
@@ -978,10 +979,11 @@ export default function TasksPage() {
                 </div>
                 
                 {/* COMPLETED TASKS */}
-                <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-                  <div className="flex items-center justify-between">
+                <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+                  <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+                  <div className="flex items-center justify-between relative z-10">
                     <div>
-                      <p className={`text-sm ${themeColors.textLight}`}>Completed</p>
+                      <p className={`text-sm ${themeColors.textLight}`}>✅ Completed</p>
                       <p className="text-3xl font-bold text-green-600 mt-2">{stats.completed}</p>
                     </div>
                     <div className={`p-3 ${theme.isDayTime ? 'bg-green-50' : 'bg-green-900/20'} rounded-lg`}>
@@ -1011,10 +1013,11 @@ export default function TasksPage() {
                 </div>
                 
                 {/* IN PROGRESS */}
-                <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-                  <div className="flex items-center justify-between">
+                <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+                  <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+                  <div className="flex items-center justify-between relative z-10">
                     <div>
-                      <p className={`text-sm ${themeColors.textLight}`}>In Progress</p>
+                      <p className={`text-sm ${themeColors.textLight}`}>⏳ In Progress</p>
                       <p className="text-3xl font-bold text-blue-600 mt-2">{stats.inProgress}</p>
                     </div>
                     <div className={`p-3 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} rounded-lg`}>
@@ -1049,10 +1052,11 @@ export default function TasksPage() {
                 </div>
                 
                 {/* OVERDUE */}
-                <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-                  <div className="flex items-center justify-between">
+                <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+                  <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-red-400 to-orange-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+                  <div className="flex items-center justify-between relative z-10">
                     <div>
-                      <p className={`text-sm ${themeColors.textLight}`}>Overdue</p>
+                      <p className={`text-sm ${themeColors.textLight}`}>⚠️ Overdue</p>
                       <p className="text-3xl font-bold text-red-600 mt-2">{stats.overdue}</p>
                     </div>
                     <div className={`p-3 ${theme.isDayTime ? 'bg-red-50' : 'bg-red-900/20'} rounded-lg`}>
@@ -1091,7 +1095,8 @@ export default function TasksPage() {
               </div>
               
               {/* Filters dan Search */}
-              <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8`}>
+              <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8 hover-lift group overflow-hidden relative`}>
+                <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 opacity-10 group-hover:opacity-20 transition-opacity" />
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                   <div className="flex-1">
                     <div className="relative">
@@ -1186,7 +1191,8 @@ export default function TasksPage() {
                 currentUser?.role === 'pm' ? (
                   <div className="space-y-8">
                     {/* Section 1: Tasks dari Supervisor ke PM */}
-                    <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border-2 border-blue-500 overflow-hidden`}>
+                    <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border-2 border-blue-500 overflow-hidden hover-lift group relative`}>
+                      <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 opacity-10 group-hover:opacity-20 transition-opacity" />
                       <div className={`px-6 py-4 bg-blue-50 ${theme.isDayTime ? 'bg-blue-50' : 'bg-blue-900/20'} border-b ${themeColors.border}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -1225,7 +1231,8 @@ export default function TasksPage() {
                     </div>
                     
                     {/* Section 2: Tasks dari PM ke Team */}
-                    <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border-2 border-green-500 overflow-hidden`}>
+                    <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border-2 border-green-500 overflow-hidden hover-lift group relative`}>
+                      <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 opacity-10 group-hover:opacity-20 transition-opacity" />
                       <div className={`px-6 py-4 bg-green-50 ${theme.isDayTime ? 'bg-green-50' : 'bg-green-900/20'} border-b ${themeColors.border}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -1279,7 +1286,8 @@ export default function TasksPage() {
                   </div>
                 ) : (
                   // List View untuk Employee dan Supervisor
-                  <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden mb-8`}>
+                  <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden mb-8 hover-lift group relative`}>
+                    <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 opacity-10 group-hover:opacity-20 transition-opacity" />
                     <div className={`px-6 py-4 border-b ${themeColors.border} ${themeColors.bgLight}`}>
                       <div className="flex items-center justify-between">
                         <div>
@@ -1349,7 +1357,8 @@ export default function TasksPage() {
                     }[status];
                     
                     return (
-                      <div key={status} className={`${themeColors.bgLight} rounded-lg border ${themeColors.border}`}>
+                      <div key={status} className={`${themeColors.bgLight} rounded-2xl border ${themeColors.border} hover-lift group overflow-hidden relative`}>
+                        <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 opacity-10 group-hover:opacity-20 transition-opacity" />
                         <div className={`px-4 py-3 border-b-4 ${columnColor} ${themeColors.cardBg} rounded-t-lg`}>
                           <div className="flex items-center justify-between">
                             <h3 className={`font-medium ${themeColors.text}`}>{columnTitle}</h3>
@@ -1358,8 +1367,9 @@ export default function TasksPage() {
                         </div>
                         <div className="p-3 space-y-3 min-h-[500px]">
                           {columnTasks.map(task => (
-                            <div key={task.id} className={`${themeColors.cardBg} p-4 rounded-lg ${themeColors.shadow} border ${themeColors.border}`}>
-                              <div className="flex items-start justify-between mb-2">
+                            <div key={task.id} className={`${themeColors.cardBg} p-4 rounded-2xl ${themeColors.shadow} border ${themeColors.border} hover-lift group overflow-hidden relative`}>
+                              <div className="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-gradient-to-r from-blue-300 to-purple-300 opacity-5 group-hover:opacity-15 transition-opacity" />
+                              <div className="flex items-start justify-between mb-2 relative z-10">
                                 <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                                   task.priority === "high" 
                                     ? "bg-red-100 text-red-800"

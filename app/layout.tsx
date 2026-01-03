@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { UserProvider } from "./providers/userProvider";
 import { ThemeProvider } from "./providers/temaProvider";
 import "./globals.css";
+import "./styles/modern-design.css";
 import ClientLayout from "./components/clientLayout";
 
 const inter = Inter({ subsets: ["latin"] });

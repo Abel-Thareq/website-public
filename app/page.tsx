@@ -1,1355 +1,793 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, memo } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { User } from "./types/user";
 import { useUser } from './providers/userProvider';
 
+// ==========================================
+// 1. TYPE DEFINITIONS & DATA
+// ==========================================
+
 interface Theme {
   isDayTime: boolean;
-  backgroundImage: string;
+  backgroundImage?: string;
   theme: 'light' | 'dark';
 }
 
-interface UserContextType {
-  currentUser: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  switchUser: (user: User) => void;
-  loading: boolean;
-}
-
-// Available users untuk fast access
 const availableUsers: User[] = [
-  {
-    id: "supervisor_001",
-    username: "supervisor",
-    password: "supervisor123",
-    name: "Alex Johnson",
-    role: "supervisor",
-    initials: "AJ",
-    department: "All Departments",
-    employeeCount: 124,
-    color: "from-purple-500 to-purple-600",
-    email: "alex.johnson@techmaven.com",
-    joinDate: "2023-01-15"
+  { 
+    id: "supervisor_001", 
+    username: "supervisor", 
+    password: "supervisor123", 
+    name: "Alex Johnson", 
+    role: "supervisor", 
+    initials: "AJ", 
+    department: "Executive", 
+    employeeCount: 124, 
+    color: "from-blue-700 to-blue-900", 
+    email: "alex@simkar.id", 
+    joinDate: "2023-01-15" 
   },
-  {
-    id: "pm_001",
-    username: "pm",
-    password: "pm123",
-    name: "Sarah Chen",
-    role: "pm",
-    initials: "SC",
-    department: "Engineering",
-    employeeCount: 25,
-    color: "from-blue-500 to-blue-600",
-    email: "sarah.chen@techmaven.com",
-    joinDate: "2023-03-20"
+  { 
+    id: "pm_001", 
+    username: "pm", 
+    password: "pm123", 
+    name: "Sarah Chen", 
+    role: "pm", 
+    initials: "SC", 
+    department: "Engineering", 
+    employeeCount: 25, 
+    color: "from-blue-600 to-blue-800", 
+    email: "sarah@simkar.id", 
+    joinDate: "2023-03-20" 
   },
-  {
-    id: "employee_001",
-    username: "john.doe",
-    password: "employee123",
-    name: "John Doe",
-    role: "employee",
-    initials: "JD",
-    department: "Engineering",
-    employeeCount: 1,
-    color: "from-green-500 to-green-600",
-    email: "john.doe@techmaven.com",
-    phone: "+1-555-0123",
-    joinDate: "2023-06-10"
+  { 
+    id: "employee_001", 
+    username: "john.doe", 
+    password: "employee123", 
+    name: "John Doe", 
+    role: "employee", 
+    initials: "JD", 
+    department: "Engineering", 
+    employeeCount: 1, 
+    color: "from-blue-500 to-blue-700", 
+    email: "john@simkar.id", 
+    phone: "+62-812-555-0123", 
+    joinDate: "2023-06-10" 
   }
 ];
 
-// Daftar sponsor dibagi per baris sesuai permintaan
-const sponsorRows = [
-  // Baris 1: bergerak ke kanan
-  [
-    { name: "Gemini", logo: "/gemini.png" },
-    { name: "ChatGPT", logo: "/chatgpt.png" },
-    { name: "Microsoft", logo: "/microsoft.png" },
-    { name: "Google Cloud", logo: "/google-cloud.png" }
-  ],
-  // Baris 2: bergerak ke kiri
-  [
-    { name: "AWS", logo: "/aws.png" },
-    { name: "Slack", logo: "/slack.png" },
-    { name: "Notion", logo: "/notion.png" },
-    { name: "Figma", logo: "/figma.png" }
-  ],
-  // Baris 3: bergerak ke kanan
-  [
-    { name: "OpenAI", logo: "/openai.png" },
-    { name: "GitHub", logo: "/github.png" },
-    { name: "Vercel", logo: "/vercel.png" },
-    { name: "Tailwind", logo: "/tailwind.png" }
-  ]
+const featuresData = [
+  {
+    title: "Attendance Management",
+    desc: "Sistem pencatatan kehadiran digital (Check-in/Out) dengan validasi lokasi, upload dokumentasi foto, perhitungan jam kerja otomatis, serta status real-time (On-time, Late, Absent).",
+    icon: "📍",
+    grid: "md:col-span-2 md:row-span-2"
+  },
+  {
+    title: "Task Management",
+    desc: "Pembuatan dan pendelegasian tugas ke karyawan, dilengkapi subtask, kolom komentar, pelacakan progres (To-Do, In Progress, Done), dan monitoring deadline.",
+    icon: "📋",
+    grid: "md:col-span-1 md:row-span-1"
+  },
+  {
+    title: "Work Hours Management",
+    desc: "Pengaturan shift dan jam kerja fleksibel oleh supervisor dengan sinkronisasi real-time ke seluruh perangkat user.",
+    icon: "⏰",
+    grid: "md:col-span-1 md:row-span-1"
+  },
+  {
+    title: "Reporting & Analytics",
+    desc: "Dashboard eksekutif yang menyajikan laporan kehadiran, statistik penyelesaian task, dan analisis produktivitas karyawan yang dapat diekspor.",
+    icon: "📊",
+    grid: "md:col-span-2 md:row-span-1"
+  },
+  {
+    title: "Role-based Access",
+    desc: "Keamanan data bertingkat. Supervisor (Full Access), Project Manager (Team & Task), dan Employee (Personal) melihat data sesuai kewenangan.",
+    icon: "🔐",
+    grid: "md:col-span-2 md:row-span-1"
+  }
 ];
 
-// Duplicate sponsors untuk infinite scroll effect
-const duplicatedSponsorRows = sponsorRows.map(row => [...row, ...row]);
+const portfolioData = [
+  {
+    id: 1,
+    title: "E-Gov Smart City",
+    category: "Government",
+    year: "2023",
+    desc: "Sistem integrasi data kependudukan dan layanan publik untuk pemerintah kota, mengurangi waktu administrasi hingga 40% dengan implementasi Big Data Analytics."
+  },
+  {
+    id: 2,
+    title: "FinTech Dashboard",
+    category: "Finance",
+    year: "2023",
+    desc: "Platform manajemen aset dan pelaporan keuangan real-time untuk perusahaan investasi, dilengkapi dengan fitur keamanan enkripsi tingkat bank dan visualisasi data interaktif."
+  },
+  {
+    id: 3,
+    title: "EduTech Learning",
+    category: "Education",
+    year: "2022",
+    desc: "Learning Management System (LMS) berbasis gamifikasi untuk meningkatkan engagement siswa, mendukung kelas virtual, kuis interaktif, dan tracking progres belajar."
+  },
+  {
+    id: 4,
+    title: "HealthCare Monitor",
+    category: "Health",
+    year: "2024",
+    desc: "Aplikasi monitoring pasien rawat jalan dengan integrasi IoT wearables, memberikan notifikasi real-time kepada dokter terkait anomali tanda vital pasien."
+  }
+];
 
-// Memoized Icon Components
-const SunIcon = memo(() => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-  </svg>
+// ==========================================
+// 2. 3D ASSETS (PURE SVG)
+// ==========================================
+
+const AssetRing = memo(({ className }: { className?: string }) => (
+  <div className={`relative ${className} pointer-events-none z-0 will-change-transform`}>
+    <svg viewBox="0 0 400 400" className="w-full h-full drop-shadow-xl animate-float-slow">
+      <defs>
+        <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#1e40af" stopOpacity="0.9" />
+          <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.8" />
+        </linearGradient>
+      </defs>
+      <path d="M200,50 A150,150 0 1,1 200,350 A150,150 0 1,1 200,50 M200,80 A120,120 0 1,0 200,320 A120,120 0 1,0 200,80" fill="url(#ringGradient)" className="animate-spin-slow origin-center" />
+    </svg>
+  </div>
 ));
 
-const MoonIcon = memo(() => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-  </svg>
+const AssetCube = memo(({ className }: { className?: string }) => (
+  <div className={`relative ${className} pointer-events-none z-0 will-change-transform`}>
+    <svg viewBox="0 0 300 300" className="w-full h-full drop-shadow-2xl animate-float-fast">
+      <defs>
+        <linearGradient id="cubeGradTop" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#93c5fd" />
+          <stop offset="100%" stopColor="#3b82f6" />
+        </linearGradient>
+        <linearGradient id="cubeGradSide" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#1e3a8a" />
+          <stop offset="100%" stopColor="#172554" />
+        </linearGradient>
+      </defs>
+      <path d="M150,50 L250,100 L150,150 L50,100 Z" fill="url(#cubeGradTop)" stroke="white" strokeWidth="0.5"/>
+      <path d="M250,100 L250,220 L150,270 L150,150 Z" fill="#2563eb" opacity="0.9"/>
+      <path d="M50,100 L150,150 L150,270 L50,220 Z" fill="url(#cubeGradSide)" />
+    </svg>
+  </div>
 ));
 
-// Memoized Theme Toggle Component - DISIMPAN DI HEADER
-const ThemeToggleButton = memo(({ 
-  theme, 
-  toggleTheme
-}: { 
-  theme: Theme;
-  toggleTheme: () => void;
-}) => (
-  <button 
-    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ${
-      theme.isDayTime
-        ? "bg-gray-100 text-gray-900 hover:bg-gray-200"
-        : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-    }`}
-    onClick={toggleTheme}
-    aria-label="Toggle theme"
+const AssetCone = memo(({ className }: { className?: string }) => (
+  <div className={`relative ${className} pointer-events-none z-0 will-change-transform`}>
+    <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-2xl animate-float-medium">
+      <defs>
+        <linearGradient id="coneGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stopColor="#60A5FA" />
+          <stop offset="100%" stopColor="#1E3A8A" />
+        </linearGradient>
+      </defs>
+      <path d="M100,20 L160,180 L40,180 Z" fill="url(#coneGrad)" className="origin-center rotate-12" />
+      <ellipse cx="100" cy="180" rx="60" ry="20" fill="#172554" />
+    </svg>
+  </div>
+));
+
+const AssetGrid = memo(({ className }: { className?: string }) => (
+  <div className={`relative ${className} pointer-events-none z-0 will-change-transform`}>
+    <svg viewBox="0 0 400 300" className="w-full h-full opacity-20">
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-blue-500" />
+      </pattern>
+      <rect width="100%" height="100%" fill="url(#grid)" />
+      <circle cx="200" cy="150" r="100" fill="url(#radialGlow)" />
+      <defs>
+        <radialGradient id="radialGlow">
+          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+    </svg>
+  </div>
+));
+
+// ==========================================
+// 3. UI PRIMITIVES & ANIMATION
+// ==========================================
+
+const ScrollAnimation = ({ children, className = "", delay = 0 }: any) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -10% 0px" }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => { if (ref.current) observer.unobserve(ref.current); };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out transform will-change-transform ${className} ${
+        isVisible ? "opacity-100 translate-y-0 blur-0" : "opacity-0 translate-y-12 blur-sm"
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+const GlassCard = ({ children, className = "", onClick }: any) => (
+  <div 
+    onClick={onClick}
+    className={`
+      relative backdrop-blur-lg border border-white/10 shadow-2xl overflow-hidden
+      bg-gradient-to-b from-white/5 to-white/[0.02] dark:from-white/[0.05] dark:to-transparent
+      transition-all duration-300 hover:border-blue-500/40 hover:shadow-blue-500/10 hover:-translate-y-1
+      will-change-transform
+      ${className}
+    `}
   >
-    {theme.isDayTime ? (
-      <>
-        <div className="w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center">
-          <SunIcon />
-        </div>
-        <span className="text-sm font-medium">Day</span>
-      </>
-    ) : (
-      <>
-        <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-          <MoonIcon />
-        </div>
-        <span className="text-sm font-medium">Night</span>
-      </>
-    )}
-  </button>
-));
+    {children}
+  </div>
+);
 
-// New Header Navigation Component - DENGAN THEME TOGGLE DI BAR
-const HeaderNav = memo(({ 
-  themeColors, 
-  setIsLoginModalOpen,
-  theme,
-  toggleTheme
-}: { 
-  themeColors: any;
-  setIsLoginModalOpen: (open: boolean) => void;
-  theme: Theme;
-  toggleTheme: () => void;
-}) => (
-  <header className={`sticky top-0 z-40 w-full border-b ${themeColors.border} ${themeColors.bg} backdrop-blur-sm bg-opacity-80`}>
-    <div className="container mx-auto px-6 py-4">
-      <div className="flex items-center justify-between">
-        {/* Logo dengan Image - BACKGROUND SESUAI THEME */}
-        <div className="flex items-center space-x-2">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${
-            theme.isDayTime ? 'bg-white' : 'bg-gray-900'
-          }`}>
-            <Image 
-              src="/TechMaven.png" 
-              alt="TechMaven Logo" 
-              width={40} 
-              height={40}
-              className="object-contain"
-            />
+const SectionBadge = ({ text }: { text: string }) => (
+  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 backdrop-blur-sm mb-8 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+    <span className="relative flex h-2 w-2">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+    </span>
+    <span className="text-[10px] font-bold tracking-[0.25em] text-blue-400 uppercase">{text}</span>
+  </div>
+);
+
+const SectionHeading = ({ title, subtitle, theme }: { title: string, subtitle: string, theme: Theme }) => (
+  <ScrollAnimation className="mb-16 text-center md:text-left">
+    <div className="flex items-center justify-center md:justify-start gap-4 mb-4">
+      <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-blue-500"></div>
+      <span className="text-blue-500 font-mono text-xs tracking-widest uppercase font-bold">{subtitle}</span>
+      <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-blue-500 md:hidden"></div>
+    </div>
+    <h2 className={`text-4xl md:text-6xl font-black tracking-tighter leading-tight ${theme.isDayTime ? 'text-gray-900' : 'text-white'}`}>
+      {title}
+    </h2>
+  </ScrollAnimation>
+);
+
+// ==========================================
+// 4. COMPLEX VIEW COMPONENTS (SECTIONS)
+// ==========================================
+
+// --- HERO / OVERVIEW ---
+const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
+  const isDark = !theme.isDayTime;
+  
+  return (
+    <section 
+      id="overview"
+      ref={heroRef} 
+      // FIX: Padding bottom diperbesar agar icon explore tidak ketabrak
+      className={`relative w-full min-h-screen flex flex-col justify-center items-center overflow-hidden px-4 pt-32 pb-40 ${isDark ? 'bg-[#050505]' : 'bg-[#F8FAFC]'}`}
+    >
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] bg-blue-600/10 rounded-full blur-[80px] pointer-events-none -z-10 animate-pulse-slow will-change-transform"></div>
+      <div className={`absolute inset-0 opacity-[0.03] pointer-events-none ${isDark ? 'bg-[url("https://grainy-gradients.vercel.app/noise.svg")]' : ''}`}></div>
+
+      <div className="absolute top-[15%] left-[5%] xl:left-[10%] w-32 h-32 md:w-56 md:h-56 z-0 hidden lg:block opacity-80 pointer-events-none"><AssetRing /></div>
+      <div className="absolute bottom-[15%] right-[5%] xl:right-[10%] w-24 h-48 z-0 hidden lg:block opacity-70 pointer-events-none"><AssetCube /></div>
+      <div className="absolute top-[20%] right-[15%] w-16 h-16 z-0 hidden lg:block opacity-50 pointer-events-none"><AssetCone /></div>
+
+      <div className="container relative z-10 max-w-5xl mx-auto flex flex-col items-center text-center">
+        
+        <ScrollAnimation delay={0} className="mb-6"><SectionBadge text="SYSTEM INFORMATION V1.0" /></ScrollAnimation>
+
+        <ScrollAnimation delay={100}>
+          <h1 className={`text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] mb-8 ${isDark ? 'text-white' : 'text-gray-900'} drop-shadow-2xl`}>
+            TechMaven <br />
+            {/* FIX: Gradasi text diperbaiki agar terbaca di mode terang */}
+            <span className={`text-transparent bg-clip-text bg-gradient-to-r ${isDark ? 'from-blue-500 via-blue-400 to-white' : 'from-blue-700 via-blue-600 to-blue-900'}`}>
+              INTELLIGENCE
+            </span>
+          </h1>
+        </ScrollAnimation>
+
+        <ScrollAnimation delay={200} className="h-12 mb-8 flex items-center justify-center">
+           {/* FIX: Hapus efek kedip (border-r-2 dan animate-blink) */}
+           <div className={`inline-flex items-center text-lg md:text-2xl font-mono ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+             {displayedText}
+           </div>
+        </ScrollAnimation>
+
+        <ScrollAnimation delay={300}>
+          <p className={`max-w-2xl mx-auto text-base md:text-lg mb-12 leading-relaxed font-light ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Sistem Informasi Manajemen Kehadiran dan Pelaporan Kerja berbasis <strong className="text-blue-500 font-bold">Metode Waterfall</strong>. Solusi terintegrasi untuk efisiensi organisasi.
+          </p>
+        </ScrollAnimation>
+
+        <ScrollAnimation delay={400} className="flex flex-col md:flex-row items-center justify-center gap-5 w-full">
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('openLoginModal', { detail: 'employee' }))}
+            className="group relative w-full md:w-auto px-10 py-4 bg-white text-black rounded-2xl font-bold text-sm tracking-wide hover:scale-105 transition-all duration-300 shadow-[0_0_30px_-5px_rgba(255,255,255,0.3)] overflow-hidden"
+          >
+            <span className="relative z-10 flex items-center justify-center gap-2">LAUNCH DASHBOARD 🚀</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+          </button>
+          
+          <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border backdrop-blur-md w-full md:w-auto transition-colors ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-gray-200 bg-white/50 hover:bg-white/80'}`}>
+             <div className="flex -space-x-3">
+               {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-black bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg"></div>)}
+             </div>
+             <div className="text-left flex flex-col justify-center">
+               <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Access Level</p>
+               <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-black'}`}>Supervisor, PM, Employee</p>
+             </div>
           </div>
-          <span className={`text-xl font-bold ${themeColors.text}`}>TechMaven</span>
+        </ScrollAnimation>
+      </div>
+
+      {/* FIX: Icon Explore diturunkan sedikit (bottom-6) */}
+      <div 
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30 animate-bounce cursor-pointer hover:opacity-100 transition-opacity"
+        onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+      >
+        <span className="text-[10px] uppercase tracking-widest text-gray-500">Explore</span>
+        <div className={`w-[1px] h-10 ${isDark ? 'bg-gradient-to-b from-white to-transparent' : 'bg-gradient-to-b from-black to-transparent'}`}></div>
+      </div>
+    </section>
+  );
+});
+
+// --- FEATURES SECTION ---
+const FeaturesView = memo(({ theme }: any) => {
+  const isDark = !theme.isDayTime;
+
+  return (
+    <section id="features" className="min-h-screen py-32 px-4 max-w-7xl mx-auto">
+      <SectionHeading theme={theme} subtitle="SYSTEM CAPABILITIES" title="Fitur Unggulan" />
+      <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-6 auto-rows-[minmax(200px, auto)]">
+        {featuresData.map((feature, index) => (
+          <ScrollAnimation key={index} delay={index * 100} className={`${feature.grid} h-full`}>
+            <GlassCard className="rounded-3xl p-8 h-full flex flex-col justify-between group hover:border-blue-500 transition-colors">
+              <div className="flex justify-between items-start mb-6">
+                 <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-3xl shadow-inner border border-blue-500/20">{feature.icon}</div>
+                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+              </div>
+              <div>
+                <h3 className={`text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h3>
+                <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{feature.desc}</p>
+              </div>
+            </GlassCard>
+          </ScrollAnimation>
+        ))}
+      </div>
+    </section>
+  );
+});
+
+// --- PORTFOLIO SECTION (Interactive) ---
+const PortfolioView = memo(({ theme }: any) => {
+  const isDark = !theme.isDayTime;
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  return (
+    <section id="portfolio" className={`min-h-screen py-32 px-4 ${isDark ? 'bg-[#050505]' : 'bg-gray-50'}`}>
+      <div className="max-w-7xl mx-auto">
+        <SectionHeading theme={theme} subtitle="OUR WORK" title="Portfolio Project" />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {portfolioData.map((project, index) => (
+            <ScrollAnimation key={project.id} delay={index * 150} className="h-full">
+              <div 
+                onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
+                className={`
+                  group cursor-pointer relative rounded-3xl p-8 border transition-all duration-500 ease-in-out overflow-hidden
+                  ${isDark ? 'bg-black border-white/10 hover:border-blue-500/50' : 'bg-white border-gray-200 hover:border-blue-300 shadow-lg'}
+                  ${expandedId === project.id ? 'row-span-2 shadow-blue-500/20' : ''}
+                `}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <span className="px-3 py-1 rounded-full border border-blue-500/30 text-blue-500 text-[10px] font-bold uppercase tracking-wider">{project.category}</span>
+                  <span className="text-xs font-mono text-gray-500">{project.year}</span>
+                </div>
+                
+                <h3 className={`text-2xl font-bold mb-2 transition-colors group-hover:text-blue-500 ${isDark ? 'text-white' : 'text-black'}`}>{project.title}</h3>
+                
+                {/* Animasi Expand Deskripsi */}
+                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${expandedId === project.id ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                  <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{project.desc}</p>
+                  <div className="mt-6 flex items-center gap-2 text-blue-500 font-bold text-xs cursor-pointer hover:underline">
+                    VIEW CASE STUDY ↗
+                  </div>
+                </div>
+
+                {expandedId !== project.id && (
+                  <p className="text-xs text-gray-500 mt-2 italic opacity-0 group-hover:opacity-100 transition-opacity">Click to expand details</p>
+                )}
+                
+                <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+              </div>
+            </ScrollAnimation>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+});
+
+// --- CONTACT US SECTION ---
+const ContactView = memo(({ theme }: any) => {
+  const isDark = !theme.isDayTime;
+
+  return (
+    <section id="contact" className="min-h-screen py-32 px-4 max-w-7xl mx-auto flex flex-col justify-center">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <SectionHeading theme={theme} subtitle="GET IN TOUCH" title="Let's Collaborate" />
+          <p className={`text-lg mb-8 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Siap untuk meningkatkan efisiensi perusahaan Anda dengan SIMKAR? Hubungi tim kami untuk demo eksklusif.
+          </p>
+          <div className="space-y-6">
+            {[
+              { label: "Email", val: "hello@simkar.id", icon: "📧" },
+              { label: "Phone", val: "+62 812 3456 7890", icon: "📞" },
+              { label: "Office", val: "Jakarta Selatan, Indonesia", icon: "🏢" }
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-xl">{item.icon}</div>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase">{item.label}</p>
+                  <p className={`font-medium ${isDark ? 'text-white' : 'text-black'}`}>{item.val}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8">
-          <Link href="#features" className={`${themeColors.navLink} hover:text-blue-600 transition-colors font-medium`}>
-            Features
-          </Link>
-          <Link href="#solutions" className={`${themeColors.navLink} hover:text-blue-600 transition-colors font-medium`}>
-            Solutions
-          </Link>
-          <Link href="#pricing" className={`${themeColors.navLink} hover:text-blue-600 transition-colors font-medium`}>
-            Pricing
-          </Link>
-          <Link href="#resources" className={`${themeColors.navLink} hover:text-blue-600 transition-colors font-medium`}>
-            Resources
-          </Link>
+        <GlassCard className="p-8 md:p-12 rounded-3xl">
+          <form className="space-y-6">
+             <div className="grid grid-cols-2 gap-6">
+               <div className="space-y-2">
+                 <label className="text-xs font-bold text-gray-500 uppercase">Name</label>
+                 <input type="text" className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="John Doe" />
+               </div>
+               <div className="space-y-2">
+                 <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
+                 <input type="email" className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="john@company.com" />
+               </div>
+             </div>
+             <div className="space-y-2">
+                 <label className="text-xs font-bold text-gray-500 uppercase">Message</label>
+                 <textarea rows={4} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="Tell us about your needs..." />
+             </div>
+             <button className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg">SEND MESSAGE</button>
+          </form>
+        </GlassCard>
+      </div>
+    </section>
+  );
+});
+
+// ==========================================
+// 5. GLOBAL HEADER (SCROLL SPY & NAV)
+// ==========================================
+
+const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme }: any) => {
+  const [activeSection, setActiveSection] = useState('overview');
+  const isDark = !theme.isDayTime;
+
+  // Active Scroll Spy Logic
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['overview', 'features', 'portfolio', 'contact'];
+      const scrollPosition = window.scrollY + 200; // Offset
+
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const { offsetTop, offsetHeight } = element;
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSection(section);
+          }
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <header className={`fixed top-6 left-0 right-0 z-50 flex justify-center px-4 transition-all duration-500`}>
+      <div className={`
+        flex items-center justify-between px-6 py-3 rounded-2xl border shadow-2xl backdrop-blur-xl w-full max-w-6xl transition-all duration-500
+        ${isDark ? 'bg-black/90 border-white/5' : 'bg-white/90 border-gray-200'}
+      `}>
+        {/* Logo */}
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => scrollToSection('overview')}>
+          <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300">
+             {/* FIX: Object fit agar tidak tercrop */}
+             <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-1" />
+          </div>
+          <div className="flex flex-col">
+            <span className={`font-bold tracking-tight text-lg leading-none ${themeColors.text}`}>SIMKAR</span>
+            <span className="text-[9px] text-blue-500 font-bold tracking-widest uppercase">Waterfall v1.0</span>
+          </div>
+        </div>
+
+        {/* Nav Pills */}
+        <nav className={`hidden md:flex items-center p-1.5 rounded-xl border border-transparent ${isDark ? 'bg-white/5 border-white/5' : 'bg-gray-100'}`}>
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'features', label: 'Features' },
+            { id: 'portfolio', label: 'Portfolio' },
+            { id: 'contact', label: 'Contact Us' }
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => scrollToSection(item.id)}
+              className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all duration-300 ${
+                activeSection === item.id 
+                  ? isDark ? 'bg-[#333] text-white shadow-md scale-105' : 'bg-white text-black shadow-sm scale-105' 
+                  : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
         </nav>
 
-        {/* CTA Buttons - DENGAN THEME TOGGLE */}
-        <div className="flex items-center space-x-4">
-          <ThemeToggleButton theme={theme} toggleTheme={toggleTheme} />
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={toggleTheme}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-black'}`}
+          >
+            {theme.isDayTime ? '🌙' : '☀️'}
+          </button>
           <button
             onClick={() => setIsLoginModalOpen(true)}
-            className={`px-5 py-2.5 rounded-lg font-medium transition-all ${theme.isDayTime ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-wide transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)]"
           >
             Sign In
           </button>
         </div>
       </div>
-    </div>
-  </header>
-));
-
-// Individual Sponsor Item Component untuk effect hover yang independen
-const SponsorItem = memo(({ 
-  sponsor, 
-  index, 
-  themeColors, 
-  isPaused,
-  onMouseEnter,
-  onMouseLeave 
-}: { 
-  sponsor: any; 
-  index: number; 
-  themeColors: any;
-  isPaused: boolean;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <div 
-      key={`sponsor-${index}`}
-      className="flex-shrink-0 w-44 h-20 flex items-center justify-center"
-      onMouseEnter={() => {
-        setIsHovered(true);
-        onMouseEnter();
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        onMouseLeave();
-      }}
-    >
-      <div className={`
-        relative w-full h-full flex items-center justify-center p-6 rounded-xl 
-        transition-all duration-300 
-        ${themeColors.bgLight} 
-        ${isPaused ? 'opacity-100' : 'opacity-80 hover:opacity-100'}
-        ${isHovered ? 'scale-110 shadow-2xl z-10 translate-y-[-5px]' : 'hover:scale-105 hover:shadow-lg'}
-      `}>
-        <Image
-          src={sponsor.logo}
-          alt={sponsor.name}
-          width={140}
-          height={56}
-          className="object-contain"
-        />
-      </div>
-    </div>
+    </header>
   );
 });
 
-// Sponsors Marquee Component dengan animasi horizontal dan pembagian per baris
-const SponsorsMarquee = memo(({ theme, themeColors }: { theme: Theme; themeColors: any }) => {
-  const [pausedRows, setPausedRows] = useState([false, false, false]);
-  const rowRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
+// ==========================================
+// 6. GLOBAL FOOTER & MODAL
+// ==========================================
 
-  const handleRowHover = useCallback((rowIndex: number, isHovered: boolean) => {
-    setPausedRows(prev => {
-      const newPaused = [...prev];
-      newPaused[rowIndex] = isHovered;
-      return newPaused;
-    });
-  }, []);
-
+const Footer = memo(({ theme }: any) => {
+  const isDark = !theme.isDayTime;
   return (
-    <section className="py-12 border-y ${themeColors.border} overflow-hidden">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-10">
-          <h3 className={`text-lg font-semibold ${themeColors.text} mb-2`}>
-            Trusted by industry leaders
-          </h3>
-          <p className={`text-sm ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>
-            Partnered with the world's most innovative companies
-          </p>
-        </div>
-        
-        {/* Row 1 - Bergerak ke kanan (Gemini, ChatGPT, Microsoft, Google Cloud) */}
-        <div 
-          ref={rowRefs[0]}
-          className="flex mb-8 relative"
-          onMouseEnter={() => handleRowHover(0, true)}
-          onMouseLeave={() => handleRowHover(0, false)}
-        >
-          <div className={`flex space-x-16 ${pausedRows[0] ? 'animate-pause' : 'animate-marquee-right'}`}>
-            {duplicatedSponsorRows[0].map((sponsor, index) => (
-              <SponsorItem
-                key={`row1-${index}`}
-                sponsor={sponsor}
-                index={index}
-                themeColors={themeColors}
-                isPaused={pausedRows[0]}
-                onMouseEnter={() => handleRowHover(0, true)}
-                onMouseLeave={() => handleRowHover(0, false)}
-              />
-            ))}
+    <footer className={`py-12 px-6 border-t ${isDark ? 'bg-black border-white/10 text-white' : 'bg-white border-gray-200 text-black'}`}>
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="flex items-center gap-4">
+          <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-white/20 shadow-md grayscale hover:grayscale-0 transition-all">
+             <Image src="/TechMaven.png" alt="Footer Logo" fill className="object-contain p-1" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold tracking-tight text-lg">SIMKAR</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest">Built with Waterfall</span>
           </div>
         </div>
-
-        {/* Row 2 - Bergerak ke kiri (AWS, Slack, Notion, Figma) */}
-        <div 
-          ref={rowRefs[1]}
-          className="flex mb-8 relative"
-          onMouseEnter={() => handleRowHover(1, true)}
-          onMouseLeave={() => handleRowHover(1, false)}
-        >
-          <div className={`flex space-x-16 ${pausedRows[1] ? 'animate-pause' : 'animate-marquee-left'}`}>
-            {duplicatedSponsorRows[1].map((sponsor, index) => (
-              <SponsorItem
-                key={`row2-${index}`}
-                sponsor={sponsor}
-                index={index}
-                themeColors={themeColors}
-                isPaused={pausedRows[1]}
-                onMouseEnter={() => handleRowHover(1, true)}
-                onMouseLeave={() => handleRowHover(1, false)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Row 3 - Bergerak ke kanan (OpenAI, GitHub, Vercel, Tailwind) */}
-        <div 
-          ref={rowRefs[2]}
-          className="flex relative"
-          onMouseEnter={() => handleRowHover(2, true)}
-          onMouseLeave={() => handleRowHover(2, false)}
-        >
-          <div className={`flex space-x-16 ${pausedRows[2] ? 'animate-pause' : 'animate-marquee-right'}`}>
-            {duplicatedSponsorRows[2].map((sponsor, index) => (
-              <SponsorItem
-                key={`row3-${index}`}
-                sponsor={sponsor}
-                index={index}
-                themeColors={themeColors}
-                isPaused={pausedRows[2]}
-                onMouseEnter={() => handleRowHover(2, true)}
-                onMouseLeave={() => handleRowHover(2, false)}
-              />
-            ))}
-          </div>
-        </div>
+        <p className="text-xs text-gray-500">© 2024 TechMaven. All Requirements Met.</p>
       </div>
-    </section>
+    </footer>
   );
 });
 
-// New Hero Section with modern layout
-const HeroSection = memo(({ 
-  theme, 
-  displayedText, 
-  themeColors, 
-  heroRef, 
-  scrollProgress 
-}: { 
-  theme: Theme;
-  displayedText: string;
-  themeColors: any;
-  heroRef: React.RefObject<HTMLDivElement | null>;
-  scrollProgress: number;
-}) => {
-  const heroTextOpacity = Math.max(1 - scrollProgress * 1.5, 0);
-  const heroTextTranslateY = scrollProgress * 40;
-  
+const LoginModal = ({ isOpen, onClose, selectedRole, onFastLogin, loginError, credentials, setCredentials, handleLogin, isLoggingIn, theme }: any) => {
+  if (!isOpen) return null;
+  const isDark = !theme.isDayTime;
+
   return (
-    <section 
-      ref={heroRef}
-      className="relative pt-24 pb-20 md:pt-32 md:pb-28 overflow-hidden"
-      style={{
-        background: theme.isDayTime 
-          ? 'linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 50%, #f0f4ff 100%)'
-          : 'linear-gradient(135deg, #0a0f1f 0%, #0d1429 50%, #0c1120 100%)'
-      }}
-    >
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className={`absolute -top-40 -right-40 w-80 h-80 rounded-full ${theme.isDayTime ? 'bg-blue-200/30' : 'bg-blue-900/10'}`}></div>
-        <div className={`absolute top-60 -left-20 w-60 h-60 rounded-full ${theme.isDayTime ? 'bg-purple-200/30' : 'bg-blue-800/10'}`}></div>
-        <div className={`absolute bottom-20 right-1/4 w-40 h-40 rounded-full ${theme.isDayTime ? 'bg-green-200/20' : 'bg-blue-700/10'}`}></div>
-      </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-fade-in" onClick={onClose}></div>
+      <div className={`relative w-full max-w-4xl h-[600px] rounded-3xl shadow-2xl overflow-hidden flex animate-scale-up ${isDark ? 'bg-[#0F0F0F] border border-white/10' : 'bg-white border border-gray-200'}`}>
+        <div className="hidden md:flex w-1/2 bg-blue-600 relative items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-900"></div>
+          <AssetRing className="w-64 h-64 opacity-50 text-white" />
+          <div className="relative z-10 text-center p-8 text-white">
+            <h3 className="text-3xl font-black mb-2">SIMKAR</h3>
+            <p className="text-blue-100 text-sm">Secure Gateway Access</p>
+          </div>
+        </div>
+        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center relative">
+          <button onClick={onClose} className="absolute top-6 right-6 text-gray-500 hover:text-red-500 transition-colors">✕</button>
+          
+          <div className="mb-8">
+            <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{selectedRole ? `Login: ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}` : 'Welcome Back'}</h2>
+            <p className="text-xs text-gray-500">Enter your credentials to access the system.</p>
+          </div>
 
-      <div className="container relative mx-auto px-6 z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <div 
-            className="transition-all duration-300"
-            style={{
-              opacity: heroTextOpacity,
-              transform: `translateY(${heroTextTranslateY}px)`
-            }}
-          >
-            {/* Badge */}
-            <div className={`inline-flex items-center px-4 py-2 rounded-full ${theme.isDayTime ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/30 text-blue-200'} text-sm font-medium mb-8`}>
-              <span className={`w-2 h-2 rounded-full mr-2 ${theme.isDayTime ? 'bg-blue-600' : 'bg-blue-400'}`}></span>
-              Trusted by 500+ companies worldwide
+          {loginError && <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold rounded-lg flex items-center gap-2">⚠️ {loginError}</div>}
+
+          <div className="space-y-5">
+            <div className="group">
+              <label className="text-[10px] font-bold text-blue-500 tracking-wider uppercase mb-1 block">Username</label>
+              <input type="text" value={credentials.username} onChange={e => setCredentials({...credentials, username: e.target.value})} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all font-medium text-sm ${isDark ? 'bg-black border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-black'}`} placeholder="Ex: supervisor" />
             </div>
-
-            {/* Main Headline */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight">
-              <span className="block text-gray-900" style={{ fontFamily: "'Inter', sans-serif" }}>
-                {displayedText || "Welcome to TechMaven Portal"}
-              </span>
-              <span className="block text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mt-4">
-                Employee Monitoring System
-              </span>
-            </h1>
-
-            {/* Subheadline */}
-            <p className={`text-xl md:text-2xl ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} max-w-3xl mx-auto mb-12 leading-relaxed`}>
-              A comprehensive platform for tracking employee performance, managing projects, and optimizing team productivity across your organization.
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-              <button
-                onClick={() => {
-                  const event = new CustomEvent('openLoginModal', { detail: 'employee' });
-                  window.dispatchEvent(event);
-                }}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all transform hover:-translate-y-1 text-lg font-medium shadow-lg hover:shadow-xl"
-              >
-                Start Free Trial
-              </button>
-              <button className={`px-8 py-4 ${theme.isDayTime ? 'bg-white text-gray-800' : 'bg-gray-800 text-white'} rounded-xl border-2 ${theme.isDayTime ? 'border-gray-300 hover:border-blue-500' : 'border-gray-700 hover:border-blue-400'} transition-colors text-lg font-medium flex items-center justify-center gap-3`}>
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-                Watch Demo Video
-              </button>
+            <div className="group">
+              <label className="text-[10px] font-bold text-blue-500 tracking-wider uppercase mb-1 block">Password</label>
+              <input type="password" value={credentials.password} onChange={e => setCredentials({...credentials, password: e.target.value})} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all font-medium text-sm ${isDark ? 'bg-black border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-black'}`} placeholder="••••••••" />
             </div>
+            <button onClick={handleLogin} disabled={isLoggingIn} className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-blue-600/20 text-sm tracking-wide">{isLoggingIn ? 'Authenticating...' : 'SECURE LOGIN'}</button>
+          </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
-              {[
-                { value: "99.9%", label: "Uptime" },
-                { value: "500+", label: "Companies" },
-                { value: "50K+", label: "Users" },
-                { value: "24/7", label: "Support" }
-              ].map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className={`text-3xl font-bold ${theme.isDayTime ? 'text-gray-900' : 'text-white'} mb-2`}>
-                    {stat.value}
-                  </div>
-                  <div className={theme.isDayTime ? 'text-gray-700' : 'text-gray-400'}>
-                    {stat.label}
-                  </div>
-                </div>
+          <div className="mt-8 pt-6 border-t border-dashed border-gray-700/20">
+            <p className="text-[10px] text-center text-gray-500 mb-4 uppercase tracking-widest">Developer Quick Access</p>
+            <div className="flex gap-2 justify-center flex-wrap">
+              {availableUsers.map(u => (
+                <button key={u.id} onClick={() => onFastLogin(u)} className={`px-3 py-1.5 text-[10px] font-bold border rounded-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-colors uppercase ${isDark ? 'border-white/10 text-gray-400' : 'border-gray-200 text-gray-600'}`}>{u.role}</button>
               ))}
             </div>
           </div>
         </div>
       </div>
-    </section>
-  );
-});
-
-// New Features Section with enhanced cards
-const FeaturesSection = memo(({ 
-  themeColors, 
-  handleOpenLoginModal,
-  theme
-}: { 
-  themeColors: any;
-  handleOpenLoginModal: (role: 'supervisor' | 'pm' | 'employee') => void;
-  theme: Theme;
-}) => (
-  <section id="features" className="py-20">
-    <div className="container mx-auto px-6">
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <h2 className="text-4xl md:text-5xl font-bold mb-6">
-          <span className="text-gray-900">Built for Every Role in Your</span>
-          <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Organization</span>
-        </h2>
-        <p className={`text-xl ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>
-          Tailored solutions for supervisors, project managers, and employees to optimize workflow and productivity.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Supervisor Card */}
-        <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-8 hover:transform hover:-translate-y-2 transition-all duration-300`}>
-          <div className={`w-16 h-16 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold mb-6`}>
-            SV
-          </div>
-          <div className={`inline-flex items-center px-3 py-1 rounded-full ${theme.isDayTime ? 'bg-purple-100 text-purple-800' : 'bg-purple-900/30 text-purple-200'} text-xs font-medium mb-4`}>
-            Executive Level
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Supervisor</h3>
-          <p className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} mb-6`}>
-            Complete oversight across all departments with advanced analytics and reporting capabilities.
-          </p>
-          
-          <div className="space-y-3 mb-8">
-            {[
-              "Company-wide performance dashboards",
-              "Advanced analytics & forecasting",
-              "124+ employees management"
-            ].map((feature, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme.isDayTime ? 'bg-purple-100' : 'bg-purple-900/30'}`}>
-                  <svg className={`w-3 h-3 ${theme.isDayTime ? 'text-purple-600' : 'text-purple-400'}`} fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                  </svg>
-                </div>
-                <span className={`text-sm ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>{feature}</span>
-              </div>
-            ))}
-          </div>
-          
-          <button
-            onClick={() => handleOpenLoginModal('supervisor')}
-            className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all font-medium flex items-center justify-center gap-2"
-          >
-            Login as Supervisor
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </button>
-        </div>
-        
-        {/* PM Card */}
-        <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-8 hover:transform hover:-translate-y-2 transition-all duration-300`}>
-          <div className={`w-16 h-16 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold mb-6`}>
-            PM
-          </div>
-          <div className={`inline-flex items-center px-3 py-1 rounded-full ${theme.isDayTime ? 'bg-blue-100 text-blue-800' : 'bg-blue-900/30 text-blue-200'} text-xs font-medium mb-4`}>
-            Management Level
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Project Manager</h3>
-          <p className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} mb-6`}>
-            Streamline project workflows, track team performance, and meet deadlines efficiently.
-          </p>
-          
-          <div className="space-y-3 mb-8">
-            {[
-              "Department-specific monitoring",
-              "Team performance tracking",
-              "25 team members capacity"
-            ].map((feature, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme.isDayTime ? 'bg-blue-100' : 'bg-blue-900/30'}`}>
-                  <svg className={`w-3 h-3 ${theme.isDayTime ? 'text-blue-600' : 'text-blue-400'}`} fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                  </svg>
-                </div>
-                <span className={`text-sm ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>{feature}</span>
-              </div>
-            ))}
-          </div>
-          
-          <button
-            onClick={() => handleOpenLoginModal('pm')}
-            className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium flex items-center justify-center gap-2"
-          >
-            Login as Project Manager
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </button>
-        </div>
-        
-        {/* Employee Card */}
-        <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-8 hover:transform hover:-translate-y-2 transition-all duration-300`}>
-          <div className={`w-16 h-16 rounded-xl bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center text-white text-2xl font-bold mb-6`}>
-            E
-          </div>
-          <div className={`inline-flex items-center px-3 py-1 rounded-full ${theme.isDayTime ? 'bg-green-100 text-green-800' : 'bg-green-900/30 text-green-200'} text-xs font-medium mb-4`}>
-            Team Member
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Employee</h3>
-          <p className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} mb-6`}>
-            Personal productivity dashboard with task management and performance insights.
-          </p>
-          
-          <div className="space-y-3 mb-8">
-            {[
-              "Personal dashboard & task management",
-              "Time tracking & attendance",
-              "Performance review access"
-            ].map((feature, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme.isDayTime ? 'bg-green-100' : 'bg-green-900/30'}`}>
-                  <svg className={`w-3 h-3 ${theme.isDayTime ? 'text-green-600' : 'text-green-400'}`} fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                  </svg>
-                </div>
-                <span className={`text-sm ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'}`}>{feature}</span>
-              </div>
-            ))}
-          </div>
-          
-          <button
-            onClick={() => handleOpenLoginModal('employee')}
-            className="w-full py-3.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-medium flex items-center justify-center gap-2"
-          >
-            Login as Employee
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </button>
-        </div>
-      </div>
     </div>
-  </section>
-));
-
-// New Footer Component dengan logo TechMaven
-const Footer = memo(({ themeColors, theme }: { themeColors: any; theme: Theme }) => (
-  <footer className={`${themeColors.bg} border-t ${themeColors.border} py-12`}>
-    <div className="container mx-auto px-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-        {/* Company Info dengan Logo - BACKGROUND SESUAI THEME */}
-        <div>
-          <div className="flex items-center space-x-2 mb-6">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden ${
-              theme.isDayTime ? 'bg-white' : 'bg-gray-900'
-            }`}>
-              <Image 
-                src="/TechMaven.png" 
-                alt="TechMaven Logo" 
-                width={40} 
-                height={40}
-                className="object-contain"
-              />
-            </div>
-            <span className={`text-xl font-bold ${themeColors.text}`}>TechMaven</span>
-          </div>
-          <p className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} text-sm mb-6`}>
-            Empowering organizations with intelligent employee monitoring and performance management solutions.
-          </p>
-          <div className="flex space-x-4">
-            <a href="#" className={`w-10 h-10 rounded-full ${themeColors.bgLight} flex items-center justify-center ${themeColors.text} hover:text-blue-600 transition-colors`}>
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-              </svg>
-            </a>
-            <a href="#" className={`w-10 h-10 rounded-full ${themeColors.bgLight} flex items-center justify-center ${themeColors.text} hover:text-blue-600 transition-colors`}>
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-              </svg>
-            </a>
-          </div>
-        </div>
-
-        {/* Product Links */}
-        <div>
-          <h4 className={`font-bold ${themeColors.text} mb-6`}>Product</h4>
-          <ul className="space-y-3">
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Features</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Pricing</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>API</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Documentation</a></li>
-          </ul>
-        </div>
-
-        {/* Company Links */}
-        <div>
-          <h4 className={`font-bold ${themeColors.text} mb-6`}>Company</h4>
-          <ul className="space-y-3">
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>About</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Careers</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Blog</a></li>
-            <li><a href="#" className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} hover:text-blue-600 transition-colors text-sm`}>Press</a></li>
-          </ul>
-        </div>
-
-        {/* Contact Info */}
-        <div>
-          <h4 className={`font-bold ${themeColors.text} mb-6`}>Contact</h4>
-          <ul className="space-y-3">
-            <li className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} text-sm`}>support@techmaven.com</li>
-            <li className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} text-sm`}>+1 (555) 123-4567</li>
-            <li className={`${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} text-sm`}>123 Tech Street, San Francisco, CA</li>
-          </ul>
-          <div className="mt-8">
-            <p className={`${theme.isDayTime ? 'text-gray-600' : 'text-gray-400'} text-xs`}>© 2024 TechMaven. All rights reserved.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </footer>
-));
-
-export default function LandingPage() {
-  // Handle login
-  const { login } = useUser();
-  const [theme, setTheme] = useState<Theme>({
-    isDayTime: true,
-    backgroundImage: "/backgroundDay.jpg",
-    theme: 'light'
-  });
-  
-  // Login modal state
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'supervisor' | 'pm' | 'employee' | null>(null);
-  const [loginTab, setLoginTab] = useState<'login' | 'register'>('login');
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
-  const [registerData, setRegisterData] = useState({ 
-    name: '', 
-    email: '', 
-    username: '', 
-    password: '', 
-    confirmPassword: '' 
-  });
-  const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  
-  // Typing effect state
-  const [displayedText, setDisplayedText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [loopIndex, setLoopIndex] = useState(0);
-  const [typingSpeed, setTypingSpeed] = useState(150);
-  
-  const heroRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
-
-  // Greeting texts
-  const greetingTexts = [
-    "Welcome to TechMaven Portal",
-    "Employee Monitoring System",
-    "Please login to continue"
-  ];
-
-  // Typing animation effect
-  useEffect(() => {
-    if (greetingTexts.length === 0) return;
-    
-    const currentText = greetingTexts[loopIndex];
-    
-    const timer = setTimeout(() => {
-      if (!isDeleting) {
-        setDisplayedText(currentText.substring(0, displayedText.length + 1));
-        if (displayedText === currentText) {
-          setTimeout(() => setIsDeleting(true), 2000);
-          setTypingSpeed(80);
-        }
-      } else {
-        setDisplayedText(currentText.substring(0, displayedText.length - 1));
-        if (displayedText === "") {
-          setIsDeleting(false);
-          setLoopIndex((prev) => (prev + 1) % greetingTexts.length);
-          setTypingSpeed(150);
-        }
-      }
-    }, typingSpeed);
-    
-    return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, loopIndex, typingSpeed, greetingTexts]);
-
-  // Fungsi untuk tema
-  const toggleTheme = useCallback(() => {
-    const newIsDayTime = !theme.isDayTime;
-    const newTheme = {
-      isDayTime: newIsDayTime,
-      backgroundImage: newIsDayTime ? "/backgroundDay.jpg" : "/backgroundNight.jpg",
-      theme: newIsDayTime ? 'light' : 'dark' as 'light' | 'dark'
-    };
-    setTheme(newTheme);
-    localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
-  }, [theme.isDayTime]);
-
-  // Handle open login modal
-  const handleOpenLoginModal = (role: 'supervisor' | 'pm' | 'employee') => {
-    setSelectedRole(role);
-    setIsLoginModalOpen(true);
-    setLoginTab('login');
-    setCredentials({ username: '', password: '' });
-    setRegisterData({ name: '', email: '', username: '', password: '', confirmPassword: '' });
-    setLoginError('');
-  };
-
-  
-
-  const handleLogin = async () => {
-    setLoginError('');
-    setIsLoggingIn(true);
-    
-    try {
-      const success = await login(credentials.username, credentials.password);
-      
-      if (success) {
-        setIsLoginModalOpen(false);
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 100);
-      } else {
-        setLoginError('Invalid username or password');
-        setIsLoggingIn(false);
-      }
-    } catch (error: any) {
-      setLoginError(error.response?.data?.message || 'Login failed');
-      setIsLoggingIn(false);
-    }
-  };
-
-  // Handle fast access login
-  const handleFastAccessLogin = (user: User) => {
-    // Check if role matches (optional validation)
-    if (selectedRole && user.role !== selectedRole) {
-      setLoginError(`This is a ${user.role} account. Please select the correct role.`);
-      return;
-    }
-
-    const { password, ...userWithoutPassword } = user;
-    
-    setIsLoggingIn(true);
-    
-    // Save to sessionStorage (per-tab) instead of localStorage for multi-tab support
-    sessionStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-    // Keep in localStorage as fallback for new tabs
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-    
-    // Dispatch event
-    window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
-    
-    // Close modal
-    setIsLoginModalOpen(false);
-    
-    // Redirect to dashboard
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 100);
-  };
-
-  // Handle register (placeholder - you can implement later)
-  const handleRegister = () => {
-    if (registerData.password !== registerData.confirmPassword) {
-      setLoginError('Passwords do not match');
-      return;
-    }
-    
-    if (!registerData.name || !registerData.email || !registerData.username || !registerData.password) {
-      setLoginError('Please fill in all fields');
-      return;
-    }
-    
-    // Placeholder for registration logic
-    setLoginError('Registration feature coming soon!');
-  };
-
-  // Handle key press
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      if (loginTab === 'login') {
-        handleLogin();
-      } else {
-        handleRegister();
-      }
-    }
-  };
-
-  // Load tema dari localStorage
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('selectedTheme');
-    if (savedTheme) {
-      const parsedTheme = JSON.parse(savedTheme);
-      setTheme({
-        ...parsedTheme,
-        theme: parsedTheme.theme as 'light' | 'dark'
-      });
-    }
-
-    const handleScroll = () => {
-      if (heroRef.current) {
-        const heroHeight = heroRef.current.offsetHeight;
-        const scrollPosition = window.scrollY;
-        const progress = Math.min(scrollPosition / (heroHeight * 0.7), 1);
-        setScrollProgress(progress);
-      }
-    };
-    
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-    
-    // Listen for custom openLoginModal event
-    const handleOpenLoginModalEvent = (e: any) => {
-      handleOpenLoginModal(e.detail || 'employee');
-    };
-    
-    window.addEventListener('openLoginModal', handleOpenLoginModalEvent);
-    
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener('openLoginModal', handleOpenLoginModalEvent);
-    };
-  }, []);
-
-  // Theme colors untuk landing page - UPDATED untuk day mode dengan warna lebih gelap
-  const themeColors = theme.isDayTime ? {
-    bg: "bg-white",
-    text: "text-gray-900", // Hitam untuk teks utama
-    navLink: "text-gray-700 hover:text-blue-600", // Abu-abu gelap untuk navigasi
-    textLight: "text-gray-700", // Abu-abu gelap untuk teks sekunder
-    textLighter: "text-gray-600", // Abu-abu sedang untuk teks tersier
-    border: "border-gray-200",
-    borderLight: "border-gray-100",
-    bgLight: "bg-gray-50",
-    cardBg: "bg-white",
-    shadow: "shadow-lg",
-    heroText: "text-white",
-    heroSubtext: "text-gray-200",
-  } : {
-    bg: "bg-gray-900",
-    text: "text-gray-100",
-    navLink: "text-gray-300 hover:text-blue-400",
-    textLight: "text-gray-300",
-    textLighter: "text-gray-400",
-    border: "border-gray-700",
-    borderLight: "border-gray-800",
-    bgLight: "bg-gray-800",
-    cardBg: "bg-gray-800",
-    shadow: "shadow-lg shadow-black/30",
-    heroText: "text-white",
-    heroSubtext: "text-gray-300",
-  };
-
-  // Get role display info
-  const getRoleDisplayInfo = () => {
-    if (!selectedRole) return { title: 'Login', color: 'blue', icon: 'L' };
-    
-    const roleInfo: Record<'supervisor' | 'pm' | 'employee', { title: string; color: string; icon: string }> = {
-      supervisor: { title: 'Supervisor Login', color: 'purple', icon: 'SV' },
-      pm: { title: 'Project Manager Login', color: 'blue', icon: 'PM' },
-      employee: { title: 'Employee Login', color: 'green', icon: 'E' }
-    };
-    
-    return roleInfo[selectedRole];
-  };
-
-  return (
-    <>
-      <GlobalStyles theme={theme} />
-      
-      <HeaderNav 
-        themeColors={themeColors} 
-        setIsLoginModalOpen={setIsLoginModalOpen}
-        theme={theme}
-        toggleTheme={toggleTheme}
-      />
-      
-      <HeroSection 
-        theme={theme}
-        displayedText={displayedText}
-        themeColors={themeColors}
-        heroRef={heroRef}
-        scrollProgress={scrollProgress}
-      />
-      
-      {/* Sponsors Marquee Section */}
-      <SponsorsMarquee theme={theme} themeColors={themeColors} />
-      
-      <FeaturesSection 
-        themeColors={themeColors}
-        handleOpenLoginModal={handleOpenLoginModal}
-        theme={theme}
-      />
-      
-      {/* Additional Sections can be added here */}
-      <section className={`py-20 ${themeColors.bgLight}`}>
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-8">
-            <span className="text-gray-900">Ready to transform your</span>
-            <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">workplace productivity?</span>
-          </h2>
-          <p className={`text-xl ${theme.isDayTime ? 'text-gray-700' : 'text-gray-300'} max-w-2xl mx-auto mb-12`}>
-            Join thousands of companies that trust TechMaven for their employee monitoring and performance management needs.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <button
-              onClick={() => setIsLoginModalOpen(true)}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all transform hover:-translate-y-1 text-lg font-medium shadow-lg hover:shadow-xl"
-            >
-              Start Your Free Trial
-            </button>
-            <button className={`px-8 py-4 ${theme.isDayTime ? 'bg-white text-gray-800' : 'bg-gray-800 text-white'} rounded-xl border-2 ${theme.isDayTime ? 'border-gray-300 hover:border-blue-500' : 'border-gray-700 hover:border-blue-400'} transition-colors text-lg font-medium`}>
-              Schedule a Demo
-            </button>
-          </div>
-        </div>
-      </section>
-      
-      <Footer themeColors={themeColors} theme={theme} />
-      
-      {/* Login Modal */}
-      {isLoginModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                    {selectedRole && (
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${
-                        selectedRole === 'supervisor' ? 'from-purple-500 to-purple-600' :
-                        selectedRole === 'pm' ? 'from-blue-500 to-blue-600' : 'from-green-500 to-green-600'
-                      } flex items-center justify-center text-white text-sm font-bold`}>
-                        {getRoleDisplayInfo().icon}
-                      </div>
-                    )}
-                    <span>{getRoleDisplayInfo().title}</span>
-                  </h2>
-                  <p className="text-sm text-gray-700 mt-1">
-                    {selectedRole 
-                      ? `Login as ${selectedRole === 'pm' ? 'Project Manager' : selectedRole}`
-                      : 'Login to your account'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsLoginModalOpen(false);
-                    setSelectedRole(null);
-                    setLoginError('');
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-full text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-lg">
-                <button
-                  onClick={() => {
-                    setLoginTab('login');
-                    setLoginError('');
-                  }}
-                  className={`flex-1 py-2 px-4 rounded-md transition-all ${
-                    loginTab === 'login'
-                      ? 'bg-white text-blue-600 shadow-sm font-medium'
-                      : 'text-gray-700 hover:text-gray-900'
-                  }`}
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => {
-                    setLoginTab('register');
-                    setLoginError('');
-                  }}
-                  className={`flex-1 py-2 px-4 rounded-md transition-all ${
-                    loginTab === 'register'
-                      ? 'bg-white text-blue-600 shadow-sm font-medium'
-                      : 'text-gray-700 hover:text-gray-900'
-                  }`}
-                >
-                  Register
-                </button>
-              </div>
-
-              {loginError && (
-                <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                  {loginError}
-                </div>
-              )}
-
-              {/* Login Tab */}
-              {loginTab === 'login' ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      value={credentials.username}
-                      onChange={(e) => setCredentials({...credentials, username: e.target.value})}
-                      onKeyPress={handleKeyPress}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      placeholder="Enter username"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      value={credentials.password}
-                      onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-                      onKeyPress={handleKeyPress}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      placeholder="Enter password"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleLogin}
-                    disabled={isLoggingIn}
-                    className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isLoggingIn ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Logging in...
-                      </>
-                    ) : (
-                      'Login'
-                    )}
-                  </button>
-
-                  {/* Divider */}
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-200"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-4 bg-white text-gray-700">Or fast access</span>
-                    </div>
-                  </div>
-
-                  {/* Fast Access Accounts */}
-                  <div className="space-y-3">
-                    <p className="text-sm text-gray-700 font-medium">Available Accounts:</p>
-                    {availableUsers
-                      .filter(user => !selectedRole || user.role === selectedRole)
-                      .map((user) => (
-                        <div
-                          key={user.id}
-                          className="flex items-center gap-4 p-3 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all group"
-                          onClick={() => handleFastAccessLogin(user)}
-                        >
-                          <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${user.color} flex items-center justify-center text-white text-lg font-bold flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                            {user.initials}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900 group-hover:text-blue-700">{user.name}</p>
-                            <p className="text-sm text-gray-700 capitalize">{user.role} • {user.department}</p>
-                          </div>
-                          <div className="text-blue-600 font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                            Login →
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  {selectedRole && (
-                    <button
-                      onClick={() => setSelectedRole(null)}
-                      className="w-full text-sm text-gray-700 hover:text-gray-900 mt-4"
-                    >
-                      View all accounts
-                    </button>
-                  )}
-                </div>
-              ) : (
-                /* Register Tab */
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={registerData.name}
-                      onChange={(e) => setRegisterData({...registerData, name: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      placeholder="Enter your full name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={registerData.email}
-                      onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      placeholder="Enter your email"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      value={registerData.username}
-                      onChange={(e) => setRegisterData({...registerData, username: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      placeholder="Choose a username"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      value={registerData.password}
-                      onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      placeholder="Create a password"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      value={registerData.confirmPassword}
-                      onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
-                      onKeyPress={handleKeyPress}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      placeholder="Confirm your password"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleRegister}
-                    className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Register
-                  </button>
-
-                  <p className="text-xs text-gray-700 text-center mt-4">
-                    By registering, you agree to our Terms of Service and Privacy Policy
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Loading Overlay */}
-      {isLoggingIn && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl p-8 shadow-2xl text-center">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-900 font-medium">Logging in...</p>
-            <p className="text-sm text-gray-700 mt-2">Please wait</p>
-          </div>
-        </div>
-      )}
-    </>
   );
-}
+};
+
+// ==========================================
+// 7. GLOBAL STYLES COMPONENT
+// ==========================================
 
 const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
   <style jsx global>{`
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
     
-    @font-face {
-      font-family: 'OCR A';
-      src: url('/fonts/OCRA.ttf') format('truetype');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
-    }
-    
-    html {
-      scroll-behavior: smooth;
-      font-family: 'Inter', sans-serif;
-    }
-    
-    ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: ${theme.isDayTime ? '#f1f1f1' : '#0a0f1f'};
-      border-radius: 5px;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: ${theme.isDayTime ? '#c0c0c0' : '#1e293b'};
-      border-radius: 5px;
-      border: 2px solid ${theme.isDayTime ? '#f1f1f1' : '#0a0f1f'};
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: ${theme.isDayTime ? '#a8a8a8' : '#334155'};
-    }
-    
-    body {
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      background-color: ${theme.isDayTime ? 'white' : '#0a0f1f'};
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      transition: background-color 0.3s ease;
-      color: ${theme.isDayTime ? '#1f2937' : '#f3f4f6'};
-    }
-    
-    /* Marquee Animations */
-    @keyframes marquee-right {
-      0% {
-        transform: translateX(0);
-      }
-      100% {
-        transform: translateX(-50%);
-      }
-    }
-    
-    @keyframes marquee-left {
-      0% {
-        transform: translateX(-50%);
-      }
-      100% {
-        transform: translateX(0);
-      }
-    }
-    
-    .animate-marquee-right {
-      animation: marquee-right 30s linear infinite;
-    }
-    
-    .animate-marquee-left {
-      animation: marquee-left 30s linear infinite;
-    }
-    
-    .animate-pause {
-      animation-play-state: paused;
-    }
-    
-    /* Reduced motion preference */
-    @media (prefers-reduced-motion: reduce) {
-      .animate-marquee-right,
-      .animate-marquee-left {
-        animation: none;
-      }
-      
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
-    }
-    
-    /* Smooth transitions */
-    .transition-all {
-      transition-property: all;
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      transition-duration: 300ms;
-    }
-    
-    /* Gradient text */
-    .text-gradient {
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-    }
+    body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Animations */
+    @keyframes float-slow { 0%,100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
+    @keyframes float-medium { 0%,100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-15px) rotate(-5deg); } }
+    @keyframes float-fast { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes scaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pulse-slow { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.5; } }
+
+    .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+    .animate-float-medium { animation: float-medium 6s ease-in-out infinite; }
+    .animate-float-fast { animation: float-fast 4s ease-in-out infinite; }
+    .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+    .animate-blink { animation: blink 1s step-end infinite; }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+    .animate-scale-up { animation: scaleUp 0.3s ease-out forwards; }
+    .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+    .will-change-transform { will-change: transform, opacity; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: ${theme.isDayTime ? '#f1f5f9' : '#050505'}; }
+    ::-webkit-scrollbar-thumb { background: #2563EB; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #1d4ed8; }
   `}</style>
 ));
+
+// ==========================================
+// 8. MAIN PAGE CONTROLLER
+// ==========================================
+
+export default function LandingPage() {
+  const { login } = useUser();
+  const [theme, setTheme] = useState<Theme>({ isDayTime: false, backgroundImage: "", theme: 'dark' });
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  
+  // Login State
+  const [selectedRole, setSelectedRole] = useState<'supervisor' | 'pm' | 'employee' | null>(null);
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Typing Effect
+  const [displayedText, setDisplayedText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [loopIndex, setLoopIndex] = useState(0);
+  const greetingTexts = ["Analisis Kebutuhan", "Manajemen Kehadiran", "Pelaporan Kerja"];
+  const heroRef = useRef(null);
+
+  // Typing logic
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const current = greetingTexts[loopIndex % greetingTexts.length];
+      if (!isDeleting) {
+        setDisplayedText(current.substring(0, displayedText.length + 1));
+        if (displayedText === current) { setTimeout(() => setIsDeleting(true), 2000); }
+      } else {
+        setDisplayedText(current.substring(0, displayedText.length - 1));
+        if (displayedText === "") { setIsDeleting(false); setLoopIndex(i => i + 1); }
+      }
+    }, isDeleting ? 50 : 100);
+    return () => clearTimeout(timer);
+  }, [displayedText, isDeleting, loopIndex]);
+
+  // Event Listeners
+  useEffect(() => {
+    const handleLoginEvent = (e: any) => {
+      setSelectedRole(e.detail || null);
+      setIsLoginModalOpen(true);
+    };
+    window.addEventListener('openLoginModal', handleLoginEvent);
+    return () => window.removeEventListener('openLoginModal', handleLoginEvent);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => ({ ...prev, isDayTime: !prev.isDayTime, theme: !prev.isDayTime ? 'light' : 'dark' }));
+  }, []);
+
+  const handleLoginAction = async () => {
+    setLoginError(''); setIsLoggingIn(true);
+    try {
+      const success = await login(credentials.username, credentials.password);
+      if (success) { setIsLoginModalOpen(false); window.location.href = '/dashboard'; }
+      else { setLoginError('Invalid credentials'); }
+    } catch (e) { setLoginError('Login error'); }
+    setIsLoggingIn(false);
+  };
+
+  const handleFastAccessLogin = (user: User) => {
+    sessionStorage.setItem('currentUser', JSON.stringify(user));
+    window.location.href = '/dashboard';
+  };
+
+  const themeColors = theme.isDayTime ? { text: "text-black" } : { text: "text-white" };
+
+  return (
+    <div className={`min-h-screen font-sans ${theme.isDayTime ? 'bg-gray-50 text-gray-900' : 'bg-[#050505] text-white'} transition-colors duration-500 selection:bg-blue-500 selection:text-white`}>
+      <GlobalStyles theme={theme} />
+      
+      {/* HEADER NAV BERFUNGSI SEBAGAI SCROLL ANCHOR */}
+      <HeaderNav 
+        theme={theme} 
+        toggleTheme={toggleTheme} 
+        setIsLoginModalOpen={() => { setSelectedRole(null); setIsLoginModalOpen(true); }} 
+        themeColors={themeColors} 
+      />
+
+      {/* SINGLE SCROLLABLE PAGE (ALL SECTIONS) */}
+      <main className="w-full">
+        <OverviewView theme={theme} displayedText={displayedText} heroRef={heroRef} />
+        <FeaturesView theme={theme} />
+        <PortfolioView theme={theme} />
+        <ContactView theme={theme} />
+      </main>
+      
+      <Footer theme={theme} />
+
+      {/* GLOBAL LOGIN MODAL */}
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)}
+        selectedRole={selectedRole}
+        onFastLogin={handleFastAccessLogin}
+        loginError={loginError}
+        credentials={credentials}
+        setCredentials={setCredentials}
+        handleLogin={handleLoginAction}
+        isLoggingIn={isLoggingIn}
+        theme={theme}
+      />
+    </div>
+  );
+}

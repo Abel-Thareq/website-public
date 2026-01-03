@@ -1073,8 +1073,9 @@ export default function AttendancePage() {
           
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-              <div className="flex items-center justify-between">
+            <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+              <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+              <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className={`text-sm ${themeColors.textLight}`}>Total {currentUser.role === 'employee' ? 'Days' : 'Employees'}</p>
                   <p className={`text-3xl font-bold ${themeColors.text} mt-2`}>{stats.total}</p>
@@ -1092,8 +1093,9 @@ export default function AttendancePage() {
               </div>
             </div>
             
-            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-              <div className="flex items-center justify-between">
+            <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+              <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+              <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className={`text-sm ${themeColors.textLight}`}>On Time</p>
                   <p className="text-3xl font-bold text-green-600 mt-2">{stats.onTime}</p>
@@ -1115,8 +1117,9 @@ export default function AttendancePage() {
               </div>
             </div>
             
-            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-              <div className="flex items-center justify-between">
+            <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+              <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+              <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className={`text-sm ${themeColors.textLight}`}>Late Arrivals</p>
                   <p className="text-3xl font-bold text-amber-600 mt-2">{stats.late}</p>
@@ -1132,8 +1135,9 @@ export default function AttendancePage() {
               </div>
             </div>
             
-            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-              <div className="flex items-center justify-between">
+            <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+              <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+              <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className={`text-sm ${themeColors.textLight}`}>Avg. Work Hours</p>
                   <p className="text-3xl font-bold text-purple-600 mt-2">{stats.averageWorkHours}h</p>
@@ -1153,7 +1157,8 @@ export default function AttendancePage() {
           </div>
           
           {/* Filters dan Controls */}
-          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8`}>
+          <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 mb-8 hover-lift group overflow-hidden relative`}>
+            <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 opacity-10 group-hover:opacity-20 transition-opacity" />
             <div className="flex flex-col md:flexRow justify-between items-start md:items-center gap-4">
               <div>
                 <h3 className={`text-lg font-semibold ${themeColors.text}`}>Attendance Records</h3>
@@ -1210,7 +1215,7 @@ export default function AttendancePage() {
           </div>
           
           {/* Attendance Table */}
-          <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden mb-8`}>
+          <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden mb-8 hover-lift group relative`}>
             <div className={`px-6 py-4 border-b ${themeColors.border} ${themeColors.bgLight}`}>
               <div className="flex items-center justify-between">
                 <div>
@@ -1418,8 +1423,9 @@ export default function AttendancePage() {
           {currentUser.role === 'employee' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Monthly Summary */}
-              <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-                <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Monthly Summary</h3>
+              <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+                <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+                <h3 className={`text-lg font-semibold ${themeColors.text} mb-6 relative z-10`}>📊 Monthly Summary</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className={`${themeColors.textLight}`}>Total Working Days</span>
@@ -1445,8 +1451,9 @@ export default function AttendancePage() {
               </div>
               
               {/* Request Time Off */}
-              <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-                <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Request Time Off</h3>
+              <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+                <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-r from-orange-400 to-pink-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+                <h3 className={`text-lg font-semibold ${themeColors.text} mb-6 relative z-10`}>🕐 Request Time Off</h3>
                 <div className="space-y-4">
                   <div>
                     <label className={`block text-sm font-medium ${themeColors.textLight} mb-2`}>Leave Type</label>
@@ -1483,8 +1490,9 @@ export default function AttendancePage() {
           
           {/* Quick Actions untuk Supervisor/PM */}
           {currentUser.role !== 'employee' && (
-            <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} p-6`}>
-              <h3 className={`text-lg font-semibold ${themeColors.text} mb-6`}>Quick Actions</h3>
+            <div className={`${themeColors.cardBg} rounded-2xl ${themeColors.shadow} border ${themeColors.border} p-6 hover-lift group overflow-hidden relative`}>
+              <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 opacity-10 group-hover:opacity-20 transition-opacity" />
+              <h3 className={`text-lg font-semibold ${themeColors.text} mb-6 relative z-10`}>⚡ Quick Actions</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <button className={`p-4 border ${themeColors.border} rounded-lg hover:${themeColors.bgLight} text-left`}>
                   <div className={`font-medium ${themeColors.text}`}>Send Attendance Report</div>
