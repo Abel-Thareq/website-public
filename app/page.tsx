@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, memo } from "react";
 import Image from "next/image";
 import { User } from "./types/user";
 import { useUser } from './providers/userProvider';
+import RegistrationModal from './components/registrationModal';
 
 // ==========================================
 // 1. TYPE DEFINITIONS & DATA
@@ -480,7 +481,7 @@ const ContactView = memo(({ theme }: any) => {
 // 5. GLOBAL HEADER (SCROLL SPY & NAV)
 // ==========================================
 
-const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme }: any) => {
+const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, setIsRegistrationModalOpen }: any) => {
   const [activeSection, setActiveSection] = useState('overview');
   const isDark = !theme.isDayTime;
 
@@ -555,6 +556,12 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme }
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-black'}`}
           >
             {theme.isDayTime ? '🌙' : '☀️'}
+          </button>
+          <button
+            onClick={() => setIsRegistrationModalOpen(true)}
+            className="px-6 py-2.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/50 text-purple-400 hover:text-purple-300 font-bold text-xs tracking-wide transition-all"
+          >
+            Register
           </button>
           <button
             onClick={() => setIsLoginModalOpen(true)}
@@ -693,6 +700,7 @@ export default function LandingPage() {
   const { login } = useUser();
   const [theme, setTheme] = useState<Theme>({ isDayTime: false, backgroundImage: "", theme: 'dark' });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   
   // Login State
   const [selectedRole, setSelectedRole] = useState<'supervisor' | 'pm' | 'employee' | null>(null);
@@ -761,7 +769,8 @@ export default function LandingPage() {
       <HeaderNav 
         theme={theme} 
         toggleTheme={toggleTheme} 
-        setIsLoginModalOpen={() => { setSelectedRole(null); setIsLoginModalOpen(true); }} 
+        setIsLoginModalOpen={() => { setSelectedRole(null); setIsLoginModalOpen(true); }}
+        setIsRegistrationModalOpen={() => setIsRegistrationModalOpen(true)}
         themeColors={themeColors} 
       />
 
@@ -786,6 +795,14 @@ export default function LandingPage() {
         setCredentials={setCredentials}
         handleLogin={handleLoginAction}
         isLoggingIn={isLoggingIn}
+        theme={theme}
+      />
+
+      {/* GLOBAL REGISTRATION MODAL */}
+      <RegistrationModal
+        isOpen={isRegistrationModalOpen}
+        onClose={() => setIsRegistrationModalOpen(false)}
+        onSuccess={() => {}}
         theme={theme}
       />
     </div>

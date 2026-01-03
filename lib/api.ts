@@ -254,4 +254,28 @@ export const workHoursApi = {
   },
 };
 
+// Pending Registration API
+export const pendingRegistrationApi = {
+  register: async (data: any) => {
+    const response = await api.post('/pending-register', data);
+    return response.data;
+  },
+  getPendingRegistrations: async () => {
+    const response = await api.get('/pending-registrations');
+    return response.data;
+  },
+  approvePendingRegistration: async (id: number) => {
+    const response = await api.post(`/pending-registrations/${id}/approve`);
+    return response.data;
+  },
+  rejectPendingRegistration: async (id: number, reason?: string) => {
+    const response = await api.post(`/pending-registrations/${id}/reject`, { reason });
+    return response.data;
+  },
+  getPendingCount: async () => {
+    const response = await api.get('/pending-registrations/count');
+    return response.data;
+  },
+};
+
 export default api;

@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useUser } from '../providers/userProvider';
+import PendingRegistrationModal from './pendingRegistrationModal';
+import { pendingRegistrationApi } from '../../lib/api';
 
 // Types
 interface User {
@@ -89,6 +91,8 @@ export default function NavigationBar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isPendingRegModalOpen, setIsPendingRegModalOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   
   // Theme state
   const [theme, setTheme] = useState<Theme>({
@@ -171,6 +175,25 @@ export default function NavigationBar() {
       window.removeEventListener('userChange', handleUserChange as EventListener);
     };
   }, []);
+
+  // Fetch pending count for supervisor
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== 'supervisor') return;
+
+    const fetchPendingCount = async () => {
+      try {
+        const data = await pendingRegistrationApi.getPendingCount();
+        setPendingCount(data.count || 0);
+      } catch (err) {
+        console.error('Failed to fetch pending count:', err);
+        setPendingCount(0);
+      }
+    };
+
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 5000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
 
   // Theme colors based on current theme
   const themeColors = theme.isDayTime ? {
@@ -382,13 +405,23 @@ export default function NavigationBar() {
             <div className="flex items-center gap-3">
               {currentUser ? (
                 <>
-                  {/* Notifications */}
-                  <button className={`relative p-2 rounded-full ${themeColors.buttonHover} transition-colors`}>
-                    <svg className={`w-5 h-5 ${themeColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    <span className={`absolute top-1 right-1 w-2 h-2 ${themeColors.notificationDot} rounded-full`}></span>
-                  </button>
+                  {/* Notifications - Bell for Supervisor */}
+                  {currentUser.role === 'supervisor' && (
+                    <button 
+                      onClick={() => setIsPendingRegModalOpen(true)}
+                      className={`relative p-2 rounded-full ${themeColors.buttonHover} transition-colors cursor-pointer`}
+                      title="Pending Registrations"
+                    >
+                      <svg className={`w-5 h-5 ${themeColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      {pendingCount > 0 && (
+                        <span className={`absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse leading-none`}>
+                          {pendingCount > 9 ? '9+' : pendingCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
 
                   {/* User Profile Dropdown */}
                   <div className="relative group">
@@ -648,6 +681,24 @@ export default function NavigationBar() {
             <p className="text-sm text-gray-500 mt-2">Please wait</p>
           </div>
         </div>
+      )}
+
+      {/* Pending Registration Modal */}
+      {currentUser?.role === 'supervisor' && (
+        <PendingRegistrationModal
+          isOpen={isPendingRegModalOpen}
+          onClose={() => setIsPendingRegModalOpen(false)}
+          onRefresh={() => {
+            if (currentUser?.role === 'supervisor') {
+              pendingRegistrationApi.getPendingCount().then(data => {
+                setPendingCount(data.count || 0);
+              }).catch(err => {
+                console.error('Failed to refresh pending count:', err);
+              });
+            }
+          }}
+          theme={theme}
+        />
       )}
     </div>
   );
