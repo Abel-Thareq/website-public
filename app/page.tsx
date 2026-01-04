@@ -27,7 +27,7 @@ const availableUsers: User[] = [
     department: "Executive", 
     employeeCount: 124, 
     color: "from-blue-700 to-blue-900", 
-    email: "alex@simkar.id", 
+    email: "alex@techmaven.id", 
     joinDate: "2023-01-15" 
   },
   { 
@@ -40,7 +40,7 @@ const availableUsers: User[] = [
     department: "Engineering", 
     employeeCount: 25, 
     color: "from-blue-600 to-blue-800", 
-    email: "sarah@simkar.id", 
+    email: "sarah@techmaven.id", 
     joinDate: "2023-03-20" 
   },
   { 
@@ -53,7 +53,7 @@ const availableUsers: User[] = [
     department: "Engineering", 
     employeeCount: 1, 
     color: "from-blue-500 to-blue-700", 
-    email: "john@simkar.id", 
+    email: "john@techmaven.id", 
     phone: "+62-812-555-0123", 
     joinDate: "2023-06-10" 
   }
@@ -62,31 +62,31 @@ const availableUsers: User[] = [
 const featuresData = [
   {
     title: "Attendance Management",
-    desc: "Sistem pencatatan kehadiran digital (Check-in/Out) dengan validasi lokasi, upload dokumentasi foto, perhitungan jam kerja otomatis, serta status real-time (On-time, Late, Absent).",
+    desc: "Sistem pencatatan kehadiran digital (Check-in/Out) dengan validasi GPS & Biometrik, serta status real-time untuk memastikan kedisiplinan tim di mana saja.",
     icon: "📍",
     grid: "md:col-span-2 md:row-span-2"
   },
   {
-    title: "Task Management",
-    desc: "Pembuatan dan pendelegasian tugas ke karyawan, dilengkapi subtask, kolom komentar, pelacakan progres (To-Do, In Progress, Done), dan monitoring deadline.",
+    title: "Task Delegation",
+    desc: "Delegasikan tugas dengan deadline yang jelas, subtask terstruktur, dan kolom diskusi interaktif untuk kolaborasi tim yang lebih baik.",
     icon: "📋",
     grid: "md:col-span-1 md:row-span-1"
   },
   {
-    title: "Work Hours Management",
-    desc: "Pengaturan shift dan jam kerja fleksibel oleh supervisor dengan sinkronisasi real-time ke seluruh perangkat user.",
+    title: "Shift Scheduling",
+    desc: "Pengaturan jadwal kerja shift yang fleksibel dan otomatis. Notifikasi perubahan jadwal terkirim langsung ke aplikasi karyawan.",
     icon: "⏰",
     grid: "md:col-span-1 md:row-span-1"
   },
   {
-    title: "Reporting & Analytics",
-    desc: "Dashboard eksekutif yang menyajikan laporan kehadiran, statistik penyelesaian task, dan analisis produktivitas karyawan yang dapat diekspor.",
+    title: "Executive Analytics",
+    desc: "Ambil keputusan strategis berbasis data. Dashboard eksekutif menyajikan tren kehadiran, heat-map produktivitas, dan laporan kinerja tim yang komprehensif.",
     icon: "📊",
     grid: "md:col-span-2 md:row-span-1"
   },
   {
-    title: "Role-based Access",
-    desc: "Keamanan data bertingkat. Supervisor (Full Access), Project Manager (Team & Task), dan Employee (Personal) melihat data sesuai kewenangan.",
+    title: "Enterprise Security",
+    desc: "Akses data berbasis peran (Role-Based Access Control) memastikan keamanan informasi sensitif perusahaan terjaga sesuai hierarki.",
     icon: "🔐",
     grid: "md:col-span-2 md:row-span-1"
   }
@@ -98,30 +98,48 @@ const portfolioData = [
     title: "E-Gov Smart City",
     category: "Government",
     year: "2023",
-    desc: "Sistem integrasi data kependudukan dan layanan publik untuk pemerintah kota, mengurangi waktu administrasi hingga 40% dengan implementasi Big Data Analytics."
+    desc: "Sistem integrasi data kependudukan dan layanan publik untuk pemerintah kota, mengurangi waktu administrasi hingga 40% dengan implementasi TechMaven Core."
   },
   {
     id: 2,
     title: "FinTech Dashboard",
     category: "Finance",
     year: "2023",
-    desc: "Platform manajemen aset dan pelaporan keuangan real-time untuk perusahaan investasi, dilengkapi dengan fitur keamanan enkripsi tingkat bank dan visualisasi data interaktif."
+    desc: "Platform manajemen aset dan pelaporan keuangan real-time untuk perusahaan investasi, dilengkapi dengan fitur keamanan enkripsi tingkat bank."
   },
   {
     id: 3,
     title: "EduTech Learning",
     category: "Education",
     year: "2022",
-    desc: "Learning Management System (LMS) berbasis gamifikasi untuk meningkatkan engagement siswa, mendukung kelas virtual, kuis interaktif, dan tracking progres belajar."
+    desc: "Learning Management System (LMS) berbasis gamifikasi untuk meningkatkan engagement siswa, mendukung kelas virtual, kuis interaktif, dan tracking progres."
   },
   {
     id: 4,
     title: "HealthCare Monitor",
     category: "Health",
     year: "2024",
-    desc: "Aplikasi monitoring pasien rawat jalan dengan integrasi IoT wearables, memberikan notifikasi real-time kepada dokter terkait anomali tanda vital pasien."
+    desc: "Aplikasi monitoring pasien rawat jalan dengan integrasi IoT wearables, memberikan notifikasi real-time kepada dokter terkait anomali tanda vital."
   }
 ];
+
+// --- DATA SPONSOR ---
+const sponsorRows = [
+  [
+    { name: "Gemini", logo: "/gemini.png" },
+    { name: "ChatGPT", logo: "/chatgpt.png" },
+    { name: "Microsoft", logo: "/microsoft.png" },
+    { name: "Google Cloud", logo: "/google-cloud.png" },
+  ],
+  [
+    { name: "AWS", logo: "/aws.png" },
+    { name: "Slack", logo: "/slack.png" },
+    { name: "Notion", logo: "/notion.png" },
+    { name: "Figma", logo: "/figma.png" },
+  ],
+];
+
+const duplicatedSponsorRows = sponsorRows.map(row => [...row, ...row, ...row, ...row]);
 
 // ==========================================
 // 2. 3D ASSETS (PURE SVG)
@@ -272,13 +290,12 @@ const SectionHeading = ({ title, subtitle, theme }: { title: string, subtitle: s
 // --- HERO / OVERVIEW ---
 const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
   const isDark = !theme.isDayTime;
-  
+   
   return (
     <section 
       id="overview"
       ref={heroRef} 
-      // FIX: Padding bottom diperbesar agar icon explore tidak ketabrak
-      className={`relative w-full min-h-screen flex flex-col justify-center items-center overflow-hidden px-4 pt-32 pb-40 ${isDark ? 'bg-[#050505]' : 'bg-[#F8FAFC]'}`}
+      className={`relative w-full min-h-screen flex flex-col justify-start items-center overflow-hidden px-4 ${isDark ? 'bg-[#050505]' : 'bg-[#F8FAFC]'}`}
     >
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] bg-blue-600/10 rounded-full blur-[80px] pointer-events-none -z-10 animate-pulse-slow will-change-transform"></div>
       <div className={`absolute inset-0 opacity-[0.03] pointer-events-none ${isDark ? 'bg-[url("https://grainy-gradients.vercel.app/noise.svg")]' : ''}`}></div>
@@ -287,30 +304,29 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
       <div className="absolute bottom-[15%] right-[5%] xl:right-[10%] w-24 h-48 z-0 hidden lg:block opacity-70 pointer-events-none"><AssetCube /></div>
       <div className="absolute top-[20%] right-[15%] w-16 h-16 z-0 hidden lg:block opacity-50 pointer-events-none"><AssetCone /></div>
 
-      <div className="container relative z-10 max-w-5xl mx-auto flex flex-col items-center text-center">
+      {/* HERO CONTENT */}
+      <div className="container relative z-10 max-w-5xl mx-auto flex flex-col items-center text-center pt-32 pb-24 min-h-[90vh] justify-center">
         
-        <ScrollAnimation delay={0} className="mb-6"><SectionBadge text="SYSTEM INFORMATION V1.0" /></ScrollAnimation>
+        <ScrollAnimation delay={0} className="mb-6"><SectionBadge text="WORKFORCE INTELLIGENCE PLATFORM" /></ScrollAnimation>
 
         <ScrollAnimation delay={100}>
           <h1 className={`text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] mb-8 ${isDark ? 'text-white' : 'text-gray-900'} drop-shadow-2xl`}>
             TechMaven <br />
-            {/* FIX: Gradasi text diperbaiki agar terbaca di mode terang */}
             <span className={`text-transparent bg-clip-text bg-gradient-to-r ${isDark ? 'from-blue-500 via-blue-400 to-white' : 'from-blue-700 via-blue-600 to-blue-900'}`}>
-              INTELLIGENCE
+              MONITORING
             </span>
           </h1>
         </ScrollAnimation>
 
         <ScrollAnimation delay={200} className="h-12 mb-8 flex items-center justify-center">
-           {/* FIX: Hapus efek kedip (border-r-2 dan animate-blink) */}
-           <div className={`inline-flex items-center text-lg md:text-2xl font-mono ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-             {displayedText}
-           </div>
+            <div className={`inline-flex items-center text-lg md:text-2xl font-mono ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              {displayedText}
+            </div>
         </ScrollAnimation>
 
         <ScrollAnimation delay={300}>
           <p className={`max-w-2xl mx-auto text-base md:text-lg mb-12 leading-relaxed font-light ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Sistem Informasi Manajemen Kehadiran dan Pelaporan Kerja berbasis <strong className="text-blue-500 font-bold">Metode Waterfall</strong>. Solusi terintegrasi untuk efisiensi organisasi.
+            Solusi monitoring karyawan terintegrasi untuk meningkatkan <strong className="text-blue-500 font-bold">Produktivitas & Kedisiplinan</strong>. Pantau kehadiran, tugas, dan kinerja tim secara real-time dari mana saja.
           </p>
         </ScrollAnimation>
 
@@ -322,26 +338,196 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
             <span className="relative z-10 flex items-center justify-center gap-2">LAUNCH DASHBOARD 🚀</span>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
           </button>
-          
+           
           <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border backdrop-blur-md w-full md:w-auto transition-colors ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-gray-200 bg-white/50 hover:bg-white/80'}`}>
-             <div className="flex -space-x-3">
-               {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-black bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg"></div>)}
-             </div>
-             <div className="text-left flex flex-col justify-center">
-               <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Access Level</p>
-               <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-black'}`}>Supervisor, PM, Employee</p>
-             </div>
+              <div className="flex -space-x-3">
+                {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-black bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg"></div>)}
+              </div>
+              <div className="text-left flex flex-col justify-center">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Trusted By</p>
+                <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-black'}`}>Growing Enterprises</p>
+              </div>
           </div>
+        </ScrollAnimation>
+        
+        {/* EXPLORE ICON */}
+        <div 
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30 animate-bounce cursor-pointer hover:opacity-100 transition-opacity"
+          onClick={() => {
+            const quoteSection = document.getElementById('techmaven-definition');
+            if (quoteSection) quoteSection.scrollIntoView({ behavior: 'smooth' });
+          }}
+        >
+          <span className="text-[10px] uppercase tracking-widest text-gray-500">Explore</span>
+          <div className={`w-[1px] h-10 ${isDark ? 'bg-gradient-to-b from-white to-transparent' : 'bg-gradient-to-b from-black to-transparent'}`}></div>
+        </div>
+      </div>
+
+      {/* FIXED QUOTE SECTION */}
+      <div id="techmaven-definition" className="container max-w-4xl mx-auto py-32 flex items-center justify-center relative z-20">
+        <ScrollAnimation delay={100} className="text-center relative px-8">
+          <span className="absolute -top-24 left-0 md:-left-12 text-9xl font-serif text-blue-500/20 font-black opacity-50">“</span>
+           
+          <p className={`text-2xl md:text-3xl font-serif italic leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            TechMaven adalah sebuah ekosistem digital cerdas yang dirancang untuk mentransformasi cara organisasi mengelola aset manusia, mengubah data aktivitas menjadi wawasan strategis untuk pertumbuhan bisnis yang berkelanjutan.
+          </p>
+           
+          <div className="mt-8 flex justify-center">
+            <div className="h-[1px] w-24 bg-blue-500"></div>
+          </div>
+          <p className="mt-4 text-xs font-bold tracking-[0.2em] text-blue-500 uppercase">Redefining Workforce Management</p>
+           
+          <span className="absolute -bottom-24 right-0 md:-right-12 text-9xl font-serif text-blue-500/20 font-black opacity-50 rotate-180">“</span>
         </ScrollAnimation>
       </div>
 
-      {/* FIX: Icon Explore diturunkan sedikit (bottom-6) */}
-      <div 
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30 animate-bounce cursor-pointer hover:opacity-100 transition-opacity"
-        onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-      >
-        <span className="text-[10px] uppercase tracking-widest text-gray-500">Explore</span>
-        <div className={`w-[1px] h-10 ${isDark ? 'bg-gradient-to-b from-white to-transparent' : 'bg-gradient-to-b from-black to-transparent'}`}></div>
+    </section>
+  );
+});
+
+// --- SPONSORS MARQUEE (PURE CSS PAUSE & IMAGE ENABLED) ---
+const SponsorItem = memo(({ 
+  sponsor, 
+  index, 
+  isDark
+}: { 
+  sponsor: any; 
+  index: number; 
+  isDark: boolean;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div 
+      className="flex-shrink-0 w-56 h-24 flex items-center justify-center p-2"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className={`
+        relative w-full h-full flex items-center justify-center p-6 rounded-2xl 
+        transition-all duration-500 
+        ${isDark ? 'bg-white/5 border-white/5' : 'bg-white/50 border-gray-200'}
+        ${isHovered 
+          ? 'scale-110 shadow-xl z-20 translate-y-[-4px] opacity-100' 
+          : 'hover:scale-105 hover:shadow-lg opacity-70 hover:opacity-100'
+        }
+        border backdrop-blur-sm cursor-pointer
+      `}>
+        {/* Glow effect on hover */}
+        {isHovered && (
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-lg transition-opacity duration-500"></div>
+        )}
+        
+        {/* LOGO IMAGE */}
+        <div className="flex items-center gap-2 w-full h-full justify-center">
+            <div className="relative w-full h-full">
+              <Image
+                src={sponsor.logo}
+                alt={sponsor.name}
+                fill
+                className={`object-contain transition-all duration-500 ${isHovered ? 'brightness-110' : isDark ? 'brightness-150 grayscale opacity-80' : 'grayscale opacity-70'}`}
+              /> 
+            </div>
+        </div>
+        
+        {/* Hover badge */}
+        {isHovered && (
+          <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
+            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              isDark ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'
+            } shadow-sm whitespace-nowrap`}>
+              Partner
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
+  const isDark = !theme.isDayTime;
+   
+  return (
+    <section className={`py-20 relative overflow-hidden ${isDark ? 'bg-[#050505]' : 'bg-gray-50'}`}>
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent pointer-events-none"></div>
+      
+      {/* Container Teks: mb-12 diubah jadi mb-4 agar jarak berkurang */}
+      <div className="container relative mx-auto px-6 mb-4 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4">
+          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+          <span className={`text-xs font-bold tracking-widest uppercase ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Trusted Ecosystem</span>
+        </div>
+        <h3 className={`text-3xl md:text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          Powering <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500">Innovation</span> Globally
+        </h3>
+      </div>
+      
+      {/* Marquee Rows: mt-10 diubah jadi mt-0 agar jarak atas hilang, pt-12 tetap ada */}
+      <div className="relative w-full overflow-hidden mt-0 pt-12">
+        {/* Gradient Fade Edges */}
+        <div className={`absolute top-0 left-0 h-full w-24 z-10 bg-gradient-to-r ${isDark ? 'from-[#050505] to-transparent' : 'from-gray-50 to-transparent'}`}></div>
+        <div className={`absolute top-0 right-0 h-full w-24 z-10 bg-gradient-to-l ${isDark ? 'from-[#050505] to-transparent' : 'from-gray-50 to-transparent'}`}></div>
+
+        {duplicatedSponsorRows.map((row, rowIndex) => (
+          <div 
+            key={`row-${rowIndex}`}
+            className="flex mb-6 relative group" 
+          >
+            {/* Badge "Paused" */}
+            <div className={`absolute -top-8 left-1/2 transform -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 bg-yellow-500/20 text-yellow-500 whitespace-nowrap`}>
+              ⏸️ Paused
+            </div>
+            
+            <div className={`flex space-x-6 pause-on-hover ${rowIndex % 2 === 0 ? 'animate-marquee-right' : 'animate-marquee-left'}`}>
+              {row.map((sponsor, index) => (
+                <SponsorItem
+                  key={`row${rowIndex}-${index}`}
+                  sponsor={sponsor}
+                  index={index}
+                  isDark={isDark}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Stats below marquee */}
+      <div className="container mx-auto px-6 mt-16 pt-8 border-t border-dashed border-gray-700/20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[
+            { 
+              value: "500+", 
+              label: "Enterprises", 
+              icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" /></svg>
+            },
+            { 
+              value: "50K+", 
+              label: "Active Users", 
+              icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+            },
+            { 
+              value: "99.9%", 
+              label: "Uptime SLA", 
+              icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+            },
+            { 
+              value: "24/7", 
+              label: "Support", 
+              icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>
+            }
+          ].map((stat, index) => (
+            <div key={index} className="text-center group cursor-default">
+              <div className={`flex justify-center mb-3 transition-colors duration-300 ${isDark ? 'text-gray-400 group-hover:text-blue-400' : 'text-gray-500 group-hover:text-blue-600'}`}>
+                {stat.icon}
+              </div>
+              <div className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{stat.value}</div>
+              <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -353,14 +539,14 @@ const FeaturesView = memo(({ theme }: any) => {
 
   return (
     <section id="features" className="min-h-screen py-32 px-4 max-w-7xl mx-auto">
-      <SectionHeading theme={theme} subtitle="SYSTEM CAPABILITIES" title="Fitur Unggulan" />
+      <SectionHeading theme={theme} subtitle="POWERFUL FEATURES" title="Fitur Unggulan" />
       <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-6 auto-rows-[minmax(200px, auto)]">
         {featuresData.map((feature, index) => (
           <ScrollAnimation key={index} delay={index * 100} className={`${feature.grid} h-full`}>
             <GlassCard className="rounded-3xl p-8 h-full flex flex-col justify-between group hover:border-blue-500 transition-colors">
               <div className="flex justify-between items-start mb-6">
-                 <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-3xl shadow-inner border border-blue-500/20">{feature.icon}</div>
-                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                  <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-3xl shadow-inner border border-blue-500/20">{feature.icon}</div>
+                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
               </div>
               <div>
                 <h3 className={`text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h3>
@@ -374,7 +560,7 @@ const FeaturesView = memo(({ theme }: any) => {
   );
 });
 
-// --- PORTFOLIO SECTION (Interactive) ---
+// --- PORTFOLIO / PROJECTS SECTION ---
 const PortfolioView = memo(({ theme }: any) => {
   const isDark = !theme.isDayTime;
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -382,7 +568,7 @@ const PortfolioView = memo(({ theme }: any) => {
   return (
     <section id="portfolio" className={`min-h-screen py-32 px-4 ${isDark ? 'bg-[#050505]' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto">
-        <SectionHeading theme={theme} subtitle="OUR WORK" title="Portfolio Project" />
+        <SectionHeading theme={theme} subtitle="OUR PROJECTS" title="Featured Work" />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {portfolioData.map((project, index) => (
@@ -402,11 +588,10 @@ const PortfolioView = memo(({ theme }: any) => {
                 
                 <h3 className={`text-2xl font-bold mb-2 transition-colors group-hover:text-blue-500 ${isDark ? 'text-white' : 'text-black'}`}>{project.title}</h3>
                 
-                {/* Animasi Expand Deskripsi */}
                 <div className={`overflow-hidden transition-all duration-500 ease-in-out ${expandedId === project.id ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
                   <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{project.desc}</p>
                   <div className="mt-6 flex items-center gap-2 text-blue-500 font-bold text-xs cursor-pointer hover:underline">
-                    VIEW CASE STUDY ↗
+                    VIEW DETAILS ↗
                   </div>
                 </div>
 
@@ -434,11 +619,11 @@ const ContactView = memo(({ theme }: any) => {
         <div>
           <SectionHeading theme={theme} subtitle="GET IN TOUCH" title="Let's Collaborate" />
           <p className={`text-lg mb-8 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Siap untuk meningkatkan efisiensi perusahaan Anda dengan SIMKAR? Hubungi tim kami untuk demo eksklusif.
+            Siap untuk meningkatkan efisiensi perusahaan Anda dengan <strong>TechMaven</strong>? Hubungi tim kami untuk demo eksklusif.
           </p>
           <div className="space-y-6">
             {[
-              { label: "Email", val: "hello@simkar.id", icon: "📧" },
+              { label: "Email", val: "hello@techmaven.id", icon: "📧" },
               { label: "Phone", val: "+62 812 3456 7890", icon: "📞" },
               { label: "Office", val: "Jakarta Selatan, Indonesia", icon: "🏢" }
             ].map((item, i) => (
@@ -519,12 +704,11 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, 
         {/* Logo */}
         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => scrollToSection('overview')}>
           <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300">
-             {/* FIX: Object fit agar tidak tercrop */}
              <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-1" />
           </div>
           <div className="flex flex-col">
-            <span className={`font-bold tracking-tight text-lg leading-none ${themeColors.text}`}>SIMKAR</span>
-            <span className="text-[9px] text-blue-500 font-bold tracking-widest uppercase">Waterfall v1.0</span>
+            <span className={`font-bold tracking-tight text-lg leading-none ${themeColors.text}`}>TechMaven</span>
+            <span className="text-[9px] text-blue-500 font-bold tracking-widest uppercase">Employee Monitoring</span>
           </div>
         </div>
 
@@ -533,7 +717,7 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, 
           {[
             { id: 'overview', label: 'Overview' },
             { id: 'features', label: 'Features' },
-            { id: 'portfolio', label: 'Portfolio' },
+            { id: 'portfolio', label: 'Projects' },
             { id: 'contact', label: 'Contact Us' }
           ].map((item) => (
             <button
@@ -589,11 +773,11 @@ const Footer = memo(({ theme }: any) => {
              <Image src="/TechMaven.png" alt="Footer Logo" fill className="object-contain p-1" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold tracking-tight text-lg">SIMKAR</span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest">Built with Waterfall</span>
+            <span className="font-bold tracking-tight text-lg">TechMaven</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest">Enterprise Platform</span>
           </div>
         </div>
-        <p className="text-xs text-gray-500">© 2024 TechMaven. All Requirements Met.</p>
+        <p className="text-xs text-gray-500">© 2026 TechMaven. Optimizing Workforce Efficiency.</p>
       </div>
     </footer>
   );
@@ -611,7 +795,7 @@ const LoginModal = ({ isOpen, onClose, selectedRole, onFastLogin, loginError, cr
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-900"></div>
           <AssetRing className="w-64 h-64 opacity-50 text-white" />
           <div className="relative z-10 text-center p-8 text-white">
-            <h3 className="text-3xl font-black mb-2">SIMKAR</h3>
+            <h3 className="text-3xl font-black mb-2">TechMaven</h3>
             <p className="text-blue-100 text-sm">Secure Gateway Access</p>
           </div>
         </div>
@@ -657,10 +841,11 @@ const LoginModal = ({ isOpen, onClose, selectedRole, onFastLogin, loginError, cr
 
 const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
   <style jsx global>{`
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:ital,wght@1,400;1,700&display=swap');
     
     body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .font-serif { font-family: 'Playfair Display', serif; }
 
     /* Animations */
     @keyframes float-slow { 0%,100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
@@ -672,6 +857,16 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes scaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     @keyframes pulse-slow { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.5; } }
+    
+    /* Marquee Keyframes (BARU) */
+    @keyframes marquee-right {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-33.333%); }
+    }
+    @keyframes marquee-left {
+      0% { transform: translateX(-33.333%); }
+      100% { transform: translateX(0); }
+    }
 
     .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
     .animate-float-medium { animation: float-medium 6s ease-in-out infinite; }
@@ -682,6 +877,22 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
     .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
     .animate-scale-up { animation: scaleUp 0.3s ease-out forwards; }
     .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+    
+    /* Marquee Classes (BARU) */
+    .animate-marquee-right { animation: marquee-right 40s linear infinite; }
+    .animate-marquee-left { animation: marquee-left 40s linear infinite; }
+    .animate-pause { animation-play-state: paused; }
+    
+    /* Agar animasi berhenti tepat di posisi saat ini ketika di-hover */
+    .pause-on-hover:hover {
+      animation-play-state: paused !important;
+    }
+
+    /* Agar badge "Paused" muncul saat row di-hover */
+    .group:hover .group-hover\\:opacity-100 {
+      opacity: 1;
+    }
+    
     .will-change-transform { will-change: transform, opacity; }
 
     /* Scrollbar */
@@ -689,6 +900,12 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
     ::-webkit-scrollbar-track { background: ${theme.isDayTime ? '#f1f5f9' : '#050505'}; }
     ::-webkit-scrollbar-thumb { background: #2563EB; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #1d4ed8; }
+    
+    .transition-all {
+      transition-property: all;
+      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      transition-duration: 300ms;
+    }
   `}</style>
 ));
 
@@ -701,7 +918,7 @@ export default function LandingPage() {
   const [theme, setTheme] = useState<Theme>({ isDayTime: false, backgroundImage: "", theme: 'dark' });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
-  
+   
   // Login State
   const [selectedRole, setSelectedRole] = useState<'supervisor' | 'pm' | 'employee' | null>(null);
   const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -712,7 +929,7 @@ export default function LandingPage() {
   const [displayedText, setDisplayedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [loopIndex, setLoopIndex] = useState(0);
-  const greetingTexts = ["Analisis Kebutuhan", "Manajemen Kehadiran", "Pelaporan Kerja"];
+  const greetingTexts = ["Real-time Tracking", "Smart Attendance", "Task Analytics"];
   const heroRef = useRef(null);
 
   // Typing logic
@@ -777,6 +994,8 @@ export default function LandingPage() {
       {/* SINGLE SCROLLABLE PAGE (ALL SECTIONS) */}
       <main className="w-full">
         <OverviewView theme={theme} displayedText={displayedText} heroRef={heroRef} />
+        {/* REPLACED MarqueeView WITH SponsorsMarquee */}
+        <SponsorsMarquee theme={theme} />
         <FeaturesView theme={theme} />
         <PortfolioView theme={theme} />
         <ContactView theme={theme} />
