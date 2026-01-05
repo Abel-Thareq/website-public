@@ -395,15 +395,8 @@ export default function AttendancePage() {
     }
 
     try {
-      // Hitung work hours jika ada check in dan check out
-      let workHours = 0;
-      if (formData.checkIn && formData.checkOut) {
-        const [inHour, inMin] = formData.checkIn.split(':').map(Number);
-        const [outHour, outMin] = formData.checkOut.split(':').map(Number);
-        const inTime = inHour * 60 + inMin;
-        const outTime = outHour * 60 + outMin;
-        workHours = (outTime - inTime) / 60;
-      }
+      // Don't calculate work_hours on frontend - let backend handle it
+      // The backend will calculate work_hours when both check_in and check_out exist
 
       // Tentukan status (late jika check in setelah 09:00)
       let status: 'on-time' | 'late' = 'on-time';
@@ -437,9 +430,7 @@ export default function AttendancePage() {
       if (lateMinutes !== undefined) {
         submitData.late_minutes = lateMinutes;
       }
-      if (workHours > 0) {
-        submitData.work_hours = workHours;
-      }
+      // Don't include work_hours - let backend calculate it
 
       console.log('Submitting to API:', submitData);
 
@@ -480,7 +471,7 @@ export default function AttendancePage() {
           checkOut: apiRecord.check_out || formData.checkOut,
           status: apiRecord.status || status,
           lateMinutes: parseInt(apiRecord.late_minutes) || lateMinutes || 0,
-          workHours: parseFloat(apiRecord.work_hours) || workHours || 0,
+          workHours: parseFloat(apiRecord.work_hours) || 0,
           notes: apiRecord.notes,
           eodReport: apiRecord.eod_report || formData.eodReport,
           hasDocumentation: apiRecord.has_documentation,
