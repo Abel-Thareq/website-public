@@ -149,18 +149,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear state and storage FIRST
+      // Clear state IMMEDIATELY
       setCurrentUser(null);
       
       if (mounted && typeof window !== 'undefined') {
-        // Clear ALL auth-related storage
+        // Clear ALL auth-related storage FIRST and SYNCHRONOUSLY
         localStorage.removeItem('currentUser');
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('selectedTheme');
         sessionStorage.removeItem('currentUser');
         sessionStorage.removeItem('auth_token');
         
         // Dispatch custom event to notify other components and tabs
         window.dispatchEvent(new CustomEvent('logout'));
+        window.dispatchEvent(new CustomEvent('userChange', { detail: null }));
+        
         // Also dispatch on storage event for cross-tab communication
         window.dispatchEvent(new StorageEvent('storage', {
           key: 'auth_token',
@@ -169,11 +172,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
           storageArea: localStorage,
         }));
         
-        // Small delay to ensure state updates propagate
+        // Redirect to home page
+        // Use a small delay to ensure all events are processed
         setTimeout(() => {
-          // Use hard redirect to completely clear the page state
           window.location.href = '/';
-        }, 50);
+        }, 100);
       }
     }
   };

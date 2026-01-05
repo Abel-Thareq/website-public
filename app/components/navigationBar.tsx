@@ -307,11 +307,8 @@ export default function NavigationBar() {
   // Handle logout
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    // Let userProvider handle all logout logic including clearing storage and redirecting
     await logout();
-    
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 100);
   };
 
   // Handle switch account

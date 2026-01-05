@@ -5,6 +5,17 @@ import Image from "next/image";
 import { User } from "./types/user";
 import { useUser } from './providers/userProvider';
 import RegistrationModal from './components/registrationModal';
+import { motion, AnimatePresence } from "framer-motion";
+
+// ==========================================
+// 0. TYPESCRIPT BYPASS (PENTING)
+// ==========================================
+// Menggunakan 'any' untuk komponen motion agar tidak muncul error merah pada properti 'layoutId'
+const MotionDiv = motion.div as any;
+const MotionHeader = motion.header as any;
+const MotionMain = motion.main as any;
+const MotionH1 = motion.h1 as any;
+const MotionP = motion.p as any;
 
 // ==========================================
 // 1. TYPE DEFINITIONS & DATA
@@ -16,6 +27,7 @@ interface Theme {
   theme: 'light' | 'dark';
 }
 
+// Data User Lengkap
 const availableUsers: User[] = [
   { 
     id: "supervisor_001", 
@@ -59,6 +71,7 @@ const availableUsers: User[] = [
   }
 ];
 
+// Data Fitur
 const featuresData = [
   {
     title: "Attendance Management",
@@ -92,6 +105,7 @@ const featuresData = [
   }
 ];
 
+// Data Portfolio
 const portfolioData = [
   {
     id: 1,
@@ -123,7 +137,7 @@ const portfolioData = [
   }
 ];
 
-// --- DATA SPONSOR ---
+// Data Sponsor
 const sponsorRows = [
   [
     { name: "Gemini", logo: "/gemini.png" },
@@ -453,7 +467,7 @@ const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent pointer-events-none"></div>
       
-      {/* Container Teks: mb-12 diubah jadi mb-4 agar jarak berkurang */}
+      {/* Container Teks */}
       <div className="container relative mx-auto px-6 mb-4 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4">
           <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
@@ -464,9 +478,8 @@ const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
         </h3>
       </div>
       
-      {/* Marquee Rows: mt-10 diubah jadi mt-0 agar jarak atas hilang, pt-12 tetap ada */}
+      {/* Marquee Rows */}
       <div className="relative w-full overflow-hidden mt-0 pt-12">
-        {/* Gradient Fade Edges */}
         <div className={`absolute top-0 left-0 h-full w-24 z-10 bg-gradient-to-r ${isDark ? 'from-[#050505] to-transparent' : 'from-gray-50 to-transparent'}`}></div>
         <div className={`absolute top-0 right-0 h-full w-24 z-10 bg-gradient-to-l ${isDark ? 'from-[#050505] to-transparent' : 'from-gray-50 to-transparent'}`}></div>
 
@@ -475,7 +488,6 @@ const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
             key={`row-${rowIndex}`}
             className="flex mb-6 relative group" 
           >
-            {/* Badge "Paused" */}
             <div className={`absolute -top-8 left-1/2 transform -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 bg-yellow-500/20 text-yellow-500 whitespace-nowrap`}>
               ⏸️ Paused
             </div>
@@ -666,7 +678,7 @@ const ContactView = memo(({ theme }: any) => {
 // 5. GLOBAL HEADER (SCROLL SPY & NAV)
 // ==========================================
 
-const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, setIsRegistrationModalOpen }: any) => {
+const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, setIsRegistrationModalOpen, isSplashComplete }: any) => {
   const [activeSection, setActiveSection] = useState('overview');
   const isDark = !theme.isDayTime;
 
@@ -696,20 +708,39 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, 
   };
 
   return (
-    <header className={`fixed top-6 left-0 right-0 z-50 flex justify-center px-4 transition-all duration-500`}>
+    <MotionHeader 
+      className={`fixed top-6 left-0 right-0 z-50 flex justify-center px-4 transition-all duration-500`}
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 3.2, duration: 0.8 }} // Header container fade in slowly
+    >
       <div className={`
         flex items-center justify-between px-6 py-3 rounded-2xl border shadow-2xl backdrop-blur-xl w-full max-w-6xl transition-all duration-500
         ${isDark ? 'bg-black/90 border-white/5' : 'bg-white/90 border-gray-200'}
       `}>
-        {/* Logo */}
+        {/* Logo Wrapper */}
         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => scrollToSection('overview')}>
-          <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300">
-             <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-1" />
-          </div>
-          <div className="flex flex-col">
+          {/* MAGIC MOTION LOGO - HEADER PART */}
+          {/* Only render this if splash is complete to allow smooth transition entry */}
+          {isSplashComplete && (
+             <MotionDiv 
+                layoutId="techmaven-logo-shared"
+                className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300 bg-white"
+                transition={{ type: "spring", stiffness: 60, damping: 15, duration: 0.8 }} 
+             >
+                <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-1" />
+             </MotionDiv>
+          )}
+          
+          <MotionDiv 
+            className="flex flex-col"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 3.5, duration: 0.5 }} 
+          >
             <span className={`font-bold tracking-tight text-lg leading-none ${themeColors.text}`}>TechMaven</span>
             <span className="text-[9px] text-blue-500 font-bold tracking-widest uppercase">Employee Monitoring</span>
-          </div>
+          </MotionDiv>
         </div>
 
         {/* Nav Pills */}
@@ -755,7 +786,7 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, 
           </button>
         </div>
       </div>
-    </header>
+    </MotionHeader>
   );
 });
 
@@ -858,7 +889,7 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
     @keyframes scaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     @keyframes pulse-slow { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.5; } }
     
-    /* Marquee Keyframes (BARU) */
+    /* Marquee Keyframes */
     @keyframes marquee-right {
       0% { transform: translateX(0); }
       100% { transform: translateX(-33.333%); }
@@ -878,17 +909,14 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
     .animate-scale-up { animation: scaleUp 0.3s ease-out forwards; }
     .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
     
-    /* Marquee Classes (BARU) */
     .animate-marquee-right { animation: marquee-right 40s linear infinite; }
     .animate-marquee-left { animation: marquee-left 40s linear infinite; }
     .animate-pause { animation-play-state: paused; }
     
-    /* Agar animasi berhenti tepat di posisi saat ini ketika di-hover */
     .pause-on-hover:hover {
       animation-play-state: paused !important;
     }
 
-    /* Agar badge "Paused" muncul saat row di-hover */
     .group:hover .group-hover\\:opacity-100 {
       opacity: 1;
     }
@@ -918,6 +946,9 @@ export default function LandingPage() {
   const [theme, setTheme] = useState<Theme>({ isDayTime: false, backgroundImage: "", theme: 'dark' });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+  
+  // SPLASH STATE
+  const [isLoading, setIsLoading] = useState(true); 
    
   // Login State
   const [selectedRole, setSelectedRole] = useState<'supervisor' | 'pm' | 'employee' | null>(null);
@@ -931,6 +962,19 @@ export default function LandingPage() {
   const [loopIndex, setLoopIndex] = useState(0);
   const greetingTexts = ["Real-time Tracking", "Smart Attendance", "Task Analytics"];
   const heroRef = useRef(null);
+
+  // --- SPLASH SCREEN LOGIC ---
+  useEffect(() => {
+    // Sequence Timeline:
+    // 0s: Logo Muncul
+    // 0.5s: Text Muncul (masking effect)
+    // 2.5s: Text Hilang
+    // 3.0s: State Loading False -> Logo Terbang
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Typing logic
   useEffect(() => {
@@ -982,28 +1026,91 @@ export default function LandingPage() {
     <div className={`min-h-screen font-sans ${theme.isDayTime ? 'bg-gray-50 text-gray-900' : 'bg-[#050505] text-white'} transition-colors duration-500 selection:bg-blue-500 selection:text-white`}>
       <GlobalStyles theme={theme} />
       
-      {/* HEADER NAV BERFUNGSI SEBAGAI SCROLL ANCHOR */}
+      {/* --- SPLASH SCREEN --- */}
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <MotionDiv 
+            key="splash-screen"
+            className={`fixed inset-0 z-[100] flex items-center justify-center overflow-hidden ${theme.isDayTime ? 'bg-gray-50' : 'bg-[#050505]'}`}
+            // Background fade out slowly
+            exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+          >
+            {/* Ripple Effects */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                {[...Array(3)].map((_, i) => (
+                    <MotionDiv
+                        key={i}
+                        className="absolute border border-blue-500/30 rounded-full"
+                        style={{ width: 150 + i * 80, height: 150 + i * 80 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ scale: [1, 1.1, 1], opacity: [0, 0.3, 0], rotate: [0, 90, 180] }}
+                        transition={{ duration: 3 + i, repeat: Infinity, ease: "easeInOut", repeatType: "mirror" }}
+                    />
+                ))}
+            </div>
+
+            {/* LOGO & TEXT CONTAINER */}
+            <div className="relative flex flex-col items-center justify-center z-20">
+                {/* 1. LOGO BOX (SUMBER TRANSISI) */}
+                <MotionDiv 
+                    layoutId="techmaven-logo-shared" 
+                    className="relative w-32 h-32 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(37,99,235,0.4)] bg-white z-30 mb-6"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.8, type: "spring" }}
+                >
+                     <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-4" priority />
+                </MotionDiv>
+
+                {/* 2. TEKS MUNCUL DARI BAWAH (MASKING EFFECT) */}
+                <div className="overflow-hidden h-24 text-center">
+                    <MotionDiv
+                        initial={{ y: "100%" }} // Start hidden below
+                        animate={{ y: 0 }}      // Animate up
+                        exit={{ y: -50, opacity: 0, transition: { duration: 0.3 } }} // Fade out up
+                        transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                        <MotionH1 className={`text-4xl font-black tracking-tight ${theme.isDayTime ? 'text-gray-900' : 'text-white'}`}>
+                            TechMaven
+                        </MotionH1>
+                        <MotionP className="text-sm text-blue-500 font-bold tracking-[0.3em] uppercase mt-2">
+                            Your Trust Monitoring
+                        </MotionP>
+                    </MotionDiv>
+                </div>
+            </div>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
+      {/* --- HEADER (TUJUAN TRANSISI) --- */}
       <HeaderNav 
         theme={theme} 
         toggleTheme={toggleTheme} 
         setIsLoginModalOpen={() => { setSelectedRole(null); setIsLoginModalOpen(true); }}
         setIsRegistrationModalOpen={() => setIsRegistrationModalOpen(true)}
         themeColors={themeColors} 
+        isSplashComplete={!isLoading} 
       />
 
-      {/* SINGLE SCROLLABLE PAGE (ALL SECTIONS) */}
-      <main className="w-full">
+      {/* --- MAIN CONTENT (FADE IN) --- */}
+      <MotionMain 
+        className="w-full"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: !isLoading ? 1 : 0 }}
+        transition={{ duration: 1, delay: 0.5 }} 
+      >
         <OverviewView theme={theme} displayedText={displayedText} heroRef={heroRef} />
         {/* REPLACED MarqueeView WITH SponsorsMarquee */}
         <SponsorsMarquee theme={theme} />
         <FeaturesView theme={theme} />
         <PortfolioView theme={theme} />
         <ContactView theme={theme} />
-      </main>
+      </MotionMain>
       
       <Footer theme={theme} />
 
-      {/* GLOBAL LOGIN MODAL */}
+      {/* MODALS */}
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)}
@@ -1016,8 +1123,6 @@ export default function LandingPage() {
         isLoggingIn={isLoggingIn}
         theme={theme}
       />
-
-      {/* GLOBAL REGISTRATION MODAL */}
       <RegistrationModal
         isOpen={isRegistrationModalOpen}
         onClose={() => setIsRegistrationModalOpen(false)}
