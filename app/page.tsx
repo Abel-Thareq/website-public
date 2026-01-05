@@ -2,20 +2,22 @@
 
 import { useState, useEffect, useRef, useCallback, memo } from "react";
 import Image from "next/image";
-import { User } from "./types/user";
+// Pastikan path import ini sesuai dengan struktur folder Anda
+// Jika error, sesuaikan misal: import { User } from "@/types/user";
+import { User } from "./types/user"; 
 import { useUser } from './providers/userProvider';
 import RegistrationModal from './components/registrationModal';
 import { motion, AnimatePresence } from "framer-motion";
 
 // ==========================================
-// 0. TYPESCRIPT BYPASS (PENTING)
+// 0. TYPESCRIPT BYPASS
 // ==========================================
-// Menggunakan 'any' untuk komponen motion agar tidak muncul error merah pada properti 'layoutId'
 const MotionDiv = motion.div as any;
 const MotionHeader = motion.header as any;
 const MotionMain = motion.main as any;
 const MotionH1 = motion.h1 as any;
 const MotionP = motion.p as any;
+const MotionPath = motion.path as any; // Tambahan untuk animasi SVG
 
 // ==========================================
 // 1. TYPE DEFINITIONS & DATA
@@ -304,7 +306,7 @@ const SectionHeading = ({ title, subtitle, theme }: { title: string, subtitle: s
 // --- HERO / OVERVIEW ---
 const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
   const isDark = !theme.isDayTime;
-   
+    
   return (
     <section 
       id="overview"
@@ -352,7 +354,7 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
             <span className="relative z-10 flex items-center justify-center gap-2">LAUNCH DASHBOARD 🚀</span>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
           </button>
-           
+            
           <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border backdrop-blur-md w-full md:w-auto transition-colors ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-gray-200 bg-white/50 hover:bg-white/80'}`}>
               <div className="flex -space-x-3">
                 {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-black bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg"></div>)}
@@ -381,16 +383,16 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
       <div id="techmaven-definition" className="container max-w-4xl mx-auto py-32 flex items-center justify-center relative z-20">
         <ScrollAnimation delay={100} className="text-center relative px-8">
           <span className="absolute -top-24 left-0 md:-left-12 text-9xl font-serif text-blue-500/20 font-black opacity-50">“</span>
-           
+            
           <p className={`text-2xl md:text-3xl font-serif italic leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             TechMaven adalah sebuah ekosistem digital cerdas yang dirancang untuk mentransformasi cara organisasi mengelola aset manusia, mengubah data aktivitas menjadi wawasan strategis untuk pertumbuhan bisnis yang berkelanjutan.
           </p>
-           
+            
           <div className="mt-8 flex justify-center">
             <div className="h-[1px] w-24 bg-blue-500"></div>
           </div>
           <p className="mt-4 text-xs font-bold tracking-[0.2em] text-blue-500 uppercase">Redefining Workforce Management</p>
-           
+            
           <span className="absolute -bottom-24 right-0 md:-right-12 text-9xl font-serif text-blue-500/20 font-black opacity-50 rotate-180">“</span>
         </ScrollAnimation>
       </div>
@@ -461,7 +463,7 @@ const SponsorItem = memo(({
 
 const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
   const isDark = !theme.isDayTime;
-   
+    
   return (
     <section className={`py-20 relative overflow-hidden ${isDark ? 'bg-[#050505]' : 'bg-gray-50'}`}>
       {/* Background gradient */}
@@ -539,6 +541,171 @@ const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
               <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{stat.label}</div>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+});
+
+// ==========================================
+// 4.5 HISTORY SECTION (PATH & CONTROL POINTS) [NEW]
+// ==========================================
+
+const HistoryView = memo(({ theme }: any) => {
+  const isDark = !theme.isDayTime;
+
+  const milestones = [
+    {
+      year: "2026",
+      title: "The Genesis",
+      location: "Jakarta, ID",
+      desc: "Didirikan oleh Techmedia Officer di Jakarta Selatan. Bermula dari visi sederhana untuk merapikan chaos manajemen hybrid, kami merancang algoritma dasar TechMaven di studio garasi kecil.",
+      align: "left"
+    },
+    {
+      year: "Mid 2026",
+      title: "Architecture & Trust",
+      location: "System Core",
+      desc: "Pengembangan 'TechMaven Core'. Kami memutuskan untuk tidak sekadar melacak, tapi membangun kepercayaan. Sistem transparansi data dikembangkan agar karyawan merasa diberdayakan, bukan diawasi.",
+      align: "right"
+    },
+    {
+      year: "Late 2026",
+      title: "The Enterprise Leap",
+      location: "Nationwide",
+      desc: "Peluncuran Publik v1.0 & Adopsi Masif. TechMaven digunakan oleh 50+ perusahaan logistik & teknologi. Server kami diuji hingga batas maksimal, membuktikan ketangguhan arsitektur kami.",
+      align: "left"
+    },
+    {
+      year: "Present",
+      title: "AI Singularity",
+      location: "Global Grid",
+      desc: "Integrasi Deep Learning. TechMaven kini memprediksi burnout karyawan sebelum terjadi. Melayani 50K+ pengguna aktif dengan uptime 99.9%, kami menjadi standar baru industri.",
+      align: "right"
+    }
+  ];
+
+  return (
+    <section className={`relative py-32 overflow-hidden ${isDark ? 'bg-[#080808]' : 'bg-gray-100'}`}>
+      
+      {/* Background Grid untuk efek 'Design Tool' */}
+      <div className="absolute inset-0 opacity-[0.05]" 
+           style={{ backgroundImage: `linear-gradient(${isDark ? '#fff' : '#000'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? '#fff' : '#000'} 1px, transparent 1px)`, backgroundSize: '40px 40px' }}>
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10 max-w-5xl">
+        <ScrollAnimation>
+          <div className="text-center mb-20">
+            <span className="text-blue-500 font-mono text-xs tracking-widest uppercase font-bold border border-blue-500/30 px-3 py-1 rounded mb-4 inline-block">
+              Our Journey
+            </span>
+            <h2 className={`text-3xl md:text-5xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              The <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Origin</span> Path
+            </h2>
+            <p className={`mt-4 max-w-2xl mx-auto ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Menelusuri titik kontrol evolusi TechMaven dari konsep hingga menjadi standar industri.
+            </p>
+          </div>
+        </ScrollAnimation>
+
+        <div className="relative">
+          {/* THE MELINGKAR SVG PATH VISUALIZATION */}
+          <div className="absolute left-1/2 top-0 bottom-0 w-full -translate-x-1/2 hidden md:block h-[1000px] pointer-events-none">
+            <svg className="w-full h-full overflow-visible" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.2" />
+                  <stop offset="50%" stopColor="#8B5CF6" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.2" />
+                </linearGradient>
+              </defs>
+              
+              {/* Main Path: S-Curve (Melingkar) */}
+              <MotionPath 
+                d="M 512 0 C 512 100, 750 150, 750 250 C 750 350, 274 400, 274 500 C 274 600, 750 650, 750 750 C 750 850, 512 900, 512 1000"
+                fill="none"
+                stroke="url(#pathGradient)"
+                strokeWidth="2"
+                initial={{ pathLength: 0 }}
+                whileInView={{ pathLength: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 2, ease: "easeInOut" }}
+              />
+
+              {/* Control Handles Visualization (Garis Putus-putus ala Vector Tool) */}
+              {/* Handle 1 */}
+              <line x1="512" y1="100" x2="750" y2="150" stroke={isDark ? "#444" : "#ccc"} strokeWidth="1" strokeDasharray="4 4" opacity="0.5" />
+              <circle cx="750" cy="150" r="3" fill="#3B82F6" />
+              
+              {/* Handle 2 */}
+              <line x1="750" y1="350" x2="274" y2="400" stroke={isDark ? "#444" : "#ccc"} strokeWidth="1" strokeDasharray="4 4" opacity="0.5" />
+              <circle cx="274" cy="400" r="3" fill="#3B82F6" />
+
+              {/* Handle 3 */}
+              <line x1="274" y1="600" x2="750" y2="650" stroke={isDark ? "#444" : "#ccc"} strokeWidth="1" strokeDasharray="4 4" opacity="0.5" />
+              <circle cx="750" cy="650" r="3" fill="#3B82F6" />
+
+              {/* Anchor Points on the Path */}
+              <circle cx="512" cy="0" r="4" fill={isDark ? "#fff" : "#000"} />
+              <circle cx="750" cy="250" r="4" fill={isDark ? "#fff" : "#000"} />
+              <circle cx="274" cy="500" r="4" fill={isDark ? "#fff" : "#000"} />
+              <circle cx="750" cy="750" r="4" fill={isDark ? "#fff" : "#000"} />
+              <circle cx="512" cy="1000" r="4" fill={isDark ? "#fff" : "#000"} />
+
+            </svg>
+          </div>
+
+          {/* Vertical Line for Mobile (Fallback) */}
+          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500/20 via-blue-500 to-blue-500/20 md:hidden"></div>
+
+          {/* CONTENT NODES */}
+          <div className="space-y-12 md:space-y-32 relative pt-10">
+            {milestones.map((item, index) => (
+              <ScrollAnimation key={index} className={`flex ${item.align === 'right' ? 'md:justify-end' : 'md:justify-start'} justify-start relative`}>
+                
+                {/* Node Dot for Mobile */}
+                <div className="absolute left-4 md:left-auto md:right-auto w-3 h-3 bg-blue-500 rounded-full -translate-x-1.5 mt-6 md:hidden"></div>
+
+                <div className={`
+                  w-full md:w-[45%] pl-12 md:pl-0 
+                  ${item.align === 'right' ? 'md:pl-12' : 'md:pr-12'}
+                `}>
+                  {/* Card resembling a "Control Panel" */}
+                  <div className={`
+                    p-6 rounded-xl border backdrop-blur-sm relative group
+                    ${isDark ? 'bg-black/40 border-white/10 hover:border-blue-500/50' : 'bg-white/60 border-gray-200 hover:border-blue-400'}
+                    transition-all duration-300 hover:-translate-y-1
+                  `}>
+                    {/* Decorative connector for desktop */}
+                    <div className={`hidden md:block absolute top-1/2 w-8 h-[1px] bg-blue-500/30 ${item.align === 'right' ? '-left-8' : '-right-8'}`}></div>
+                    
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-purple-600 opacity-80">{item.year}</span>
+                      <div className="px-2 py-0.5 rounded text-[10px] font-mono border border-blue-500/30 text-blue-500 bg-blue-500/5">
+                        x: {Math.floor(Math.random() * 100)} y: {Math.floor(Math.random() * 100)}
+                      </div>
+                    </div>
+                    
+                    <h3 className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.title}</h3>
+                    <div className="flex items-center gap-1 mb-3">
+                      <span className="text-xs text-blue-500">◆</span>
+                      <span className="text-xs font-mono uppercase text-gray-500">{item.location}</span>
+                    </div>
+                    
+                    <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {item.desc}
+                    </p>
+
+                    {/* Corner Handles Visual */}
+                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </div>
+                </div>
+              </ScrollAnimation>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -801,7 +968,7 @@ const Footer = memo(({ theme }: any) => {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4">
           <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-white/20 shadow-md grayscale hover:grayscale-0 transition-all">
-             <Image src="/TechMaven.png" alt="Footer Logo" fill className="object-contain p-1" />
+              <Image src="/TechMaven.png" alt="Footer Logo" fill className="object-contain p-1" />
           </div>
           <div className="flex flex-col">
             <span className="font-bold tracking-tight text-lg">TechMaven</span>
@@ -1059,7 +1226,7 @@ export default function LandingPage() {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.8, type: "spring" }}
                 >
-                     <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-4" priority />
+                      <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-4" priority />
                 </MotionDiv>
 
                 {/* 2. TEKS MUNCUL DARI BAWAH (MASKING EFFECT) */}
@@ -1103,6 +1270,8 @@ export default function LandingPage() {
         <OverviewView theme={theme} displayedText={displayedText} heroRef={heroRef} />
         {/* REPLACED MarqueeView WITH SponsorsMarquee */}
         <SponsorsMarquee theme={theme} />
+        {/* ADDED HistoryView BETWEEN STATS AND FEATURES */}
+        <HistoryView theme={theme} />
         <FeaturesView theme={theme} />
         <PortfolioView theme={theme} />
         <ContactView theme={theme} />
