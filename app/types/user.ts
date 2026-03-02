@@ -1,4 +1,4 @@
-export type UserRole = 'supervisor' | 'pm' | 'employee';
+export type UserRole = 'ceo' | 'supervisor' | 'pm' | 'employee';
 
 export interface User {
   id: string;
@@ -87,4 +87,64 @@ export interface Report {
   employeeName?: string;
   downloadUrl?: string;
   summary?: string;
+}
+
+// ==========================================
+// SPK (AHP & ARAS) Types
+// ==========================================
+
+export interface AhpComparison {
+  criteria_i: string;
+  criteria_j: string;
+  value: number;
+}
+
+export interface AhpResult {
+  id: number;
+  period: string;
+  weights: { c1: number; c2: number; c3: number };
+  lambda_max: number;
+  ci: number;
+  ri: number;
+  cr: number;
+  is_consistent: boolean;
+}
+
+export interface ArasOptimalValues {
+  id?: number;
+  target_role: 'pm' | 'employee';
+  c1_optimal: number;
+  c2_optimal: number;
+  c3_optimal: number;
+  period: string;
+}
+
+export interface WorkQualityScore {
+  id: number;
+  scorer_id: number;
+  scored_user_id: number;
+  score: number;
+  period: string;
+  notes?: string;
+  scorer?: User;
+  scored_user?: User;
+}
+
+export interface SpkResult {
+  id: number;
+  user_id: number;
+  period: string;
+  target_role: 'pm' | 'employee';
+  c1_value: number;
+  c2_value: number;
+  c3_value: number;
+  si: number;
+  ki: number;
+  rank: number;
+  user?: User;
+}
+
+export interface EmployeeOfMonth {
+  top_pm?: SpkResult | null;
+  top_employee?: SpkResult | null;
 }

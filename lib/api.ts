@@ -278,4 +278,57 @@ export const pendingRegistrationApi = {
   },
 };
 
+// SPK (AHP & ARAS) API
+export const spkApi = {
+  // AHP Questionnaire
+  submitAhpQuestionnaire: async (data: { period: string; comparisons: Array<{ criteria_i: string; criteria_j: string; value: number }> }) => {
+    const response = await api.post('/spk/ahp/questionnaire', data);
+    return response.data;
+  },
+  getAhpQuestionnaire: async (period?: string) => {
+    const response = await api.get('/spk/ahp/questionnaire', { params: { period } });
+    return response.data;
+  },
+  getAhpResults: async (period?: string) => {
+    const response = await api.get('/spk/ahp/results', { params: { period } });
+    return response.data;
+  },
+
+  // ARAS Optimal Values
+  setOptimalValues: async (data: { period: string; target_role: string; c1_optimal: number; c2_optimal: number; c3_optimal: number }) => {
+    const response = await api.post('/spk/aras/optimal-values', data);
+    return response.data;
+  },
+  getOptimalValues: async (period?: string, targetRole?: string) => {
+    const response = await api.get('/spk/aras/optimal-values', { params: { period, target_role: targetRole } });
+    return response.data;
+  },
+
+  // Work Quality Scores
+  submitWorkQuality: async (data: { scored_user_id: number; score: number; period: string; notes?: string }) => {
+    const response = await api.post('/spk/work-quality', data);
+    return response.data;
+  },
+  getWorkQuality: async (period?: string) => {
+    const response = await api.get('/spk/work-quality', { params: { period } });
+    return response.data;
+  },
+
+  // ARAS Calculation
+  calculateAras: async (data: { period: string; target_role: string }) => {
+    const response = await api.post('/spk/aras/calculate', data);
+    return response.data;
+  },
+
+  // Results
+  getResults: async (period?: string, targetRole?: string) => {
+    const response = await api.get('/spk/results', { params: { period, target_role: targetRole } });
+    return response.data;
+  },
+  getEmployeeOfMonth: async (period?: string) => {
+    const response = await api.get('/spk/employee-of-month', { params: { period } });
+    return response.data;
+  },
+};
+
 export default api;

@@ -8,13 +8,12 @@ import { useUser } from '../providers/userProvider';
 import PendingRegistrationModal from './pendingRegistrationModal';
 import { pendingRegistrationApi } from '../../lib/api';
 
-// Types
 interface User {
   id: string;
   username: string;
-  password?: string; // Hanya untuk development
+  password?: string;
   name: string;
-  role: 'supervisor' | 'pm' | 'employee';
+  role: 'ceo' | 'supervisor' | 'pm' | 'employee';
   initials: string;
   department: string;
   employeeCount: number;
@@ -35,6 +34,7 @@ const tabs = [
   { id: "attendance", name: "Attendance", path: "/attendance", icon: "⏰" },
   { id: "tasks", name: "Tasks", path: "/tasks", icon: "✅" },
   { id: "reports", name: "Reports", path: "/reports", icon: "📈" },
+  { id: "spk", name: "SPK", path: "/spk", icon: "🏆" },
 ];
 
 const availableUsers: User[] = [
@@ -93,7 +93,7 @@ export default function NavigationBar() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isPendingRegModalOpen, setIsPendingRegModalOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
-  
+
   // Theme state
   const [theme, setTheme] = useState<Theme>({
     isDayTime: true,
@@ -132,10 +132,19 @@ export default function NavigationBar() {
       }
     };
 
-    // Check for theme changes periodically
-    const themeCheckInterval = setInterval(handleThemeChange, 100);
+    // Listen for theme changes via storage event (cross-tab) and custom event (same-tab)
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === 'selectedTheme') handleThemeChange();
+    };
+    const handleCustomThemeEvent = () => handleThemeChange();
 
-    return () => clearInterval(themeCheckInterval);
+    window.addEventListener('storage', handleStorageEvent);
+    window.addEventListener('themeChanged', handleCustomThemeEvent);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('themeChanged', handleCustomThemeEvent);
+    };
   }, []);
 
   // Load user dari sessionStorage/localStorage saat komponen mount
@@ -169,7 +178,7 @@ export default function NavigationBar() {
 
     window.addEventListener('openLogin', handleOpenLogin as EventListener);
     window.addEventListener('userChange', handleUserChange as EventListener);
-    
+
     return () => {
       window.removeEventListener('openLogin', handleOpenLogin as EventListener);
       window.removeEventListener('userChange', handleUserChange as EventListener);
@@ -178,7 +187,7 @@ export default function NavigationBar() {
 
   // Fetch pending count for supervisor
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'supervisor') return;
+    if (!currentUser || (currentUser.role !== 'supervisor' && currentUser.role !== 'ceo')) return;
 
     const fetchPendingCount = async () => {
       try {
@@ -236,14 +245,14 @@ export default function NavigationBar() {
   const handleLoginFromLanding = async () => {
     setLoginError('');
     setIsSwitchingAccount(true);
-    
+
     try {
       const success = await login(credentials.username, credentials.password);
-      
+
       if (success) {
         setIsLoginOpen(false);
         setCredentials({ username: '', password: '' });
-        
+
         setTimeout(() => {
           window.location.href = '/dashboard';
         }, 100);
@@ -261,23 +270,23 @@ export default function NavigationBar() {
   const handleLoginFromLandingFallback = () => {
     setLoginError('');
     setIsLoggingIn(true);
-    
+
     // Simulasi delay API
     setTimeout(() => {
       const user = availableUsers.find(
         u => u.username === credentials.username && u.password === credentials.password
       );
-      
+
       if (user) {
         const { password, ...userWithoutPassword } = user;
-        
+
         localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
         setCurrentUser(userWithoutPassword);
         setIsLoginOpen(false);
         setCredentials({ username: '', password: '' });
         window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
         setIsLoggingIn(false);
-        
+
         setTimeout(() => {
           window.location.href = '/dashboard';
         }, 100);
@@ -291,14 +300,14 @@ export default function NavigationBar() {
   // Handle switch account
   const handleSwitchToUser = (user: User) => {
     const { password, ...userWithoutPassword } = user;
-    
+
     setIsSwitchingAccount(true);
     localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
     setIsLoginOpen(false);
     setIsSwitchAccountMode(false);
     setCurrentUser(userWithoutPassword);
     window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
-    
+
     setTimeout(() => {
       window.location.href = '/dashboard';
     }, 100);
@@ -337,7 +346,7 @@ export default function NavigationBar() {
       username: user.username,
       password: user.password || ''
     });
-    
+
     setTimeout(() => {
       // Cek apakah API_URL ada untuk menentukan mode
       if (process.env.NEXT_PUBLIC_API_URL) {
@@ -367,7 +376,7 @@ export default function NavigationBar() {
               <div>
                 <h1 className={`text-xl font-bold ${themeColors.text}`}>TechMedia TechMaven Portal</h1>
                 <p className={`text-sm ${themeColors.textLight}`}>
-                  Employee Monitoring System • {currentUser ? currentUser.role : 'Please Login'}
+                  Employee Monitoring System • {currentUser ? currentUser.role.toUpperCase() : 'Please Login'}
                 </p>
               </div>
             </div>
@@ -378,23 +387,28 @@ export default function NavigationBar() {
             {/* Desktop Navigation */}
             {currentUser && (
               <div className="hidden md:flex gap-2 text-sm">
-                {tabs.map((tab) => {
-                  const isActive = pathname === tab.path;
-                  return (
-                    <Link
-                      key={tab.id}
-                      href={tab.path}
-                      className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${
-                        isActive
+                {tabs
+                  .filter((tab) => {
+                    // SPK tab visible for ceo, supervisor, pm only
+                    if (tab.id === 'spk') return currentUser && ['ceo', 'supervisor', 'pm'].includes(currentUser.role);
+                    return true;
+                  })
+                  .map((tab) => {
+                    const isActive = pathname === tab.path;
+                    return (
+                      <Link
+                        key={tab.id}
+                        href={tab.path}
+                        className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${isActive
                           ? themeColors.tabActive
                           : `${themeColors.tabInactive} ${themeColors.tabHover}`
-                      }`}
-                    >
-                      <span className="text-base">{tab.icon}</span>
-                      <span>{tab.name}</span>
-                    </Link>
-                  );
-                })}
+                          }`}
+                      >
+                        <span className="text-base">{tab.icon}</span>
+                        <span>{tab.name}</span>
+                      </Link>
+                    );
+                  })}
               </div>
             )}
 
@@ -403,8 +417,8 @@ export default function NavigationBar() {
               {currentUser ? (
                 <>
                   {/* Notifications - Bell for Supervisor */}
-                  {currentUser.role === 'supervisor' && (
-                    <button 
+                  {(currentUser.role === 'supervisor' || currentUser.role === 'ceo') && (
+                    <button
                       onClick={() => setIsPendingRegModalOpen(true)}
                       className={`relative p-2 rounded-full ${themeColors.buttonHover} transition-colors cursor-pointer`}
                       title="Pending Registrations"
@@ -425,7 +439,7 @@ export default function NavigationBar() {
                     <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${currentUser.color} flex items-center justify-center text-white font-bold cursor-pointer`}>
                       {currentUser.initials}
                     </div>
-                    
+
                     <div className={`absolute right-0 top-full mt-2 w-64 p-4 ${themeColors.dropdownBg} rounded-xl ${themeColors.dropdownShadow} border ${themeColors.dropdownBorder} opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50`}>
                       <div className="flex items-center gap-3 mb-4">
                         <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${currentUser.color} flex items-center justify-center text-white font-bold`}>
@@ -437,14 +451,14 @@ export default function NavigationBar() {
                           <p className={`text-xs ${themeColors.textLight}`}>{currentUser.department}</p>
                         </div>
                       </div>
-                      
+
                       <div className={`space-y-3 border-t ${themeColors.dropdownBorder} pt-4`}>
                         <div className={`text-xs ${themeColors.textLight} px-2`}>
                           <p>Email: {currentUser.email}</p>
                           <p className="mt-1">Joined: {new Date(currentUser.joinDate).toLocaleDateString()}</p>
                         </div>
-                        
-                        <button 
+
+                        <button
                           onClick={handleOpenSwitchAccount}
                           disabled={isSwitchingAccount}
                           className={`w-full text-left px-3 py-2 text-sm text-blue-600 ${theme.isDayTime ? 'hover:bg-blue-50 border-blue-100' : 'hover:bg-blue-900/30 border-blue-800'} rounded-lg border flex items-center gap-2 disabled:opacity-50 transition-colors`}
@@ -460,8 +474,8 @@ export default function NavigationBar() {
                             </>
                           )}
                         </button>
-                        
-                        <button 
+
+                        <button
                           onClick={handleLogout}
                           disabled={isLoggingOut}
                           className={`w-full text-left px-3 py-2 text-sm text-red-600 ${theme.isDayTime ? 'hover:bg-red-50' : 'hover:bg-red-900/30'} rounded-lg flex items-center gap-2 disabled:opacity-50 transition-colors`}
@@ -500,23 +514,27 @@ export default function NavigationBar() {
         {currentUser && (
           <div className="md:hidden mt-4">
             <div className={`flex justify-around ${themeColors.mobileBg} rounded-lg p-1 overflow-x-auto`}>
-              {tabs.map((tab) => {
-                const isActive = pathname === tab.path;
-                return (
-                  <Link
-                    key={tab.id}
-                    href={tab.path}
-                    className={`flex flex-col items-center justify-center px-3 py-2 rounded-md text-sm transition-all ${
-                      isActive
+              {tabs
+                .filter((tab) => {
+                  if (tab.id === 'spk') return currentUser && ['ceo', 'supervisor', 'pm'].includes(currentUser.role);
+                  return true;
+                })
+                .map((tab) => {
+                  const isActive = pathname === tab.path;
+                  return (
+                    <Link
+                      key={tab.id}
+                      href={tab.path}
+                      className={`flex flex-col items-center justify-center px-3 py-2 rounded-md text-sm transition-all ${isActive
                         ? `${theme.isDayTime ? 'bg-white text-blue-600 shadow-sm' : 'bg-gray-700 text-blue-400'}`
                         : themeColors.tabInactive
-                    }`}
-                  >
-                    <span className="text-lg mb-1">{tab.icon}</span>
-                    <span className="text-xs">{tab.name}</span>
-                  </Link>
-                );
-              })}
+                        }`}
+                    >
+                      <span className="text-lg mb-1">{tab.icon}</span>
+                      <span className="text-xs">{tab.name}</span>
+                    </Link>
+                  );
+                })}
             </div>
           </div>
         )}
@@ -533,8 +551,8 @@ export default function NavigationBar() {
                     {isSwitchAccountMode ? 'Switch Account' : 'Login to TechMaven'}
                   </h2>
                   <p className={`text-sm ${themeColors.textLight} mt-1`}>
-                    {isSwitchAccountMode 
-                      ? 'Select an account to switch to' 
+                    {isSwitchAccountMode
+                      ? 'Select an account to switch to'
                       : 'Enter your credentials or select quick login'}
                   </p>
                 </div>
@@ -557,7 +575,7 @@ export default function NavigationBar() {
                     <p className={`font-medium ${theme.isDayTime ? 'text-blue-900' : 'text-blue-300'}`}>👤 Select Account</p>
                     <p className={`text-xs ${theme.isDayTime ? 'text-blue-700' : 'text-blue-400'} mt-1`}>Click on any account to switch instantly</p>
                   </div>
-                  
+
                   {availableUsers
                     .filter(user => user.id !== currentUser?.id)
                     .map((user) => (
@@ -595,7 +613,7 @@ export default function NavigationBar() {
                     <input
                       type="text"
                       value={credentials.username}
-                      onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                      onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
                       onKeyPress={handleKeyPress}
                       className={`w-full px-4 py-2 border ${themeColors.inputBorder} ${themeColors.inputBg} ${themeColors.text} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                       placeholder="Enter username"
@@ -609,7 +627,7 @@ export default function NavigationBar() {
                     <input
                       type="password"
                       value={credentials.password}
-                      onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                      onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                       onKeyPress={handleKeyPress}
                       className={`w-full px-4 py-2 border ${themeColors.inputBorder} ${themeColors.inputBg} ${themeColors.text} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                       placeholder="Enter password"
@@ -681,12 +699,12 @@ export default function NavigationBar() {
       )}
 
       {/* Pending Registration Modal */}
-      {currentUser?.role === 'supervisor' && (
+      {(currentUser?.role === 'supervisor' || currentUser?.role === 'ceo') && (
         <PendingRegistrationModal
           isOpen={isPendingRegModalOpen}
           onClose={() => setIsPendingRegModalOpen(false)}
           onRefresh={() => {
-            if (currentUser?.role === 'supervisor') {
+            if (currentUser?.role === 'supervisor' || currentUser?.role === 'ceo') {
               pendingRegistrationApi.getPendingCount().then(data => {
                 setPendingCount(data.count || 0);
               }).catch(err => {

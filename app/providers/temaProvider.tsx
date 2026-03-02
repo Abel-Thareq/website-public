@@ -31,7 +31,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // ✅ Load from localStorage after mount
   useEffect(() => {
     setMounted(true);
-    
+
     try {
       const savedTheme = localStorage.getItem('selectedTheme');
       if (savedTheme) {
@@ -53,6 +53,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(newTheme);
     if (mounted) {
       localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+      window.dispatchEvent(new CustomEvent('themeChanged'));
     }
   };
 
@@ -65,6 +66,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(newTheme);
     if (mounted) {
       localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+      window.dispatchEvent(new CustomEvent('themeChanged'));
     }
   };
 
@@ -77,6 +79,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(newTheme);
     if (mounted) {
       localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+      window.dispatchEvent(new CustomEvent('themeChanged'));
     }
   };
 

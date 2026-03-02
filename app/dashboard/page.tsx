@@ -89,14 +89,14 @@ const MoonIcon = memo(() => (
 ));
 
 // Memoized Theme Toggle Component
-const ThemeToggle = memo(({ 
-  theme, 
-  toggleTheme, 
-  setDayMode, 
+const ThemeToggle = memo(({
+  theme,
+  toggleTheme,
+  setDayMode,
   setNightMode,
   currentUser,
   onLogout
-}: { 
+}: {
   theme: Theme;
   toggleTheme: () => void;
   setDayMode: () => void;
@@ -114,14 +114,13 @@ const ThemeToggle = memo(({
         Logout {currentUser.name.split(' ')[0]}
       </button>
     )}
-    
+
     <div className="relative group">
-      <div 
-        className={`px-4 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 cursor-pointer transition-all duration-300 ${
-          theme.isDayTime
-            ? "bg-white/20 text-white hover:bg-white/30"
-            : "bg-black/30 text-white hover:bg-black/40"
-        }`}
+      <div
+        className={`px-4 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 cursor-pointer transition-all duration-300 ${theme.isDayTime
+          ? "bg-white/20 text-white hover:bg-white/30"
+          : "bg-black/30 text-white hover:bg-black/40"
+          }`}
         onClick={toggleTheme}
       >
         <div className={`w-2 h-2 rounded-full ${theme.isDayTime ? 'bg-yellow-400' : 'bg-blue-400'}`}></div>
@@ -132,22 +131,20 @@ const ThemeToggle = memo(({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
         </svg>
       </div>
-      
-      <div className={`absolute right-0 top-full mt-2 w-48 py-2 rounded-xl shadow-xl backdrop-blur-md transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 translate-y-2 ${
-        theme.isDayTime 
-          ? 'bg-white/90 text-gray-800' 
-          : 'bg-gray-900/90 text-white'
-      }`}>
+
+      <div className={`absolute right-0 top-full mt-2 w-48 py-2 rounded-xl shadow-xl backdrop-blur-md transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 translate-y-2 ${theme.isDayTime
+        ? 'bg-white/90 text-gray-800'
+        : 'bg-gray-900/90 text-white'
+        }`}>
         <div className="px-3 py-1 text-xs font-medium opacity-70 mb-1">
           Choose Theme
         </div>
         <button
           onClick={setDayMode}
-          className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${
-            theme.isDayTime 
-              ? 'bg-yellow-50/70 text-yellow-800' 
-              : 'hover:bg-white/10'
-          }`}
+          className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${theme.isDayTime
+            ? 'bg-yellow-50/70 text-yellow-800'
+            : 'hover:bg-white/10'
+            }`}
         >
           <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center">
             <SunIcon />
@@ -160,14 +157,13 @@ const ThemeToggle = memo(({
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
           )}
         </button>
-        
+
         <button
           onClick={setNightMode}
-          className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${
-            !theme.isDayTime 
-              ? 'bg-blue-900/70 text-blue-100' 
-              : 'hover:bg-white/10'
-          }`}
+          className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${!theme.isDayTime
+            ? 'bg-blue-900/70 text-blue-100'
+            : 'hover:bg-white/10'
+            }`}
         >
           <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
             <MoonIcon />
@@ -186,13 +182,13 @@ const ThemeToggle = memo(({
 ));
 
 // Memoized Custom Cursor Component
-const CustomCursor = memo(({ 
-  isMobile, 
-  cursorPosition, 
-  isPointer, 
-  isOverText, 
-  theme 
-}: { 
+const CustomCursor = memo(({
+  isMobile,
+  cursorPosition,
+  isPointer,
+  isOverText,
+  theme
+}: {
   isMobile: boolean;
   cursorPosition: { x: number; y: number };
   isPointer: boolean;
@@ -211,9 +207,8 @@ const CustomCursor = memo(({
       }}
     >
       <div
-        className={`absolute rounded-full transition-all duration-200 ease-out ${
-          isPointer ? "scale-125" : "scale-100"
-        } ${isOverText ? "bg-transparent" : theme.isDayTime ? "bg-blue-600/20" : "bg-blue-400/30"}`}
+        className={`absolute rounded-full transition-all duration-200 ease-out ${isPointer ? "scale-125" : "scale-100"
+          } ${isOverText ? "bg-transparent" : theme.isDayTime ? "bg-blue-600/20" : "bg-blue-400/30"}`}
         style={{
           width: isPointer ? "24px" : "20px",
           height: isPointer ? "24px" : "20px",
@@ -293,12 +288,12 @@ const StatCard = memo(({
 ));
 
 // Personal Dashboard Component untuk Employee Role
-const PersonalDashboard = memo(({ 
-  themeColors, 
+const PersonalDashboard = memo(({
+  themeColors,
   personalData,
   theme,
   currentUser
-}: { 
+}: {
   themeColors: any;
   personalData: any;
   theme: Theme;
@@ -310,7 +305,7 @@ const PersonalDashboard = memo(({
       {/* Background decorative elements */}
       <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 opacity-10 group-hover:opacity-20 transition-opacity"></div>
       <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-gradient-to-r from-purple-400 to-blue-400 opacity-10 group-hover:opacity-20 transition-opacity"></div>
-      
+
       <div className="relative z-10">
         <div className="w-20 h-20 mx-auto mb-6 rounded-full border-4 border-blue-100 overflow-hidden bg-gradient-to-br from-blue-100 to-white flex items-center justify-center shadow-modern">
           <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${currentUser.color} flex items-center justify-center text-white text-2xl font-bold`}>
@@ -319,7 +314,7 @@ const PersonalDashboard = memo(({
         </div>
         <h2 className={`text-2xl font-bold ${themeColors.text} mb-2`}>Welcome back, {currentUser.name}!</h2>
         <p className={`${themeColors.textLight} mb-6`}>{currentUser.role === 'employee' ? 'Frontend Engineer' : currentUser.role} • {currentUser.department} Department</p>
-        
+
         <div className="grid grid-cols-3 gap-6 mt-8">
           <div className={`p-4 rounded-xl ${themeColors.bgLight} border ${themeColors.border} hover-scale transition-all`}>
             <p className={`text-sm ${themeColors.textLight}`}>Today's Status</p>
@@ -420,19 +415,17 @@ const PersonalDashboard = memo(({
           <div key={task.id} className="px-6 py-4 hover:bg-blue-50/30 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  task.status === 'Completed' ? 'bg-green-100' :
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${task.status === 'Completed' ? 'bg-green-100' :
                   task.status === 'In Progress' ? 'bg-blue-100' : 'bg-amber-100'
-                }`}>
+                  }`}>
                   {task.status === 'Completed' ? '✅' : task.status === 'In Progress' ? '⚡' : '⏳'}
                 </div>
                 <div>
                   <p className={`font-medium ${themeColors.text}`}>{task.title}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className={`text-sm px-2 py-0.5 rounded ${
-                      task.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                    <span className={`text-sm px-2 py-0.5 rounded ${task.status === 'Completed' ? 'bg-green-100 text-green-800' :
                       task.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
-                    }`}>
+                      }`}>
                       {task.status}
                     </span>
                     <span className={`text-sm ${themeColors.textLighter}`}>Due: {task.deadline}</span>
@@ -475,24 +468,27 @@ const Footer = memo(({ themeColors, theme, currentUser }: { themeColors: any, th
             <div>
               <p className={`text-lg font-bold ${themeColors.text}`}>TechMaven Portal</p>
               <p className={`text-xs ${themeColors.textLighter}`}>
-                v2.1.4 • {currentUser ? 
-                  `${currentUser.role === 'supervisor' ? 'Supervisor View' : 
-                    currentUser.role === 'pm' ? 'Project Manager View' : 'Employee View'}` 
+                v2.1.4 • {currentUser ?
+                  `${currentUser.role === 'ceo' ? 'CEO View' :
+                    currentUser.role === 'supervisor' ? 'Supervisor View' :
+                      currentUser.role === 'pm' ? 'Project Manager View' : 'Employee View'}`
                   : 'Login Required'}
               </p>
             </div>
           </div>
           <p className={`text-sm ${themeColors.textLight}`}>
-            {currentUser 
-              ? currentUser.role === 'supervisor' 
-                ? 'Advanced company-wide monitoring and performance management system.' :
-                currentUser.role === 'pm'
-                ? 'Team management and performance tracking system for project managers.' :
-                'Personal performance and task management dashboard.'
+            {currentUser
+              ? currentUser.role === 'ceo'
+                ? 'CEO monitoring and decision support system.' :
+                currentUser.role === 'supervisor'
+                  ? 'Advanced company-wide monitoring and performance management system.' :
+                  currentUser.role === 'pm'
+                    ? 'Team management and performance tracking system for project managers.' :
+                    'Personal performance and task management dashboard.'
               : 'Employee Monitoring & Performance Management System.'}
           </p>
         </div>
-       
+
         <div>
           <h4 className={`font-semibold ${themeColors.text} mb-4`}>Quick Links</h4>
           <ul className="space-y-2">
@@ -508,7 +504,7 @@ const Footer = memo(({ themeColors, theme, currentUser }: { themeColors: any, th
             <li><a href="#" className={`text-sm ${themeColors.textLight} hover:text-blue-600`}>Performance Reviews</a></li>
           </ul>
         </div>
-       
+
         <div>
           <h4 className={`font-semibold ${themeColors.text} mb-4`}>Resources</h4>
           <ul className="space-y-2">
@@ -520,7 +516,7 @@ const Footer = memo(({ themeColors, theme, currentUser }: { themeColors: any, th
             <li><a href="#" className={`text-sm ${themeColors.textLight} hover:text-blue-600`}>System Status</a></li>
           </ul>
         </div>
-       
+
         <div>
           <h4 className={`font-semibold ${themeColors.text} mb-4`}>Legal</h4>
           <ul className="space-y-2">
@@ -531,7 +527,7 @@ const Footer = memo(({ themeColors, theme, currentUser }: { themeColors: any, th
           </ul>
         </div>
       </div>
-     
+
       <div className={`mt-12 pt-8 border-t ${themeColors.borderLight}`}>
         <div className="flex flex-col md:flexRow justify-between items-center gap-6">
           <div className="text-center md:text-left">
@@ -539,9 +535,10 @@ const Footer = memo(({ themeColors, theme, currentUser }: { themeColors: any, th
               © 2025 TechMedia Corporation. All rights reserved.
             </p>
             <p className={`text-xs ${themeColors.textLighter} mt-1`}>
-              Employee Monitoring & Performance Management System • {currentUser ? 
-                `${currentUser.role === 'supervisor' ? 'Supervisor Access' : 
-                  currentUser.role === 'pm' ? 'Project Manager Access' : 'Employee Access'}` 
+              Employee Monitoring & Performance Management System • {currentUser ?
+                `${currentUser.role === 'ceo' ? 'CEO Access' :
+                  currentUser.role === 'supervisor' ? 'Supervisor Access' :
+                    currentUser.role === 'pm' ? 'Project Manager Access' : 'Employee Access'}`
                 : 'Login Required'}
             </p>
           </div>
@@ -637,23 +634,23 @@ export default function DashboardPage() {
   const { currentUser: userFromContext, loading: userLoading } = useUser();
   const { theme: themeFromProvider } = useTheme();
   const router = useRouter();
-  
+
   // Local state for UI
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [isPointer, setIsPointer] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isOverText, setIsOverText] = useState(false);
-  
+
   // Use currentUser from context, not local state
   const currentUser = userFromContext;
-  
+
   // Theme state
   const [theme, setTheme] = useState<Theme>({
     isDayTime: true,
     backgroundImage: "/backgroundDay.jpg",
     theme: 'light'
   });
-  
+
   // Tilt state
   const [tiltStates, setTiltStates] = useState<Record<string, TiltState>>({
     total: { tiltX: 0, tiltY: 0, isHovering: false },
@@ -742,7 +739,7 @@ export default function DashboardPage() {
         console.log('Dashboard - All users (non-supervisors):', allUsers);
 
         // Store all employees for work hours editing (supervisor only)
-        if (currentUser.role === 'supervisor') {
+        if (currentUser.role === 'supervisor' || currentUser.role === 'ceo') {
           setAllEmployees(allUsers);
           // If no employee is selected yet, select the first one
           if (!selectedEmployeeForEdit && allUsers.length > 0) {
@@ -782,11 +779,11 @@ export default function DashboardPage() {
         if (currentUser.role === 'pm') {
           // For PM, only show actual team members (from team_members relationship)
           filteredUsers = pmTeamMembers;
-          filteredAttendance = todayAttendance.filter((a: AttendanceRecord) => 
+          filteredAttendance = todayAttendance.filter((a: AttendanceRecord) =>
             filteredUsers.some((u: DashboardUser) => u.id === a.user_id)
           );
-          filteredTasks = allTasks.filter((t: TaskData) => 
-            String(t.assigner_id) === currentUser.id || 
+          filteredTasks = allTasks.filter((t: TaskData) =>
+            String(t.assigner_id) === currentUser.id ||
             (filteredUsers.some((u: DashboardUser) => u.id === t.assignee_id) && (t.status === 'pending' || t.status === 'in-progress'))
           );
         } else if (currentUser.role === 'employee') {
@@ -800,8 +797,8 @@ export default function DashboardPage() {
         const totalEmployees = filteredUsers.length;
         const onTimeCount = filteredAttendance.filter(a => a.status === 'on-time').length;
         const lateCount = filteredAttendance.filter(a => a.status === 'late').length;
-        const onTimePercentage = totalEmployees > 0 
-          ? Math.round((onTimeCount / totalEmployees) * 100) 
+        const onTimePercentage = totalEmployees > 0
+          ? Math.round((onTimeCount / totalEmployees) * 100)
           : 0;
 
         const pendingTasks = filteredTasks.filter((t: TaskData) => t.status === 'pending' || t.status === 'in-progress').length;
@@ -937,7 +934,9 @@ export default function DashboardPage() {
       }
     };
 
-    return baseData[currentUser.role];
+    // CEO uses same data as supervisor
+    const roleKey = currentUser.role === 'ceo' ? 'supervisor' : currentUser.role;
+    return baseData[roleKey as keyof typeof baseData];
   }, [currentUser, dashboardData]);
 
   // Update stats dengan role-based data
@@ -948,8 +947,8 @@ export default function DashboardPage() {
     absentToday: roleBasedData.absentToday,
     pendingTasks: roleBasedData.pendingTasks,
     completedTasks: roleBasedData.completedTasks,
-    bestEmployee: currentUser?.role === 'pm' ? "Team Lead" : 
-                  currentUser?.role === 'employee' ? currentUser?.name : "Top Performer",
+    bestEmployee: currentUser?.role === 'pm' ? "Team Lead" :
+      currentUser?.role === 'employee' ? currentUser?.name : "Top Performer",
     bestEmployeeDept: roleBasedData.department,
     isLoading: isLoadingDashboard
   }), [roleBasedData, currentUser, isLoadingDashboard]);
@@ -964,6 +963,7 @@ export default function DashboardPage() {
     };
     setTheme(newTheme);
     localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    window.dispatchEvent(new CustomEvent('themeChanged'));
   }, [theme.isDayTime]);
 
   const setDayMode = useCallback(() => {
@@ -974,6 +974,7 @@ export default function DashboardPage() {
     };
     setTheme(newTheme);
     localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    window.dispatchEvent(new CustomEvent('themeChanged'));
   }, []);
 
   const setNightMode = useCallback(() => {
@@ -984,6 +985,7 @@ export default function DashboardPage() {
     };
     setTheme(newTheme);
     localStorage.setItem('selectedTheme', JSON.stringify(newTheme));
+    window.dispatchEvent(new CustomEvent('themeChanged'));
   }, []);
 
   // Handle logout
@@ -1016,20 +1018,20 @@ export default function DashboardPage() {
         const response = await workHoursApi.get();
         console.log('Work hours API response:', response);
         console.log('Current user:', currentUser);
-        
+
         // Normalize API response - bisa array (supervisor/pm) atau single object (employee)
         let startTime = '08:00';
         let endTime = '18:00';
-        
+
         if (response) {
           // If supervisor or PM gets array, find current user's work hours
           if (Array.isArray(response)) {
             console.log('DEBUG: Response is array, current user id:', currentUser?.id);
             console.log('DEBUG: All response items:', response.map((wh: any) => ({ user_id: wh.user_id, start_time: wh.start_time, end_time: wh.end_time })));
-            
+
             const currentUserWorkHours = response.find((wh: any) => wh.user_id === currentUser?.id);
             console.log('DEBUG: Found current user work hours:', currentUserWorkHours);
-            
+
             if (currentUserWorkHours) {
               startTime = (currentUserWorkHours.start_time || currentUserWorkHours.startTime || '08:00').substring(0, 5);
               endTime = (currentUserWorkHours.end_time || currentUserWorkHours.endTime || '18:00').substring(0, 5);
@@ -1054,7 +1056,7 @@ export default function DashboardPage() {
             console.log('DEBUG: Parsed from single object:', { startTime, endTime });
           }
         }
-        
+
         console.log('DEBUG: Setting work hours from API:', { startTime, endTime });
         setWorkHours({
           startTime,
@@ -1072,12 +1074,12 @@ export default function DashboardPage() {
 
     // Only load on initial mount
     loadWorkHours();
-    
+
     // Listen for work hours updates from other tabs via BroadcastChannel
     let channel: BroadcastChannel | null = null;
     let interval: NodeJS.Timeout | null = null;
     let timeoutId: NodeJS.Timeout | null = null;
-    
+
     try {
       channel = new BroadcastChannel('work-hours-update');
       channel.addEventListener('message', (event) => {
@@ -1093,7 +1095,7 @@ export default function DashboardPage() {
     } catch (e) {
       console.log('BroadcastChannel not supported in this browser');
     }
-    
+
     // Refresh work hours setiap 5 detik untuk real-time sync tanpa mengandalkan localStorage
     // HANYA JIKA MODAL EDIT TIDAK TERBUKA
     if (!showWorkHoursEdit) {
@@ -1110,7 +1112,7 @@ export default function DashboardPage() {
     } else {
       console.log('DEBUG: Modal edit is open, polling paused');
     }
-    
+
     // Cleanup function
     return () => {
       if (timeoutId) {
@@ -1123,7 +1125,7 @@ export default function DashboardPage() {
         channel.close();
       }
     };
-    
+
     // Cleanup function
     return () => {
       if (interval) {
@@ -1144,36 +1146,36 @@ export default function DashboardPage() {
         window.innerWidth < 768
       );
     };
-    
+
     if (typeof window !== "undefined") {
       checkMobile();
-      
+
       let animationFrameId: number;
       let lastMouseMoveTime = 0;
       const MOUSE_MOVE_THROTTLE = 16; // ~60fps
-      
+
       const handleMouseMove = (e: MouseEvent) => {
         if (isMobile) return;
-        
+
         const now = performance.now();
         if (now - lastMouseMoveTime < MOUSE_MOVE_THROTTLE) return;
         lastMouseMoveTime = now;
-        
+
         if (animationFrameId) {
           cancelAnimationFrame(animationFrameId);
         }
-        
+
         animationFrameId = requestAnimationFrame(() => {
           setCursorPosition({ x: e.clientX, y: e.clientY });
           const target = e.target as HTMLElement;
-          
+
           const isTextElement =
             ["P", "SPAN", "H1", "H2", "H3", "A", "LI"].includes(target.tagName) ||
             target.classList.contains("text-") ||
             window.getComputedStyle(target).cursor === "text" ||
             window.getComputedStyle(target).display.includes("inline");
           setIsOverText(isTextElement);
-          
+
           const isInteractive =
             ["A", "BUTTON"].includes(target.tagName) ||
             target.closest("a") !== null ||
@@ -1182,7 +1184,7 @@ export default function DashboardPage() {
           setIsPointer(isInteractive);
         });
       };
-      
+
       const handleCardMouseMove = (e: MouseEvent) => {
         const card = (e.target as HTMLElement).closest("[data-card]");
         if (!card) {
@@ -1195,30 +1197,30 @@ export default function DashboardPage() {
           });
           return;
         }
-        
+
         const cardId = card.getAttribute("data-card");
         if (!cardId) return;
-        
+
         const rect = card.getBoundingClientRect();
         const x = e.clientX - rect.left - rect.width / 2;
         const y = e.clientY - rect.top - rect.height / 2;
-        
+
         const tiltX = -(y / rect.height) * 15; // Reduced from 25
         const tiltY = (x / rect.width) * 15; // Reduced from 25
-        
+
         setTiltStates((prev) => ({
           ...prev,
           [cardId]: { tiltX, tiltY, isHovering: true },
         }));
       };
-      
+
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mousemove", handleCardMouseMove);
-      
+
       if (!isMobile) {
         document.body.style.cursor = "none";
       }
-      
+
       return () => {
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mousemove", handleCardMouseMove);
@@ -1267,7 +1269,7 @@ export default function DashboardPage() {
       heroSubtext: "text-gray-300",
       iconBg: "bg-blue-900/20"
     };
-    
+
     // Tambahkan warna spesifik untuk card
     return {
       ...baseColors,
@@ -1282,28 +1284,28 @@ export default function DashboardPage() {
   const getStatIcon = (cardId: string) => {
     if (currentUser?.role === "employee") {
       return cardId === "total" ? UserIcon :
-             cardId === "onTime" ? CheckCircleIcon :
-             cardId === "late" ? ClockIcon :
-             BriefcaseIcon;
+        cardId === "onTime" ? CheckCircleIcon :
+          cardId === "late" ? ClockIcon :
+            BriefcaseIcon;
     }
     return cardId === "total" ? UsersIcon :
-           cardId === "onTime" ? CheckCircleIcon :
-           cardId === "late" ? ClockIcon :
-           BriefcaseIcon;
+      cardId === "onTime" ? CheckCircleIcon :
+        cardId === "late" ? ClockIcon :
+          BriefcaseIcon;
   };
 
   // Tentukan title untuk stat card berdasarkan role
   const getStatTitle = (cardId: string) => {
     if (currentUser?.role === "employee") {
       return cardId === "total" ? "My Status" :
-             cardId === "onTime" ? "Tasks Done" :
-             cardId === "late" ? "Pending Review" :
-             "My Tasks";
+        cardId === "onTime" ? "Tasks Done" :
+          cardId === "late" ? "Pending Review" :
+            "My Tasks";
     }
     return cardId === "total" ? "Total Employees" :
-           cardId === "onTime" ? "On Time Today" :
-           cardId === "late" ? "Late Today" :
-           "Pending Tasks";
+      cardId === "onTime" ? "On Time Today" :
+        cardId === "late" ? "Late Today" :
+          "Pending Tasks";
   };
 
   // Jika belum login, tampilkan loading
@@ -1320,14 +1322,14 @@ export default function DashboardPage() {
 
   return (
     <>
-      <CustomCursor 
+      <CustomCursor
         isMobile={isMobile}
         cursorPosition={cursorPosition}
         isPointer={isPointer}
         isOverText={isOverText}
         theme={theme}
       />
-      
+
       {/* Hero Section */}
       <div className="relative h-64 md:h-80 flex items-center justify-center bg-cover bg-center bg-no-repeat bg-fixed"
         style={{
@@ -1342,8 +1344,8 @@ export default function DashboardPage() {
               : `rgba(0, 0, 0, 0.6)`
           }}
         />
-        
-        <ThemeToggle 
+
+        <ThemeToggle
           theme={theme}
           toggleTheme={toggleTheme}
           setDayMode={setDayMode}
@@ -1351,7 +1353,7 @@ export default function DashboardPage() {
           currentUser={currentUser}
           onLogout={handleLogout}
         />
-        
+
         <div className="relative z-10 text-center text-white px-4 w-full">
           <div className="transition-all duration-300 ease-out">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -1361,13 +1363,13 @@ export default function DashboardPage() {
             </h1>
             <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed">
               {currentUser.role === 'supervisor' ? 'Real-time monitoring of employee performance and attendance' :
-               currentUser.role === 'pm' ? `${currentUser.department} department performance overview` :
-               'Your personal performance dashboard'}
+                currentUser.role === 'pm' ? `${currentUser.department} department performance overview` :
+                  'Your personal performance dashboard'}
             </p>
           </div>
         </div>
       </div>
-      
+
       {/* Main Dashboard Content */}
       <div
         ref={contentRef}
@@ -1377,7 +1379,7 @@ export default function DashboardPage() {
         }}
       >
         <NavigationBar />
-        
+
         {/* Quick Stats Bar */}
         <div className={`${theme.isDayTime ? 'bg-blue-50/50' : 'bg-gray-800/50'} border-b ${themeColors.borderLight}`}>
           <div className="container mx-auto px-4 py-3">
@@ -1387,7 +1389,7 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className={`text-sm ${themeColors.textLight}`}>
                     {currentUser.role === 'supervisor' ? 'Company Status:' :
-                     currentUser.role === 'pm' ? 'Department Status:' : 'My Status:'}
+                      currentUser.role === 'pm' ? 'Department Status:' : 'My Status:'}
                     <span className="font-semibold"> {currentUser.role === 'employee' ? 'Active' : 'Online'}</span>
                   </span>
                 </div>
@@ -1395,7 +1397,7 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span className={`text-sm ${themeColors.textLight}`}>
                     {currentUser.role === 'supervisor' ? 'Active Users:' :
-                     currentUser.role === 'pm' ? 'Active Team:' : 'Tasks Today:'}
+                      currentUser.role === 'pm' ? 'Active Team:' : 'Tasks Today:'}
                     <span className="font-semibold"> {stats.onTimeToday}</span>
                   </span>
                 </div>
@@ -1406,7 +1408,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
-             
+
               <div className="flex items-center gap-4">
                 <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
                   Export Data
@@ -1418,7 +1420,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Dashboard Content */}
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="mb-8">
@@ -1426,15 +1428,15 @@ export default function DashboardPage() {
               <div>
                 <h2 className={`text-2xl md:text-3xl font-bold ${themeColors.text}`}>
                   {currentUser.role === 'supervisor' ? `Good Morning, ${currentUser.name}` :
-                   currentUser.role === 'pm' ? `Good Morning, ${currentUser.name}` : `Good Morning, ${currentUser.name}`}
+                    currentUser.role === 'pm' ? `Good Morning, ${currentUser.name}` : `Good Morning, ${currentUser.name}`}
                 </h2>
                 <p className={`${themeColors.textLight} mt-2`}>
                   {currentUser.role === 'supervisor' ? "Here's what's happening with all departments today" :
-                   currentUser.role === 'pm' ? "Here's your Engineering team overview" :
-                   "Here's your personal dashboard overview"}
+                    currentUser.role === 'pm' ? "Here's your Engineering team overview" :
+                      "Here's your personal dashboard overview"}
                 </p>
               </div>
-             
+
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/attendance"
@@ -1458,27 +1460,27 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-           
+
             {/* Date and Time Info */}
             <div className={`mt-6 p-4 ${theme.isDayTime ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100' : 'bg-gradient-to-r from-gray-800 to-gray-900 border-gray-700'} rounded-xl border`}>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className={`text-sm ${themeColors.textLight}`}>Current Date & Time</p>
-                  <p className={`text-xl font-bold ${themeColors.text}`}>December 23, 2025 • {new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit', hour12: true})}</p>
+                  <p className={`text-xl font-bold ${themeColors.text}`}>December 23, 2025 • {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</p>
                 </div>
                 <div className="text-right">
                   <div className="flex items-center gap-2">
                     <div>
                       <p className={`text-sm ${themeColors.textLight}`}>
                         {currentUser.role === 'supervisor' ? 'Work Hours Today' :
-                         currentUser.role === 'pm' ? 'Team Work Hours' : 'My Work Hours'}
+                          currentUser.role === 'pm' ? 'Team Work Hours' : 'My Work Hours'}
                       </p>
                       <p className={`text-xl font-bold ${themeColors.text}`}>
                         {workHours.startTime} - {workHours.endTime}
                       </p>
                     </div>
                     {currentUser.role === 'supervisor' && (
-                      <button 
+                      <button
                         onClick={() => setShowWorkHoursEdit(!showWorkHoursEdit)}
                         className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       >
@@ -1490,15 +1492,15 @@ export default function DashboardPage() {
                 <div className="text-right">
                   <p className={`text-sm ${themeColors.textLight}`}>
                     {currentUser.role === 'supervisor' ? 'Office Status' :
-                     currentUser.role === 'pm' ? 'Department Status' : 'My Status'}
+                      currentUser.role === 'pm' ? 'Department Status' : 'My Status'}
                   </p>
                   <p className={`text-xl font-bold ${theme.isDayTime ? 'text-green-600' : 'text-green-400'}`}>
                     {currentUser.role === 'supervisor' ? 'Open • 72% Occupied' :
-                     currentUser.role === 'pm' ? 'Active • 88% Present' : 'Active • On Time'}
+                      currentUser.role === 'pm' ? 'Active • 88% Present' : 'Active • On Time'}
                   </p>
                 </div>
               </div>
-              
+
               {/* Work Hours Edit Modal - Only for Supervisor */}
               {showWorkHoursEdit && currentUser.role === 'supervisor' && (
                 <div className={`mt-4 pt-4 border-t ${themeColors.borderLight}`}>
@@ -1510,7 +1512,7 @@ export default function DashboardPage() {
                         type="time"
                         value={workHours.startTime}
                         onChange={(e) => {
-                          setWorkHours({...workHours, startTime: e.target.value});
+                          setWorkHours({ ...workHours, startTime: e.target.value });
                         }}
                         className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
                       />
@@ -1521,26 +1523,26 @@ export default function DashboardPage() {
                         type="time"
                         value={workHours.endTime}
                         onChange={(e) => {
-                          setWorkHours({...workHours, endTime: e.target.value});
+                          setWorkHours({ ...workHours, endTime: e.target.value });
                         }}
                         className={`w-full px-3 py-2 border ${themeColors.border} rounded-lg ${themeColors.bgLight} ${themeColors.text}`}
                       />
                     </div>
                   </div>
-                  
+
                   <button
                     onClick={async () => {
                       try {
                         const newStartTime = workHours.startTime;
                         const newEndTime = workHours.endTime;
-                        
+
                         console.log('DEBUG: About to save work hours', { startTime: newStartTime, endTime: newEndTime });
-                        
+
                         // Save global work hours (no user_id means it applies to all users)
                         const response = await workHoursApi.update(newStartTime, newEndTime);
                         console.log('DEBUG: API Response:', response);
                         console.log('Work hours updated successfully for all users');
-                        
+
                         // Notify other tabs about the update via BroadcastChannel
                         try {
                           const channel = new BroadcastChannel('work-hours-update');
@@ -1555,26 +1557,26 @@ export default function DashboardPage() {
                         } catch (e) {
                           console.log('BroadcastChannel not supported');
                         }
-                        
+
                         // Show success message
                         alert('Work hours saved successfully for all users!');
-                        
+
                         // IMMEDIATELY update display with the new values (trust what we just saved)
                         setWorkHours({ startTime: newStartTime, endTime: newEndTime });
-                        
+
                         // Close modal FIRST (this pauses polling)
                         setShowWorkHoursEdit(false);
-                        
+
                         // Then verify from API after a longer delay for database sync
                         setTimeout(async () => {
                           try {
                             const response = await workHoursApi.get();
                             console.log('DEBUG: Verification reload from API:', response);
-                            
+
                             // Just verify it matches what we saved
                             let startTime = newStartTime;
                             let endTime = newEndTime;
-                            
+
                             if (response) {
                               if (Array.isArray(response)) {
                                 const userWH = response.find((wh: any) => wh.user_id === currentUser.id);
@@ -1607,7 +1609,7 @@ export default function DashboardPage() {
                                 }
                               }
                             }
-                            
+
                             console.log('DEBUG: Final verified work hours:', { startTime, endTime });
                             // Update with verified data
                             setWorkHours({ startTime, endTime });
@@ -1629,12 +1631,12 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-          
+
           {/* Stats Cards - Different for Employee */}
           {currentUser.role === 'employee' ? (
-            <PersonalDashboard 
-              themeColors={themeColors} 
-              personalData={roleBasedData} 
+            <PersonalDashboard
+              themeColors={themeColors}
+              personalData={roleBasedData}
               theme={theme}
               currentUser={currentUser}
             />
@@ -1657,9 +1659,9 @@ export default function DashboardPage() {
                     </div>
                   }
                   tiltState={tiltStates.total}
-                  themeColors={{...themeColors, iconBg: themeColors.blueIconBg}}
+                  themeColors={{ ...themeColors, iconBg: themeColors.blueIconBg }}
                 />
-                
+
                 <StatCard
                   cardId="onTime"
                   title={getStatTitle("onTime")}
@@ -1678,9 +1680,9 @@ export default function DashboardPage() {
                     </div>
                   }
                   tiltState={tiltStates.onTime}
-                  themeColors={{...themeColors, iconBg: themeColors.greenIconBg}}
+                  themeColors={{ ...themeColors, iconBg: themeColors.greenIconBg }}
                 />
-                
+
                 <StatCard
                   cardId="late"
                   title={getStatTitle("late")}
@@ -1701,9 +1703,9 @@ export default function DashboardPage() {
                     </div>
                   }
                   tiltState={tiltStates.late}
-                  themeColors={{...themeColors, iconBg: themeColors.amberIconBg}}
+                  themeColors={{ ...themeColors, iconBg: themeColors.amberIconBg }}
                 />
-                
+
                 <StatCard
                   cardId="pending"
                   title={getStatTitle("pending")}
@@ -1724,10 +1726,10 @@ export default function DashboardPage() {
                     </div>
                   }
                   tiltState={tiltStates.pending}
-                  themeColors={{...themeColors, iconBg: themeColors.purpleIconBg}}
+                  themeColors={{ ...themeColors, iconBg: themeColors.purpleIconBg }}
                 />
               </div>
-              
+
               {/* Main Grid Layout untuk Supervisor dan PM */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column */}
@@ -1816,7 +1818,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Tasks Needing Revision */}
                   {roleBasedData.tasksNeedingRevision.length > 0 && (
                     <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden`}>
@@ -1846,9 +1848,8 @@ export default function DashboardPage() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
                                   <span
-                                    className={`px-3 py-1 text-xs rounded-full font-medium ${
-                                      task.priority === "High" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
-                                    }`}
+                                    className={`px-3 py-1 text-xs rounded-full font-medium ${task.priority === "High" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
+                                      }`}
                                   >
                                     {task.priority} Priority
                                   </span>
@@ -1870,10 +1871,9 @@ export default function DashboardPage() {
                                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    <span className={`text-sm font-medium ${
-                                      task.deadline === "Today" ? "text-red-600" :
+                                    <span className={`text-sm font-medium ${task.deadline === "Today" ? "text-red-600" :
                                       task.deadline === "Tomorrow" ? "text-amber-600" : themeColors.textLight
-                                    }`}>
+                                      }`}>
                                       Deadline: {task.deadline}
                                     </span>
                                   </div>
@@ -1921,7 +1921,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Right Sidebar untuk Supervisor dan PM */}
                 <div className="space-y-8">
                   {/* Best Employee Card */}
@@ -1958,7 +1958,7 @@ export default function DashboardPage() {
                           Winner 🏆
                         </span>
                       </div>
-                     
+
                       <div className="text-center mb-6">
                         <div className="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-white/30 overflow-hidden bg-gradient-to-br from-white to-blue-100 flex items-center justify-center">
                           <span className="text-3xl font-bold text-blue-600">
@@ -1968,7 +1968,7 @@ export default function DashboardPage() {
                         <h3 className="text-2xl font-bold mb-1">{stats.bestEmployee}</h3>
                         <p className="text-blue-100">{stats.bestEmployeeDept} Department</p>
                       </div>
-                     
+
                       <div className="mt-6 pt-6 border-t border-white/20">
                         <div className="grid grid-cols-3 gap-4 text-center">
                           <div>
@@ -1988,13 +1988,13 @@ export default function DashboardPage() {
                           "Achieved exceptional results with innovative solutions."
                         </p>
                       </div>
-                     
+
                       <button className="mt-6 w-full px-4 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors">
                         View Full Profile
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Recent Achievements */}
                   {roleBasedData.achievements.length > 0 && (
                     <div className={`${themeColors.cardBg} rounded-xl ${themeColors.shadow} border ${themeColors.border} overflow-hidden`}>
@@ -2054,7 +2054,7 @@ export default function DashboardPage() {
               </div>
             </>
           )}
-          
+
           {/* Bottom Stats Section untuk Supervisor dan PM */}
           {currentUser.role !== 'employee' && (
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -2084,8 +2084,8 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                      <div className={`bg-gradient-to-r ${theme.isDayTime ? 'from-purple-500 to-purple-600' : 'from-purple-600 to-purple-700'} h-2 rounded-full`} 
-                           style={{ width: currentUser.role === 'pm' ? '91.2%' : '87.5%' }}></div>
+                      <div className={`bg-gradient-to-r ${theme.isDayTime ? 'from-purple-500 to-purple-600' : 'from-purple-600 to-purple-700'} h-2 rounded-full`}
+                        style={{ width: currentUser.role === 'pm' ? '91.2%' : '87.5%' }}></div>
                     </div>
                     <p className={`text-xs ${themeColors.textLighter} mt-2`}>
                       {currentUser.role === 'pm' ? 'Based on 120+ team tasks' : 'Based on 450+ completed tasks'}
@@ -2093,7 +2093,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div
                 data-card="upcomingReviews"
                 className={`bg-gradient-to-br ${theme.isDayTime ? 'from-green-50 to-white' : 'from-green-900/20 to-gray-900'} rounded-xl p-6 border ${theme.isDayTime ? 'border-green-100' : 'border-green-800'} transform-gpu transition-all duration-300 ease-out`}
@@ -2135,7 +2135,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div
                 data-card="teamSatisfaction"
                 className={`bg-gradient-to-br ${theme.isDayTime ? 'from-blue-50 to-white' : 'from-blue-900/20 to-gray-900'} rounded-xl p-6 border ${theme.isDayTime ? 'border-blue-100' : 'border-blue-800'} transform-gpu transition-all duration-300 ease-out`}
@@ -2186,7 +2186,7 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-          
+
           {/* Newsletter & Updates untuk Supervisor dan PM */}
           {currentUser.role !== 'employee' && (
             <div className={`mt-12 bg-gradient-to-r ${theme.isDayTime ? 'from-blue-50 to-indigo-50' : 'from-gray-800 to-gray-900'} rounded-xl p-8 border ${theme.isDayTime ? 'border-blue-200' : 'border-gray-700'}`}>
@@ -2194,8 +2194,8 @@ export default function DashboardPage() {
                 <div>
                   <h3 className={`text-xl font-bold ${themeColors.text}`}>Stay Updated</h3>
                   <p className={`${themeColors.textLight} mt-2`}>
-                    {currentUser.role === 'pm' 
-                      ? 'Subscribe to team performance reports and updates' 
+                    {currentUser.role === 'pm'
+                      ? 'Subscribe to team performance reports and updates'
                       : 'Subscribe to weekly performance reports and updates'}
                   </p>
                 </div>
@@ -2213,11 +2213,11 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-        
+
         {/* Footer */}
         <Footer themeColors={themeColors} theme={theme} currentUser={currentUser} />
       </div>
-      
+
       <GlobalStyles theme={theme} />
     </>
   );
