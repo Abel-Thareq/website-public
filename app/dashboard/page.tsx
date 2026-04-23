@@ -631,7 +631,7 @@ const GlobalStyles = memo(({ theme }: { theme: Theme }) => (
 
 export default function DashboardPage() {
   // Get user from context provider instead of creating own state
-  const { currentUser: userFromContext, loading: userLoading } = useUser();
+  const { currentUser: userFromContext, loading: userLoading, logout } = useUser();
   const { theme: themeFromProvider } = useTheme();
   const router = useRouter();
 
@@ -736,7 +736,6 @@ export default function DashboardPage() {
         // Fetch users data
         const usersResponse = await usersApi.getAll({ exclude_supervisors: true });
         const allUsers: DashboardUser[] = Array.isArray(usersResponse) ? usersResponse : (usersResponse.data || usersResponse);
-        console.log('Dashboard - All users (non-supervisors):', allUsers);
 
         // Store all employees for work hours editing (supervisor only)
         if (currentUser.role === 'supervisor' || currentUser.role === 'ceo') {
@@ -754,9 +753,7 @@ export default function DashboardPage() {
           try {
             const teamResponse = await teamApi.getTeamMembers();
             pmTeamMembers = Array.isArray(teamResponse) ? teamResponse : (teamResponse.data || teamResponse);
-            console.log('Dashboard - PM team members:', pmTeamMembers);
           } catch (error) {
-            console.log('Could not fetch PM team members, using department filter');
             pmTeamMembers = allUsers.filter((u: DashboardUser) => u.department === currentUser.department && u.id !== currentUser.id);
           }
         }
@@ -764,12 +761,10 @@ export default function DashboardPage() {
         // Fetch today's attendance
         const attendanceResponse = await attendanceApi.getAll({ date: new Date().toISOString().split('T')[0] });
         const todayAttendance: AttendanceRecord[] = Array.isArray(attendanceResponse.data) ? attendanceResponse.data : attendanceResponse;
-        console.log('Dashboard - Today attendance:', todayAttendance);
 
         // Fetch all tasks
         const tasksResponse = await tasksApi.getAll();
         const allTasks: TaskData[] = Array.isArray(tasksResponse) ? tasksResponse : (tasksResponse.data || tasksResponse);
-        console.log('Dashboard - All tasks:', allTasks);
 
         // Filter data based on user role
         let filteredUsers: DashboardUser[] = allUsers;
@@ -840,7 +835,6 @@ export default function DashboardPage() {
           tasksNeedingRevision
         };
 
-        console.log('Dashboard - Final calculated data:', finalData);
         setDashboardData(finalData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -988,14 +982,10 @@ export default function DashboardPage() {
     window.dispatchEvent(new CustomEvent('themeChanged'));
   }, []);
 
-  // Handle logout
-  const handleLogout = useCallback(() => {
-    sessionStorage.removeItem('currentUser');
-    localStorage.removeItem('currentUser');
-    window.dispatchEvent(new CustomEvent('userChange', { detail: null }));
-    // Redirect to home page
-    router.push('/');
-  }, [router]);
+  // Handle logout — delegate to UserProvider which properly calls backend + clears storage
+  const handleLogout = useCallback(async () => {
+    await logout();
+  }, [logout]);
 
   // Load tema dari localStorage
   useEffect(() => {
@@ -1016,28 +1006,19 @@ export default function DashboardPage() {
     const loadWorkHours = async () => {
       try {
         const response = await workHoursApi.get();
-        console.log('Work hours API response:', response);
-        console.log('Current user:', currentUser);
 
-        // Normalize API response - bisa array (supervisor/pm) atau single object (employee)
+        // Normalize API response - can be array (supervisor/pm) or single object (employee)
         let startTime = '08:00';
         let endTime = '18:00';
 
         if (response) {
-          // If supervisor or PM gets array, find current user's work hours
           if (Array.isArray(response)) {
-            console.log('DEBUG: Response is array, current user id:', currentUser?.id);
-            console.log('DEBUG: All response items:', response.map((wh: any) => ({ user_id: wh.user_id, start_time: wh.start_time, end_time: wh.end_time })));
-
             const currentUserWorkHours = response.find((wh: any) => wh.user_id === currentUser?.id);
-            console.log('DEBUG: Found current user work hours:', currentUserWorkHours);
 
             if (currentUserWorkHours) {
               startTime = (currentUserWorkHours.start_time || currentUserWorkHours.startTime || '08:00').substring(0, 5);
               endTime = (currentUserWorkHours.end_time || currentUserWorkHours.endTime || '18:00').substring(0, 5);
-              console.log('DEBUG: Parsed from array:', { startTime, endTime });
             } else {
-              console.warn('DEBUG: Current user not found in array, using first item');
               // If current user not found (supervisor viewing other), use first
               if (response.length > 0) {
                 startTime = (response[0].start_time || response[0].startTime || '08:00').substring(0, 5);
@@ -1046,33 +1027,22 @@ export default function DashboardPage() {
             }
           } else {
             // Single object response (employee)
-            console.log('DEBUG: Response is single object');
             if (response.start_time || response.startTime) {
               startTime = (response.start_time || response.startTime).substring(0, 5);
             }
             if (response.end_time || response.endTime) {
               endTime = (response.end_time || response.endTime).substring(0, 5);
             }
-            console.log('DEBUG: Parsed from single object:', { startTime, endTime });
           }
         }
 
-        console.log('DEBUG: Setting work hours from API:', { startTime, endTime });
-        setWorkHours({
-          startTime,
-          endTime
-        });
+        setWorkHours({ startTime, endTime });
       } catch (error) {
         console.error('Failed to load work hours:', error);
-        // Fallback ke default
-        setWorkHours({
-          startTime: '08:00',
-          endTime: '18:00'
-        });
+        setWorkHours({ startTime: '08:00', endTime: '18:00' });
       }
     };
 
-    // Only load on initial mount
     loadWorkHours();
 
     // Listen for work hours updates from other tabs via BroadcastChannel
@@ -1083,57 +1053,29 @@ export default function DashboardPage() {
     try {
       channel = new BroadcastChannel('work-hours-update');
       channel.addEventListener('message', (event) => {
-        if (event.data.type === 'WORK_HOURS_UPDATED') {
-          console.log('Received work hours update from another tab:', event.data);
-          // Only reload if not editing (modal is not open)
-          if (!showWorkHoursEdit) {
-            console.log('DEBUG: BroadcastChannel triggered reload');
-            loadWorkHours();
-          }
+        if (event.data.type === 'WORK_HOURS_UPDATED' && !showWorkHoursEdit) {
+          loadWorkHours();
         }
       });
     } catch (e) {
-      console.log('BroadcastChannel not supported in this browser');
+      // BroadcastChannel not supported
     }
 
-    // Refresh work hours setiap 5 detik untuk real-time sync tanpa mengandalkan localStorage
-    // HANYA JIKA MODAL EDIT TIDAK TERBUKA
+    // Poll work hours every 60s (was 5s which caused form resets and console spam)
+    // Only poll when edit modal is NOT open
     if (!showWorkHoursEdit) {
-      console.log('DEBUG: Modal closed, starting polling in 3 seconds');
-      // Add 3-second delay before starting polling to avoid race condition
-      // where polling fires immediately after save before UI fully updates
       timeoutId = setTimeout(() => {
-        console.log('DEBUG: 3-second delay elapsed, starting polling');
         interval = setInterval(() => {
-          console.log('DEBUG: Polling interval triggered, reloading work hours');
           loadWorkHours();
-        }, 5000);
-      }, 3000);
-    } else {
-      console.log('DEBUG: Modal edit is open, polling paused');
+        }, 60000);
+      }, 5000);
     }
 
-    // Cleanup function
+    // Single cleanup function (was duplicated before — dead code)
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      if (interval) {
-        clearInterval(interval);
-      }
-      if (channel) {
-        channel.close();
-      }
-    };
-
-    // Cleanup function
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-      if (channel) {
-        channel.close();
-      }
+      if (timeoutId) clearTimeout(timeoutId);
+      if (interval) clearInterval(interval);
+      if (channel) channel.close();
     };
   }, [currentUser, showWorkHoursEdit]);
 
@@ -1536,12 +1478,10 @@ export default function DashboardPage() {
                         const newStartTime = workHours.startTime;
                         const newEndTime = workHours.endTime;
 
-                        console.log('DEBUG: About to save work hours', { startTime: newStartTime, endTime: newEndTime });
 
                         // Save global work hours (no user_id means it applies to all users)
                         const response = await workHoursApi.update(newStartTime, newEndTime);
-                        console.log('DEBUG: API Response:', response);
-                        console.log('Work hours updated successfully for all users');
+
 
                         // Notify other tabs about the update via BroadcastChannel
                         try {
@@ -1555,7 +1495,7 @@ export default function DashboardPage() {
                           });
                           channel.close();
                         } catch (e) {
-                          console.log('BroadcastChannel not supported');
+                          // BroadcastChannel not supported
                         }
 
                         // Show success message
@@ -1571,7 +1511,6 @@ export default function DashboardPage() {
                         setTimeout(async () => {
                           try {
                             const response = await workHoursApi.get();
-                            console.log('DEBUG: Verification reload from API:', response);
 
                             // Just verify it matches what we saved
                             let startTime = newStartTime;
@@ -1580,11 +1519,9 @@ export default function DashboardPage() {
                             if (response) {
                               if (Array.isArray(response)) {
                                 const userWH = response.find((wh: any) => wh.user_id === currentUser.id);
-                                console.log('DEBUG: Found user work hours in array:', userWH);
                                 if (userWH) {
                                   const dbStart = (userWH.start_time || userWH.startTime || '08:00').substring(0, 5);
                                   const dbEnd = (userWH.end_time || userWH.endTime || '18:00').substring(0, 5);
-                                  console.log('DEBUG: Database has:', { dbStart, dbEnd });
                                   // Only override if different (shouldn't happen)
                                   if (dbStart !== newStartTime || dbEnd !== newEndTime) {
                                     console.warn('DEBUG: Database differs from saved values, updating');
@@ -1595,14 +1532,12 @@ export default function DashboardPage() {
                               } else {
                                 if (response.start_time || response.startTime) {
                                   const dbStart = (response.start_time || response.startTime).substring(0, 5);
-                                  console.log('DEBUG: Single response start_time:', dbStart);
                                   if (dbStart !== newStartTime) {
                                     startTime = dbStart;
                                   }
                                 }
                                 if (response.end_time || response.endTime) {
                                   const dbEnd = (response.end_time || response.endTime).substring(0, 5);
-                                  console.log('DEBUG: Single response end_time:', dbEnd);
                                   if (dbEnd !== newEndTime) {
                                     endTime = dbEnd;
                                   }
@@ -1610,7 +1545,6 @@ export default function DashboardPage() {
                               }
                             }
 
-                            console.log('DEBUG: Final verified work hours:', { startTime, endTime });
                             // Update with verified data
                             setWorkHours({ startTime, endTime });
                           } catch (error) {

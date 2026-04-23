@@ -63,6 +63,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem('auth_token');
 
       if (!token) {
+        // No token: clear any stale user data and set null
+        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('currentUser');
         setCurrentUser(prev => {
           if (prev !== null) return null;
           return prev;
@@ -106,12 +109,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Auth check failed:', error);
 
-      // Token invalid, clear storage
+      // Token invalid, clear ALL storage
       if (error.response?.status === 401) {
-        sessionStorage.removeItem('auth_token');
         localStorage.removeItem('auth_token');
-        sessionStorage.removeItem('currentUser');
         localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('currentUser');
         setCurrentUser(null);
       }
     } finally {
@@ -207,28 +210,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Switch user - untuk demo/testing purposes
-  // ⚠️ CATATAN: Ini tidak aman untuk production! 
-  // Seharusnya user harus logout dan login ulang dengan credentials yang berbeda
-  const switchUser = async (user: User) => {
-    try {
-      // Option 1: Logout current user dan redirect ke login
-      // await logout();
-      // window.location.href = '/';
-
-      // Option 2: Force switch (ONLY for demo/development)
-      setCurrentUser(user);
-      if (mounted) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-      }
-
-      // Refresh page to reload all data
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error('Switch user error:', error);
-    }
+  // switchUser is intentionally removed.
+  // Users must logout and login again with different credentials.
+  // The old switchUser bypassed auth and caused phantom login bugs.
+  const switchUser = (_user: User) => {
+    // No-op: redirect to logout instead
+    logout();
   };
 
   // Refresh user data from backend

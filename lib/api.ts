@@ -15,9 +15,7 @@ const api = axios.create({
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
-    // Check sessionStorage first (per-tab), then localStorage (fallback)
-    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
-    console.log('Token being sent:', token);
+    const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,14 +27,17 @@ api.interceptors.request.use(
 );
 
 // Response interceptor to handle errors
+// Response interceptor: on 401, clear ALL auth storage.
+// Do NOT hard-redirect here — let UserProvider react to state change gracefully.
+// This prevents form data loss and redirect loops.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      sessionStorage.removeItem('auth_token');
       localStorage.removeItem('auth_token');
       localStorage.removeItem('currentUser');
-      window.location.href = '/';
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('currentUser');
     }
     return Promise.reject(error);
   }
@@ -231,15 +232,11 @@ export const reportsApi = {
 // Work Hours API
 export const workHoursApi = {
   get: async () => {
-    console.log('DEBUG API: Fetching /work-hours');
     const response = await api.get('/work-hours');
-    console.log('DEBUG API: Response data:', response.data);
     return response.data;
   },
   getByUserId: async (userId: number) => {
-    console.log('DEBUG API: Fetching /work-hours/' + userId);
     const response = await api.get(`/work-hours/${userId}`);
-    console.log('DEBUG API: Response data:', response.data);
     return response.data;
   },
   update: async (startTime: string, endTime: string, userId?: number) => {
@@ -247,9 +244,7 @@ export const workHoursApi = {
     if (userId) {
       data.user_id = userId;
     }
-    console.log('DEBUG API: Updating work hours with:', data);
     const response = await api.put('/work-hours', data);
-    console.log('DEBUG API: Update response:', response.data);
     return response.data;
   },
 };

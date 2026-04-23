@@ -81,9 +81,10 @@ const availableUsers: User[] = [
 ];
 
 export default function NavigationBar() {
-  const { login, logout } = useUser();
+  const { currentUser: contextUser, login, logout } = useUser();
   const pathname = usePathname();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // Use context user as single source of truth (cast to local type)
+  const currentUser = contextUser as unknown as User | null;
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSwitchAccountMode, setIsSwitchAccountMode] = useState(false);
   const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -147,42 +148,15 @@ export default function NavigationBar() {
     };
   }, []);
 
-  // Load user dari sessionStorage/localStorage saat komponen mount
+  // Listen for openLogin event from page.tsx
   useEffect(() => {
-    const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setCurrentUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        sessionStorage.removeItem('currentUser');
-        localStorage.removeItem('currentUser');
-      }
-    }
-
-    // Listen untuk openLogin event dari page.tsx
     const handleOpenLogin = () => {
       setIsLoginOpen(true);
       setIsSwitchAccountMode(false);
     };
 
-    // Listen untuk userChange event
-    const handleUserChange = (event: CustomEvent) => {
-      if (event.detail === null) {
-        setCurrentUser(null);
-      } else {
-        setCurrentUser(event.detail);
-      }
-    };
-
     window.addEventListener('openLogin', handleOpenLogin as EventListener);
-    window.addEventListener('userChange', handleUserChange as EventListener);
-
-    return () => {
-      window.removeEventListener('openLogin', handleOpenLogin as EventListener);
-      window.removeEventListener('userChange', handleUserChange as EventListener);
-    };
+    return () => window.removeEventListener('openLogin', handleOpenLogin as EventListener);
   }, []);
 
   // Fetch pending count for supervisor
@@ -200,7 +174,8 @@ export default function NavigationBar() {
     };
 
     fetchPendingCount();
-    const interval = setInterval(fetchPendingCount, 5000);
+    // Poll every 60s instead of 5s to reduce console spam and network load
+    const interval = setInterval(fetchPendingCount, 60000);
     return () => clearInterval(interval);
   }, [currentUser]);
 
@@ -241,10 +216,10 @@ export default function NavigationBar() {
     notificationDot: "bg-red-500"
   };
 
-  // Handle login dari landing page (redirect ke dashboard) - VERSI YANG DIPERBAIKI
+  // Handle login from landing page
   const handleLoginFromLanding = async () => {
     setLoginError('');
-    setIsSwitchingAccount(true);
+    setIsLoggingIn(true);
 
     try {
       const success = await login(credentials.username, credentials.password);
@@ -252,65 +227,30 @@ export default function NavigationBar() {
       if (success) {
         setIsLoginOpen(false);
         setCredentials({ username: '', password: '' });
-
+        // Small delay to let state propagate before redirect
         setTimeout(() => {
           window.location.href = '/dashboard';
-        }, 100);
+        }, 150);
       } else {
         setLoginError('Invalid username or password');
-        setIsSwitchingAccount(false);
       }
     } catch (error: any) {
       setLoginError(error.response?.data?.message || 'Login failed');
-      setIsSwitchingAccount(false);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  // Handle login fallback untuk development (tanpa API)
+  // Handle login fallback (uses same API-based login)
   const handleLoginFromLandingFallback = () => {
-    setLoginError('');
-    setIsLoggingIn(true);
-
-    // Simulasi delay API
-    setTimeout(() => {
-      const user = availableUsers.find(
-        u => u.username === credentials.username && u.password === credentials.password
-      );
-
-      if (user) {
-        const { password, ...userWithoutPassword } = user;
-
-        localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-        setCurrentUser(userWithoutPassword);
-        setIsLoginOpen(false);
-        setCredentials({ username: '', password: '' });
-        window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
-        setIsLoggingIn(false);
-
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 100);
-      } else {
-        setLoginError('Invalid username or password');
-        setIsLoggingIn(false);
-      }
-    }, 500);
+    handleLoginFromLanding();
   };
 
-  // Handle switch account
-  const handleSwitchToUser = (user: User) => {
-    const { password, ...userWithoutPassword } = user;
-
+  // Handle switch account — properly logout first then user re-logs in
+  const handleSwitchToUser = async (user: User) => {
     setIsSwitchingAccount(true);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-    setIsLoginOpen(false);
-    setIsSwitchAccountMode(false);
-    setCurrentUser(userWithoutPassword);
-    window.dispatchEvent(new CustomEvent('userChange', { detail: userWithoutPassword }));
-
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 100);
+    // Logout current user first, then redirect to login
+    await logout();
   };
 
   // Handle logout

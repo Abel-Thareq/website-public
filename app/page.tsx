@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, memo } from "react";
 import Image from "next/image";
 // Pastikan path import ini sesuai dengan struktur folder Anda
 // Jika error, sesuaikan misal: import { User } from "@/types/user";
-import { User } from "./types/user"; 
+import { User } from "./types/user";
 import { useUser } from './providers/userProvider';
 import RegistrationModal from './components/registrationModal';
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,45 +31,45 @@ interface Theme {
 
 // Data User Lengkap
 const availableUsers: User[] = [
-  { 
-    id: "supervisor_001", 
-    username: "supervisor", 
-    password: "supervisor123", 
-    name: "Alex Johnson", 
-    role: "supervisor", 
-    initials: "AJ", 
-    department: "Executive", 
-    employeeCount: 124, 
-    color: "from-blue-700 to-blue-900", 
-    email: "alex@techmaven.id", 
-    joinDate: "2023-01-15" 
+  {
+    id: "supervisor_001",
+    username: "supervisor",
+    password: "supervisor123",
+    name: "Alex Johnson",
+    role: "supervisor",
+    initials: "AJ",
+    department: "Executive",
+    employeeCount: 124,
+    color: "from-blue-700 to-blue-900",
+    email: "alex@techmaven.id",
+    joinDate: "2023-01-15"
   },
-  { 
-    id: "pm_001", 
-    username: "pm", 
-    password: "pm123", 
-    name: "Sarah Chen", 
-    role: "pm", 
-    initials: "SC", 
-    department: "Engineering", 
-    employeeCount: 25, 
-    color: "from-blue-600 to-blue-800", 
-    email: "sarah@techmaven.id", 
-    joinDate: "2023-03-20" 
+  {
+    id: "pm_001",
+    username: "pm",
+    password: "pm123",
+    name: "Sarah Chen",
+    role: "pm",
+    initials: "SC",
+    department: "Engineering",
+    employeeCount: 25,
+    color: "from-blue-600 to-blue-800",
+    email: "sarah@techmaven.id",
+    joinDate: "2023-03-20"
   },
-  { 
-    id: "employee_001", 
-    username: "john.doe", 
-    password: "employee123", 
-    name: "John Doe", 
-    role: "employee", 
-    initials: "JD", 
-    department: "Engineering", 
-    employeeCount: 1, 
-    color: "from-blue-500 to-blue-700", 
-    email: "john@techmaven.id", 
-    phone: "+62-812-555-0123", 
-    joinDate: "2023-06-10" 
+  {
+    id: "employee_001",
+    username: "john.doe",
+    password: "employee123",
+    name: "John Doe",
+    role: "employee",
+    initials: "JD",
+    department: "Engineering",
+    employeeCount: 1,
+    color: "from-blue-500 to-blue-700",
+    email: "john@techmaven.id",
+    phone: "+62-812-555-0123",
+    joinDate: "2023-06-10"
   }
 ];
 
@@ -189,8 +189,8 @@ const AssetCube = memo(({ className }: { className?: string }) => (
           <stop offset="100%" stopColor="#172554" />
         </linearGradient>
       </defs>
-      <path d="M150,50 L250,100 L150,150 L50,100 Z" fill="url(#cubeGradTop)" stroke="white" strokeWidth="0.5"/>
-      <path d="M250,100 L250,220 L150,270 L150,150 Z" fill="#2563eb" opacity="0.9"/>
+      <path d="M150,50 L250,100 L150,150 L50,100 Z" fill="url(#cubeGradTop)" stroke="white" strokeWidth="0.5" />
+      <path d="M250,100 L250,220 L150,270 L150,150 Z" fill="#2563eb" opacity="0.9" />
       <path d="M50,100 L150,150 L150,270 L50,220 Z" fill="url(#cubeGradSide)" />
     </svg>
   </div>
@@ -251,9 +251,8 @@ const ScrollAnimation = ({ children, className = "", delay = 0 }: any) => {
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ease-out transform will-change-transform ${className} ${
-        isVisible ? "opacity-100 translate-y-0 blur-0" : "opacity-0 translate-y-12 blur-sm"
-      }`}
+      className={`transition-all duration-700 ease-out transform will-change-transform ${className} ${isVisible ? "opacity-100 translate-y-0 blur-0" : "opacity-0 translate-y-12 blur-sm"
+        }`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
@@ -262,7 +261,7 @@ const ScrollAnimation = ({ children, className = "", delay = 0 }: any) => {
 };
 
 const GlassCard = ({ children, className = "", onClick }: any) => (
-  <div 
+  <div
     onClick={onClick}
     className={`
       relative backdrop-blur-lg border border-white/10 shadow-2xl overflow-hidden
@@ -306,15 +305,15 @@ const SectionHeading = ({ title, subtitle, theme }: { title: string, subtitle: s
 // --- HERO / OVERVIEW ---
 const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
   const isDark = !theme.isDayTime;
-    
+
   return (
-    <section 
+    <section
       id="overview"
-      ref={heroRef} 
+      ref={heroRef}
       className={`relative w-full min-h-screen flex flex-col justify-start items-center overflow-hidden px-4 ${isDark ? 'bg-[#050505]' : 'bg-[#F8FAFC]'}`}
     >
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] bg-blue-600/10 rounded-full blur-[80px] pointer-events-none -z-10 animate-pulse-slow will-change-transform"></div>
-      <div className={`absolute inset-0 opacity-[0.03] pointer-events-none ${isDark ? 'bg-[url("https://grainy-gradients.vercel.app/noise.svg")]' : ''}`}></div>
+      <div className={`absolute inset-0 opacity-[0.03] pointer-events-none ${isDark ? "bg-[url('/noise.svg')]" : ''}`}></div>
 
       <div className="absolute top-[15%] left-[5%] xl:left-[10%] w-32 h-32 md:w-56 md:h-56 z-0 hidden lg:block opacity-80 pointer-events-none"><AssetRing /></div>
       <div className="absolute bottom-[15%] right-[5%] xl:right-[10%] w-24 h-48 z-0 hidden lg:block opacity-70 pointer-events-none"><AssetCube /></div>
@@ -322,7 +321,7 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
 
       {/* HERO CONTENT */}
       <div className="container relative z-10 max-w-5xl mx-auto flex flex-col items-center text-center pt-32 pb-24 min-h-[90vh] justify-center">
-        
+
         <ScrollAnimation delay={0} className="mb-6"><SectionBadge text="WORKFORCE INTELLIGENCE PLATFORM" /></ScrollAnimation>
 
         <ScrollAnimation delay={100}>
@@ -335,9 +334,9 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
         </ScrollAnimation>
 
         <ScrollAnimation delay={200} className="h-12 mb-8 flex items-center justify-center">
-            <div className={`inline-flex items-center text-lg md:text-2xl font-mono ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              {displayedText}
-            </div>
+          <div className={`inline-flex items-center text-lg md:text-2xl font-mono ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {displayedText}
+          </div>
         </ScrollAnimation>
 
         <ScrollAnimation delay={300}>
@@ -347,27 +346,27 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
         </ScrollAnimation>
 
         <ScrollAnimation delay={400} className="flex flex-col md:flex-row items-center justify-center gap-5 w-full">
-          <button 
+          <button
             onClick={() => window.dispatchEvent(new CustomEvent('openLoginModal', { detail: 'employee' }))}
             className="group relative w-full md:w-auto px-10 py-4 bg-white text-black rounded-2xl font-bold text-sm tracking-wide hover:scale-105 transition-all duration-300 shadow-[0_0_30px_-5px_rgba(255,255,255,0.3)] overflow-hidden"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">LAUNCH DASHBOARD 🚀</span>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
           </button>
-            
+
           <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border backdrop-blur-md w-full md:w-auto transition-colors ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-gray-200 bg-white/50 hover:bg-white/80'}`}>
-              <div className="flex -space-x-3">
-                {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-black bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg"></div>)}
-              </div>
-              <div className="text-left flex flex-col justify-center">
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Trusted By</p>
-                <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-black'}`}>Growing Enterprises</p>
-              </div>
+            <div className="flex -space-x-3">
+              {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-black bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg"></div>)}
+            </div>
+            <div className="text-left flex flex-col justify-center">
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Trusted By</p>
+              <p className={`text-xs font-bold ${isDark ? 'text-white' : 'text-black'}`}>Growing Enterprises</p>
+            </div>
           </div>
         </ScrollAnimation>
-        
+
         {/* EXPLORE ICON */}
-        <div 
+        <div
           className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30 animate-bounce cursor-pointer hover:opacity-100 transition-opacity"
           onClick={() => {
             const quoteSection = document.getElementById('techmaven-definition');
@@ -383,16 +382,16 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
       <div id="techmaven-definition" className="container max-w-4xl mx-auto py-32 flex items-center justify-center relative z-20">
         <ScrollAnimation delay={100} className="text-center relative px-8">
           <span className="absolute -top-24 left-0 md:-left-12 text-9xl font-serif text-blue-500/20 font-black opacity-50">“</span>
-            
+
           <p className={`text-2xl md:text-3xl font-serif italic leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             TechMaven adalah sebuah ekosistem digital cerdas yang dirancang untuk mentransformasi cara organisasi mengelola aset manusia, mengubah data aktivitas menjadi wawasan strategis untuk pertumbuhan bisnis yang berkelanjutan.
           </p>
-            
+
           <div className="mt-8 flex justify-center">
             <div className="h-[1px] w-24 bg-blue-500"></div>
           </div>
           <p className="mt-4 text-xs font-bold tracking-[0.2em] text-blue-500 uppercase">Redefining Workforce Management</p>
-            
+
           <span className="absolute -bottom-24 right-0 md:-right-12 text-9xl font-serif text-blue-500/20 font-black opacity-50 rotate-180">“</span>
         </ScrollAnimation>
       </div>
@@ -402,19 +401,19 @@ const OverviewView = memo(({ theme, displayedText, heroRef }: any) => {
 });
 
 // --- SPONSORS MARQUEE (PURE CSS PAUSE & IMAGE ENABLED) ---
-const SponsorItem = memo(({ 
-  sponsor, 
-  index, 
+const SponsorItem = memo(({
+  sponsor,
+  index,
   isDark
-}: { 
-  sponsor: any; 
-  index: number; 
+}: {
+  sponsor: any;
+  index: number;
   isDark: boolean;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div 
+    <div
       className="flex-shrink-0 w-56 h-24 flex items-center justify-center p-2"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -423,8 +422,8 @@ const SponsorItem = memo(({
         relative w-full h-full flex items-center justify-center p-6 rounded-2xl 
         transition-all duration-500 
         ${isDark ? 'bg-white/5 border-white/5' : 'bg-white/50 border-gray-200'}
-        ${isHovered 
-          ? 'scale-110 shadow-xl z-20 translate-y-[-4px] opacity-100' 
+        ${isHovered
+          ? 'scale-110 shadow-xl z-20 translate-y-[-4px] opacity-100'
           : 'hover:scale-105 hover:shadow-lg opacity-70 hover:opacity-100'
         }
         border backdrop-blur-sm cursor-pointer
@@ -433,25 +432,24 @@ const SponsorItem = memo(({
         {isHovered && (
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-lg transition-opacity duration-500"></div>
         )}
-        
+
         {/* LOGO IMAGE */}
         <div className="flex items-center gap-2 w-full h-full justify-center">
-            <div className="relative w-full h-full">
-              <Image
-                src={sponsor.logo}
-                alt={sponsor.name}
-                fill
-                className={`object-contain transition-all duration-500 ${isHovered ? 'brightness-110' : isDark ? 'brightness-150 grayscale opacity-80' : 'grayscale opacity-70'}`}
-              /> 
-            </div>
+          <div className="relative w-full h-full">
+            <Image
+              src={sponsor.logo}
+              alt={sponsor.name}
+              fill
+              className={`object-contain transition-all duration-500 ${isHovered ? 'brightness-110' : isDark ? 'brightness-150 grayscale opacity-80' : 'grayscale opacity-70'}`}
+            />
+          </div>
         </div>
-        
+
         {/* Hover badge */}
         {isHovered && (
           <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
-            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-              isDark ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'
-            } shadow-sm whitespace-nowrap`}>
+            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isDark ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'
+              } shadow-sm whitespace-nowrap`}>
               Partner
             </div>
           </div>
@@ -463,12 +461,12 @@ const SponsorItem = memo(({
 
 const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
   const isDark = !theme.isDayTime;
-    
+
   return (
     <section className={`py-20 relative overflow-hidden ${isDark ? 'bg-[#050505]' : 'bg-gray-50'}`}>
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent pointer-events-none"></div>
-      
+
       {/* Container Teks */}
       <div className="container relative mx-auto px-6 mb-4 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-4">
@@ -479,21 +477,21 @@ const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
           Powering <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500">Innovation</span> Globally
         </h3>
       </div>
-      
+
       {/* Marquee Rows */}
       <div className="relative w-full overflow-hidden mt-0 pt-12">
         <div className={`absolute top-0 left-0 h-full w-24 z-10 bg-gradient-to-r ${isDark ? 'from-[#050505] to-transparent' : 'from-gray-50 to-transparent'}`}></div>
         <div className={`absolute top-0 right-0 h-full w-24 z-10 bg-gradient-to-l ${isDark ? 'from-[#050505] to-transparent' : 'from-gray-50 to-transparent'}`}></div>
 
         {duplicatedSponsorRows.map((row, rowIndex) => (
-          <div 
+          <div
             key={`row-${rowIndex}`}
-            className="flex mb-6 relative group" 
+            className="flex mb-6 relative group"
           >
             <div className={`absolute -top-8 left-1/2 transform -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300 z-20 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 bg-yellow-500/20 text-yellow-500 whitespace-nowrap`}>
               ⏸️ Paused
             </div>
-            
+
             <div className={`flex space-x-6 pause-on-hover ${rowIndex % 2 === 0 ? 'animate-marquee-right' : 'animate-marquee-left'}`}>
               {row.map((sponsor, index) => (
                 <SponsorItem
@@ -512,24 +510,24 @@ const SponsorsMarquee = memo(({ theme }: { theme: Theme }) => {
       <div className="container mx-auto px-6 mt-16 pt-8 border-t border-dashed border-gray-700/20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { 
-              value: "500+", 
-              label: "Enterprises", 
+            {
+              value: "500+",
+              label: "Enterprises",
               icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" /></svg>
             },
-            { 
-              value: "50K+", 
-              label: "Active Users", 
+            {
+              value: "50K+",
+              label: "Active Users",
               icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
             },
-            { 
-              value: "99.9%", 
-              label: "Uptime SLA", 
+            {
+              value: "99.9%",
+              label: "Uptime SLA",
               icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
             },
-            { 
-              value: "24/7", 
-              label: "Support", 
+            {
+              value: "24/7",
+              label: "Support",
               icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>
             }
           ].map((stat, index) => (
@@ -587,10 +585,10 @@ const HistoryView = memo(({ theme }: any) => {
 
   return (
     <section className={`relative py-32 overflow-hidden ${isDark ? 'bg-[#080808]' : 'bg-gray-100'}`}>
-      
+
       {/* Background Grid untuk efek 'Design Tool' */}
-      <div className="absolute inset-0 opacity-[0.05]" 
-           style={{ backgroundImage: `linear-gradient(${isDark ? '#fff' : '#000'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? '#fff' : '#000'} 1px, transparent 1px)`, backgroundSize: '40px 40px' }}>
+      <div className="absolute inset-0 opacity-[0.05]"
+        style={{ backgroundImage: `linear-gradient(${isDark ? '#fff' : '#000'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? '#fff' : '#000'} 1px, transparent 1px)`, backgroundSize: '40px 40px' }}>
       </div>
 
       <div className="container mx-auto px-4 relative z-10 max-w-5xl">
@@ -619,9 +617,9 @@ const HistoryView = memo(({ theme }: any) => {
                   <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.2" />
                 </linearGradient>
               </defs>
-              
+
               {/* Main Path: S-Curve (Melingkar) */}
-              <MotionPath 
+              <MotionPath
                 d="M 512 0 C 512 100, 750 150, 750 250 C 750 350, 274 400, 274 500 C 274 600, 750 650, 750 750 C 750 850, 512 900, 512 1000"
                 fill="none"
                 stroke="url(#pathGradient)"
@@ -636,7 +634,7 @@ const HistoryView = memo(({ theme }: any) => {
               {/* Handle 1 */}
               <line x1="512" y1="100" x2="750" y2="150" stroke={isDark ? "#444" : "#ccc"} strokeWidth="1" strokeDasharray="4 4" opacity="0.5" />
               <circle cx="750" cy="150" r="3" fill="#3B82F6" />
-              
+
               {/* Handle 2 */}
               <line x1="750" y1="350" x2="274" y2="400" stroke={isDark ? "#444" : "#ccc"} strokeWidth="1" strokeDasharray="4 4" opacity="0.5" />
               <circle cx="274" cy="400" r="3" fill="#3B82F6" />
@@ -662,7 +660,7 @@ const HistoryView = memo(({ theme }: any) => {
           <div className="space-y-12 md:space-y-32 relative pt-10">
             {milestones.map((item, index) => (
               <ScrollAnimation key={index} className={`flex ${item.align === 'right' ? 'md:justify-end' : 'md:justify-start'} justify-start relative`}>
-                
+
                 {/* Node Dot for Mobile */}
                 <div className="absolute left-4 md:left-auto md:right-auto w-3 h-3 bg-blue-500 rounded-full -translate-x-1.5 mt-6 md:hidden"></div>
 
@@ -678,20 +676,20 @@ const HistoryView = memo(({ theme }: any) => {
                   `}>
                     {/* Decorative connector for desktop */}
                     <div className={`hidden md:block absolute top-1/2 w-8 h-[1px] bg-blue-500/30 ${item.align === 'right' ? '-left-8' : '-right-8'}`}></div>
-                    
+
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-purple-600 opacity-80">{item.year}</span>
                       <div className="px-2 py-0.5 rounded text-[10px] font-mono border border-blue-500/30 text-blue-500 bg-blue-500/5">
                         x: {Math.floor(Math.random() * 100)} y: {Math.floor(Math.random() * 100)}
                       </div>
                     </div>
-                    
+
                     <h3 className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.title}</h3>
                     <div className="flex items-center gap-1 mb-3">
                       <span className="text-xs text-blue-500">◆</span>
                       <span className="text-xs font-mono uppercase text-gray-500">{item.location}</span>
                     </div>
-                    
+
                     <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {item.desc}
                     </p>
@@ -724,8 +722,8 @@ const FeaturesView = memo(({ theme }: any) => {
           <ScrollAnimation key={index} delay={index * 100} className={`${feature.grid} h-full`}>
             <GlassCard className="rounded-3xl p-8 h-full flex flex-col justify-between group hover:border-blue-500 transition-colors">
               <div className="flex justify-between items-start mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-3xl shadow-inner border border-blue-500/20">{feature.icon}</div>
-                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-3xl shadow-inner border border-blue-500/20">{feature.icon}</div>
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
               </div>
               <div>
                 <h3 className={`text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h3>
@@ -748,11 +746,11 @@ const PortfolioView = memo(({ theme }: any) => {
     <section id="portfolio" className={`min-h-screen py-32 px-4 ${isDark ? 'bg-[#050505]' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto">
         <SectionHeading theme={theme} subtitle="OUR PROJECTS" title="Featured Work" />
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {portfolioData.map((project, index) => (
             <ScrollAnimation key={project.id} delay={index * 150} className="h-full">
-              <div 
+              <div
                 onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
                 className={`
                   group cursor-pointer relative rounded-3xl p-8 border transition-all duration-500 ease-in-out overflow-hidden
@@ -764,9 +762,9 @@ const PortfolioView = memo(({ theme }: any) => {
                   <span className="px-3 py-1 rounded-full border border-blue-500/30 text-blue-500 text-[10px] font-bold uppercase tracking-wider">{project.category}</span>
                   <span className="text-xs font-mono text-gray-500">{project.year}</span>
                 </div>
-                
+
                 <h3 className={`text-2xl font-bold mb-2 transition-colors group-hover:text-blue-500 ${isDark ? 'text-white' : 'text-black'}`}>{project.title}</h3>
-                
+
                 <div className={`overflow-hidden transition-all duration-500 ease-in-out ${expandedId === project.id ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
                   <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{project.desc}</p>
                   <div className="mt-6 flex items-center gap-2 text-blue-500 font-bold text-xs cursor-pointer hover:underline">
@@ -777,7 +775,7 @@ const PortfolioView = memo(({ theme }: any) => {
                 {expandedId !== project.id && (
                   <p className="text-xs text-gray-500 mt-2 italic opacity-0 group-hover:opacity-100 transition-opacity">Click to expand details</p>
                 )}
-                
+
                 <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
               </div>
             </ScrollAnimation>
@@ -819,21 +817,21 @@ const ContactView = memo(({ theme }: any) => {
 
         <GlassCard className="p-8 md:p-12 rounded-3xl">
           <form className="space-y-6">
-             <div className="grid grid-cols-2 gap-6">
-               <div className="space-y-2">
-                 <label className="text-xs font-bold text-gray-500 uppercase">Name</label>
-                 <input type="text" className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="John Doe" />
-               </div>
-               <div className="space-y-2">
-                 <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
-                 <input type="email" className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="john@company.com" />
-               </div>
-             </div>
-             <div className="space-y-2">
-                 <label className="text-xs font-bold text-gray-500 uppercase">Message</label>
-                 <textarea rows={4} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="Tell us about your needs..." />
-             </div>
-             <button className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg">SEND MESSAGE</button>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Name</label>
+                <input type="text" className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="John Doe" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
+                <input type="email" className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="john@company.com" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase">Message</label>
+              <textarea rows={4} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all bg-transparent ${isDark ? 'border-white/10 text-white' : 'border-gray-200 text-black'}`} placeholder="Tell us about your needs..." />
+            </div>
+            <button className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg">SEND MESSAGE</button>
           </form>
         </GlassCard>
       </div>
@@ -875,7 +873,7 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, 
   };
 
   return (
-    <MotionHeader 
+    <MotionHeader
       className={`fixed top-6 left-0 right-0 z-50 flex justify-center px-4 transition-all duration-500`}
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -890,20 +888,20 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, 
           {/* MAGIC MOTION LOGO - HEADER PART */}
           {/* Only render this if splash is complete to allow smooth transition entry */}
           {isSplashComplete && (
-             <MotionDiv 
-                layoutId="techmaven-logo-shared"
-                className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300 bg-white"
-                transition={{ type: "spring", stiffness: 60, damping: 15, duration: 0.8 }} 
-             >
-                <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-1" />
-             </MotionDiv>
+            <MotionDiv
+              layoutId="techmaven-logo-shared"
+              className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300 bg-white"
+              transition={{ type: "spring", stiffness: 60, damping: 15, duration: 0.8 }}
+            >
+              <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-1" />
+            </MotionDiv>
           )}
-          
-          <MotionDiv 
+
+          <MotionDiv
             className="flex flex-col"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 3.5, duration: 0.5 }} 
+            transition={{ delay: 3.5, duration: 0.5 }}
           >
             <span className={`font-bold tracking-tight text-lg leading-none ${themeColors.text}`}>TechMaven</span>
             <span className="text-[9px] text-blue-500 font-bold tracking-widest uppercase">Employee Monitoring</span>
@@ -921,11 +919,10 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, 
             <button
               key={item.id}
               onClick={() => scrollToSection(item.id)}
-              className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all duration-300 ${
-                activeSection === item.id 
-                  ? isDark ? 'bg-[#333] text-white shadow-md scale-105' : 'bg-white text-black shadow-sm scale-105' 
+              className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all duration-300 ${activeSection === item.id
+                  ? isDark ? 'bg-[#333] text-white shadow-md scale-105' : 'bg-white text-black shadow-sm scale-105'
                   : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'
-              }`}
+                }`}
             >
               {item.label}
             </button>
@@ -933,7 +930,7 @@ const HeaderNav = memo(({ themeColors, setIsLoginModalOpen, theme, toggleTheme, 
         </nav>
 
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={toggleTheme}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-black'}`}
           >
@@ -968,7 +965,7 @@ const Footer = memo(({ theme }: any) => {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4">
           <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-white/20 shadow-md grayscale hover:grayscale-0 transition-all">
-              <Image src="/TechMaven.png" alt="Footer Logo" fill className="object-contain p-1" />
+            <Image src="/TechMaven.png" alt="Footer Logo" fill className="object-contain p-1" />
           </div>
           <div className="flex flex-col">
             <span className="font-bold tracking-tight text-lg">TechMaven</span>
@@ -999,7 +996,7 @@ const LoginModal = ({ isOpen, onClose, selectedRole, onFastLogin, loginError, cr
         </div>
         <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center relative">
           <button onClick={onClose} className="absolute top-6 right-6 text-gray-500 hover:text-red-500 transition-colors">✕</button>
-          
+
           <div className="mb-8">
             <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{selectedRole ? `Login: ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}` : 'Welcome Back'}</h2>
             <p className="text-xs text-gray-500">Enter your credentials to access the system.</p>
@@ -1010,11 +1007,11 @@ const LoginModal = ({ isOpen, onClose, selectedRole, onFastLogin, loginError, cr
           <div className="space-y-5">
             <div className="group">
               <label className="text-[10px] font-bold text-blue-500 tracking-wider uppercase mb-1 block">Username</label>
-              <input type="text" value={credentials.username} onChange={e => setCredentials({...credentials, username: e.target.value})} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all font-medium text-sm ${isDark ? 'bg-black border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-black'}`} placeholder="Ex: supervisor" />
+              <input type="text" value={credentials.username} onChange={e => setCredentials({ ...credentials, username: e.target.value })} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all font-medium text-sm ${isDark ? 'bg-black border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-black'}`} placeholder="Ex: supervisor" />
             </div>
             <div className="group">
               <label className="text-[10px] font-bold text-blue-500 tracking-wider uppercase mb-1 block">Password</label>
-              <input type="password" value={credentials.password} onChange={e => setCredentials({...credentials, password: e.target.value})} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all font-medium text-sm ${isDark ? 'bg-black border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-black'}`} placeholder="••••••••" />
+              <input type="password" value={credentials.password} onChange={e => setCredentials({ ...credentials, password: e.target.value })} className={`w-full p-4 rounded-xl outline-none border-2 focus:border-blue-500 transition-all font-medium text-sm ${isDark ? 'bg-black border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-black'}`} placeholder="••••••••" />
             </div>
             <button onClick={handleLogin} disabled={isLoggingIn} className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-blue-600/20 text-sm tracking-wide">{isLoggingIn ? 'Authenticating...' : 'SECURE LOGIN'}</button>
           </div>
@@ -1113,10 +1110,10 @@ export default function LandingPage() {
   const [theme, setTheme] = useState<Theme>({ isDayTime: false, backgroundImage: "", theme: 'dark' });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
-  
+
   // SPLASH STATE
-  const [isLoading, setIsLoading] = useState(true); 
-   
+  const [isLoading, setIsLoading] = useState(true);
+
   // Login State
   const [selectedRole, setSelectedRole] = useState<'supervisor' | 'pm' | 'employee' | null>(null);
   const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -1192,11 +1189,11 @@ export default function LandingPage() {
   return (
     <div className={`min-h-screen font-sans ${theme.isDayTime ? 'bg-gray-50 text-gray-900' : 'bg-[#050505] text-white'} transition-colors duration-500 selection:bg-blue-500 selection:text-white`}>
       <GlobalStyles theme={theme} />
-      
+
       {/* --- SPLASH SCREEN --- */}
       <AnimatePresence mode="wait">
         {isLoading && (
-          <MotionDiv 
+          <MotionDiv
             key="splash-screen"
             className={`fixed inset-0 z-[100] flex items-center justify-center overflow-hidden ${theme.isDayTime ? 'bg-gray-50' : 'bg-[#050505]'}`}
             // Background fade out slowly
@@ -1204,68 +1201,68 @@ export default function LandingPage() {
           >
             {/* Ripple Effects */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                {[...Array(3)].map((_, i) => (
-                    <MotionDiv
-                        key={i}
-                        className="absolute border border-blue-500/30 rounded-full"
-                        style={{ width: 150 + i * 80, height: 150 + i * 80 }}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ scale: [1, 1.1, 1], opacity: [0, 0.3, 0], rotate: [0, 90, 180] }}
-                        transition={{ duration: 3 + i, repeat: Infinity, ease: "easeInOut", repeatType: "mirror" }}
-                    />
-                ))}
+              {[...Array(3)].map((_, i) => (
+                <MotionDiv
+                  key={i}
+                  className="absolute border border-blue-500/30 rounded-full"
+                  style={{ width: 150 + i * 80, height: 150 + i * 80 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ scale: [1, 1.1, 1], opacity: [0, 0.3, 0], rotate: [0, 90, 180] }}
+                  transition={{ duration: 3 + i, repeat: Infinity, ease: "easeInOut", repeatType: "mirror" }}
+                />
+              ))}
             </div>
 
             {/* LOGO & TEXT CONTAINER */}
             <div className="relative flex flex-col items-center justify-center z-20">
-                {/* 1. LOGO BOX (SUMBER TRANSISI) */}
-                <MotionDiv 
-                    layoutId="techmaven-logo-shared" 
-                    className="relative w-32 h-32 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(37,99,235,0.4)] bg-white z-30 mb-6"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.8, type: "spring" }}
-                >
-                      <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-4" priority />
-                </MotionDiv>
+              {/* 1. LOGO BOX (SUMBER TRANSISI) */}
+              <MotionDiv
+                layoutId="techmaven-logo-shared"
+                className="relative w-32 h-32 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(37,99,235,0.4)] bg-white z-30 mb-6"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8, type: "spring" }}
+              >
+                <Image src="/TechMaven.png" alt="Logo" fill className="object-contain p-4" priority />
+              </MotionDiv>
 
-                {/* 2. TEKS MUNCUL DARI BAWAH (MASKING EFFECT) */}
-                <div className="overflow-hidden h-24 text-center">
-                    <MotionDiv
-                        initial={{ y: "100%" }} // Start hidden below
-                        animate={{ y: 0 }}      // Animate up
-                        exit={{ y: -50, opacity: 0, transition: { duration: 0.3 } }} // Fade out up
-                        transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                    >
-                        <MotionH1 className={`text-4xl font-black tracking-tight ${theme.isDayTime ? 'text-gray-900' : 'text-white'}`}>
-                            TechMaven
-                        </MotionH1>
-                        <MotionP className="text-sm text-blue-500 font-bold tracking-[0.3em] uppercase mt-2">
-                            Your Trust Monitoring
-                        </MotionP>
-                    </MotionDiv>
-                </div>
+              {/* 2. TEKS MUNCUL DARI BAWAH (MASKING EFFECT) */}
+              <div className="overflow-hidden h-24 text-center">
+                <MotionDiv
+                  initial={{ y: "100%" }} // Start hidden below
+                  animate={{ y: 0 }}      // Animate up
+                  exit={{ y: -50, opacity: 0, transition: { duration: 0.3 } }} // Fade out up
+                  transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <MotionH1 className={`text-4xl font-black tracking-tight ${theme.isDayTime ? 'text-gray-900' : 'text-white'}`}>
+                    TechMaven
+                  </MotionH1>
+                  <MotionP className="text-sm text-blue-500 font-bold tracking-[0.3em] uppercase mt-2">
+                    Your Trust Monitoring
+                  </MotionP>
+                </MotionDiv>
+              </div>
             </div>
           </MotionDiv>
         )}
       </AnimatePresence>
 
       {/* --- HEADER (TUJUAN TRANSISI) --- */}
-      <HeaderNav 
-        theme={theme} 
-        toggleTheme={toggleTheme} 
+      <HeaderNav
+        theme={theme}
+        toggleTheme={toggleTheme}
         setIsLoginModalOpen={() => { setSelectedRole(null); setIsLoginModalOpen(true); }}
         setIsRegistrationModalOpen={() => setIsRegistrationModalOpen(true)}
-        themeColors={themeColors} 
-        isSplashComplete={!isLoading} 
+        themeColors={themeColors}
+        isSplashComplete={!isLoading}
       />
 
       {/* --- MAIN CONTENT (FADE IN) --- */}
-      <MotionMain 
+      <MotionMain
         className="w-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: !isLoading ? 1 : 0 }}
-        transition={{ duration: 1, delay: 0.5 }} 
+        transition={{ duration: 1, delay: 0.5 }}
       >
         <OverviewView theme={theme} displayedText={displayedText} heroRef={heroRef} />
         {/* REPLACED MarqueeView WITH SponsorsMarquee */}
@@ -1276,12 +1273,12 @@ export default function LandingPage() {
         <PortfolioView theme={theme} />
         <ContactView theme={theme} />
       </MotionMain>
-      
+
       <Footer theme={theme} />
 
       {/* MODALS */}
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
+      <LoginModal
+        isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         selectedRole={selectedRole}
         onFastLogin={handleFastAccessLogin}
@@ -1295,7 +1292,7 @@ export default function LandingPage() {
       <RegistrationModal
         isOpen={isRegistrationModalOpen}
         onClose={() => setIsRegistrationModalOpen(false)}
-        onSuccess={() => {}}
+        onSuccess={() => { }}
         theme={theme}
       />
     </div>
